@@ -321,9 +321,9 @@ impl<'a> ClusterSpinOperators {
     }
 
     Ok(ClusterSpinOperators{
-        max_size,
+        max_size: max_size,
         spin_multiplicities: spin_multiplicities.clone(),
-        cluster_spin_ops,
+        cluster_spin_ops: cluster_spin_ops,
         })
   }
 
@@ -337,10 +337,11 @@ impl<'a> ClusterSpinOperators {
       return Err(err_str);
     }
 
-    for ispin_mult in &self.spin_multiplicities {
+    for (ii,ispin_mult) in self.spin_multiplicities.iter().enumerate() {
       let ispin_mult = *ispin_mult;
       if ispin_mult == spin_multiplicity {
-       let sop = self.cluster_spin_ops[ispin_mult]
+        
+       let sop = self.cluster_spin_ops[ii]
          .get(sop, op_pos,cluster_size)?;
        return Ok(sop);
       }

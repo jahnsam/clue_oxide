@@ -17,6 +17,7 @@
 
 //use clue_oxide::*;
 //use clue_oxide::quantum::*;
+//use clue_oxide::tensors::*;
 //extern crate matrix_oxide;
 //use matrix_oxide as mox;
 //use clue_oxide::phys::*;
@@ -43,9 +44,9 @@ println!("\n\n{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}",
 "#                           V                    V                           #\n",
 "#                                                                            #\n",
 "##############################################################################\n");
-    println!("CLuE  Copyright (C) 2022  Samuel M. Jahn");
+    println!("CLuE Copyright (C) 2022 Samuel M. Jahn");
     println!("This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.");
     println!("This is free software, and you are welcome to redistribute it");
-    println!("under certain conditions; type `show c' for details.");
+    println!("under certain conditions; type `show c' for details.\n");
 
 }
