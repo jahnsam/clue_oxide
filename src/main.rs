@@ -17,10 +17,10 @@
 
 //use clue_oxide::*;
 //use clue_oxide::quantum::*;
-//use clue_oxide::tensors::*;
+use clue_oxide::tensors::*;
 //extern crate matrix_oxide;
-//use matrix_oxide as mox;
-//use clue_oxide::phys::*;
+use matrix_oxide as mox;
+use clue_oxide::phys::*;
 
 fn main() {
 println!("\n\n{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}",
@@ -49,4 +49,11 @@ println!("\n\n{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}",
     println!("This is free software, and you are welcome to redistribute it");
     println!("under certain conditions; type `show c' for details.\n");
 
+
+  let gamma = GE*MUB/HBAR;
+  let gyro = mox::Mat::eye(3,3).scalar_multiply(gamma);   
+  let mag = mox::Mat::from(3,1,vec![0.0,0.0,1.2] );
+
+  let zeeman = construct_zeeman_tensor(&gyro, &mag).unwrap();
+  zeeman.print("Zeeman = ");
 }

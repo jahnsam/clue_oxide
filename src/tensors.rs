@@ -1,5 +1,18 @@
 use matrix_oxide as mox;
-//use super::phys::*;
+use matrix_oxide::Multiplication;
+use super::phys;
+
+use std::fs;
+use std::fs::File;
+use std::io::{Error, Write};
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+pub struct HamiltonianTensors{
+  spin_field: SpinFieldTensors,
+  spin_spin: SpinSpinTensors,
+
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 fn get_uppertriangle_index(row: usize, col: usize, dim: u32) -> usize {
   
@@ -56,6 +69,27 @@ impl<'a> SpinFieldTensors{
       None => None,  
     }
   }
+
+  pub fn write(&self, filename: &str) -> Result<(), Error>  {
+    let mut output = File::create(filename)?;
+
+    let number = self.tensors.len();
+
+    for ii in 0..number {
+      match &self.tensors[ii] {
+        Some(ten) => {
+          let line = format!("{} [{} {} {} {} {} {} {} {} {}]",
+              ii, ten[0], ten[1], ten[2], 
+                  ten[3], ten[4], ten[5], 
+                  ten[6], ten[7], ten[8]);
+          write!(output, "{}\n", line);
+        },
+        None => (),
+      }
+    }
+
+    Ok(())
+  }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -109,6 +143,70 @@ impl<'a> SpinSpinTensors{
     self.tensors[idx] = Some(ten);
     true
   }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+pub fn construct_zeeman_tensor(
+    gyromagnetic_ratio: &mox::Mat, 
+    magnetic_field: &mox::Mat) -> Result<mox::Mat,String> {
+
+  let magnetic_field = magnetic_field.trans();
+  let mut zeeman = magnetic_field.multiply( &gyromagnetic_ratio )?;
+  zeeman.scalar_multiply_mut( -phys::RADS_TO_HZ );
+  Ok(zeeman)
+}
+
+pub fn construct_hyperfine_tensor(
+    azz: f64, fc: f64, rot_hf2lab: &mox::Mat) -> Result<mox::Mat,String> {
+
+    if rot_hf2lab.n_rows() != 3 || rot_hf2lab.n_cols() != 3 {
+      let err_str = format!("hf to lab rotation matrix must be 3x3, not {}x{}",
+          rot_hf2lab.n_rows(), rot_hf2lab.n_cols());
+      return Err(err_str);
+    }
+
+    let ten_hf = mox::Mat::from(3,3, vec![-azz/2.0 +fc,      0.0, 0.0,
+                                          0.0, -azz/2.0 +fc, 0.0,
+                                          0.0,          0.0, azz +fc ]);
+
+
+   rot_hf2lab.multiply( &ten_hf.multiply(&rot_hf2lab.trans())? )
+}
+
+pub fn get_perpendicular_dipole_dipole_frequency(
+    gyromagnetic_ratio_1: f64,
+    gyromagnetic_ratio_2: f64,
+    r: f64
+    ) -> f64 {
+  phys::J_TO_HZ*
+  phys::MU0/(4.0*phys::PI)*gyromagnetic_ratio_1*gyromagnetic_ratio_2   
+  *phys::HBAR*phys::HBAR/r/r/r
+}
+
+pub fn construct_point_dipole_dipole_tensor(
+    gyromagnetic_ratio_1: f64,
+    gyromagnetic_ratio_2: f64,
+    delta_r: &mox::Mat
+    ) -> Result<mox::Mat, String> {
+
+  if delta_r.n_rows() != 3 || delta_r.n_cols() != 1 {
+    let err_str = format!("delta_r must be 3x1 not {}x{}", 
+        delta_r.n_rows(),delta_r.n_cols());
+    return Err(err_str);
+  } 
+  let r = delta_r.l2_norm()?;
+  
+  let n3nt = delta_r.multiply( &delta_r.trans() )?.scalar_multiply(3.0/r/r); 
+
+  let h_perp = get_perpendicular_dipole_dipole_frequency(gyromagnetic_ratio_1,
+      gyromagnetic_ratio_2,r);
+
+  let ten = &mox::Mat::eye(3,3) - &n3nt; 
+
+  Ok(ten)
+  
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
