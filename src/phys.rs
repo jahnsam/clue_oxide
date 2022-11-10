@@ -19,17 +19,3 @@ pub const GE: f64 = -2.00231930436256;
 pub const MU0: f64 = 1.25663706212e-6;
 pub const J_TO_HZ: f64 = 0.5/PI/HBAR;
 
-
-enum Element{
-  Electron,
-  Hydrogen,
-  Deuterium,
-  Helium,
-  Lithium,
-  Boron,
-  Carbon,
-  Nitrogen,
-  Oxygen,
-  Fluorine,
-  Neon,
-}
