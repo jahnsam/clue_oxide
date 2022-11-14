@@ -62,6 +62,24 @@ pub fn build_primary_structure(pdb: &PDB) -> Structure {
   primary_structure
 }
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+fn get_tunnel_splitting(idx_pdb: usize, pdb: &PDB, config: &Config) -> f64{
+
+  let specified_particle = specify_particle(idx_pdb,&pdb);
+
+  let specified_index = find_specifying_index(&specified_particle, &config);
+
+  config.particles.properties[specified_index].tunnel_splitting
+
+}
+
+//------------------------------------------------------------------------------
+fn get_methyl_hydrogens(idx_pdb: usize, pdb: &PDB) 
+  -> Option<[usize; 3]> {
+
+    let mut hydrogen_indices: [usize; 3] = [0; 3];
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 fn center_pdb_on_central_spin(pdb: &PDB, config: &Config) -> PDB{

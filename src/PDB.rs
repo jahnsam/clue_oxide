@@ -18,6 +18,7 @@ pub struct PDB{
   x: Vec<f64>,
   y: Vec<f64>,
   z: Vec<f64>,
+  connections: Vec<ConnectionInfo>,
 }
 
 
@@ -39,7 +40,8 @@ struct CoordinateInfo {
 }
 
 struct ConnectionInfo {
-  ids: Vec<u32>,
+  serials: Vec<u32>,
+  indices: Vec<usize>,
 }
 
 enum LineType {
@@ -105,6 +107,7 @@ impl PDB{
       Ok(count)
   }
   
+  //----------------------------------------------------------------------------
   pub fn read_pdb(filename: String) -> Result<PDB, Box<dyn Error> >{
       // Read lines.
       println!("Reading {}.", filename);
@@ -140,14 +143,17 @@ impl PDB{
           }
       }
   
+      pdb.set_connection_indices()
   
     Ok(pdb)
   }
   
+  //----------------------------------------------------------------------------
   pub fn number(&self) -> u32{
     self.x.len().try_into().unwrap()
   }
   
+  //----------------------------------------------------------------------------
   pub fn pos(&self,n: usize) -> [f64; 3]{
     [self.x[n],self.y[n], self.z[n] ]
   }
@@ -234,15 +240,63 @@ impl PDB{
   17 - 21        Integer        serial       Serial  number of bonded atom
   22 - 26        Integer        serial       Serial number of bonded atom
   27 - 31        Integer        serial       Serial number of bonded atom
+  */
   fn read_connetions_line(line: &str) -> LineType {
-    let line = line[6..].trim_end().len();
-    //let n_id:usize = ceil(line.len()/5);
+    let line = line[11..].trim_end();
+    
     let n_id:usize = (line.len() + 5 - 1)/5;
+    
+    let mut serials = Vec::<u32>::with_capacity(n_id);
+    let mut indices = Vec::<usize>::with_capacity(n_id);
+
+    let mut line_idx = 0;
+
+    while line_idx < line.len(){
+
+      let new_idx = std::cmp::min(line_idx+5, line.len());
+
+      let serial_id: u32 = line[line_idx..new_idx-1]
+        .trim().parse().expect("Could not parse CONECT line.");
+
+      serials.push(serial_id);
+      
+      // Initial guess for the index.
+      indices.push((serial_id-1) as usize);
+      
+      line_idx = new_idx;
+    }
+
     let ids = Vec::<u32>::with_capacity(n_id);
+
+    ConnectionInfo{
+      serials:
+      indices:
+    }
   
   }
-  */
+  //----------------------------------------------------------------------------
+  fn set_connection_indices(&mut self){
+
+    for ipdb in 0..self.number {
+      for (index, serial) in self.connections[ipdb].serials.iter().enumerate(){
+        self.connections.indics[index] = self.find_index(serial)
+          .expect("Could not find index."); 
+      }
+    }
+
+  }
+  //----------------------------------------------------------------------------
+  pub fn find_index(&self, serial: u32) -> Option<usize> {
   
+    for (index, value) in self.serial.iter().enumerate(){
+      if serial == value {
+        return Some(index);
+      }
+    }
+
+    None
+  }
+  //----------------------------------------------------------------------------
   fn parse_line(line: &str) -> LineType {
   
     if line.len() < 4 {
