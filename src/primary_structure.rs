@@ -1,103 +1,123 @@
-use super::pdb;
-use super::Structure;
-use matrix_oxide as mox;
+use super::config::*;
+use super::pdb::PDB;
+use super::vector3::Vector3;
 
 
+pub struct PrimaryStructure{
+  exchange_groups: Vec<ExchangeGroup>,
+  exchange_group_ids: Vec<Option<usize>>,
+  pdb_indices: Vec<usize>,
+  pdb: PDB,
+}
 
-pub fn build_primary_structure(pdb: &PDB) -> Structure {
+pub struct ExchangeGroup{
+  indices: Vec<usize>
+  exchange_coupling: f64
+}
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+impl PrimaryStructure {
+// This function takes in a pdb, and
+pub fn from(mut pdb: PDB, config: &Config) -> Self {
 
-  let pdb = center_pdb_central_spin(pdb);
+  let origin = get_electron_coordinates(&pdb, &config).unwrap();
+  pdb.set_origin(&origin);
 
-  let mut primary_structure = PrimaryStructure::with_capacity(pdb.number());
-  let mut methyl_counter = 0;
+  let number = determine_max_number_of_spinful_particles(&pdb,&config);
 
-  
-  let mut kept_atoms = vec![false; pdb.number()];
-  let mut exchange_groups = vec![0 as usize; pdb.number()];
-  let mut tunnel_splittings = Vec::<f64>::with_capacity(pdb.number());
-  let mut exchange_group_sizes = Vec::<usize>::with_capacity(pdb.number());
+  let mut pdb_indices = Vec::<usize>::with_capacity(number);
+
 
   for ipdb in 0..pdb.number(){
     
-    let element = Element::from(&pdb.element(ii));
-
-    if element == Element::Carbon{
-      // Flag the hydrogens.
-      match get_associated_hydrogens() {
-        Some(hydrogens) => {
-          
-          tunnel_splittings.push( get_tunnel_splitting(ipdb, &pdb, &config) );
-          
-          exchange_group_sizes.push(3);
-
-          methyl_counter += 1;
-
-          for ih in hydrogens{
-            let idx_h = find_in_pdb_serial(ih, &pdb);
-            exchange_groups[ih] = methyl_counter;
-          }
-
-        },
-        None => (),
-      }
-    }
-
-    if get_max_spin_multiplicity_for_any_isotope(element,config) == 1 {
+    
+    let element = pdb.element(ipdb);
+    if config.get_max_spin_multiplicity_for_any_isotope(element) == 1 {
       continue;
     }
+    
 
-
-    primary_structure.push_element(element, &pdb);
-    kept_atoms[ipdb] = true;
+    pdb_indices.push(ipdb);
 
   }
 
-  primary_structure.set_tunnel_splittings(tunnel_splittings);
-  primary_structure.set_number_exchange_groups(methyl_counter);
-  primary_structure.set_exchange_groups(exchange_groups);
-  primary_structure.set_exchange_group_ids(exchange_groups,kept_atoms);
-  primary_structure.trim();
-  primary_structure.set_pdb(pdb);
-
-  primary_structure
-}
-
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-fn get_tunnel_splitting(idx_pdb: usize, pdb: &PDB, config: &Config) -> f64{
-
-  let specified_particle = specify_particle(idx_pdb,&pdb);
-
-  let specified_index = find_specifying_index(&specified_particle, &config);
-
-  config.particles.properties[specified_index].tunnel_splitting
-
-}
-
-//------------------------------------------------------------------------------
-fn get_methyl_hydrogens(idx_pdb: usize, pdb: &PDB) 
-  -> Option<[usize; 3]> {
-
-    let mut hydrogen_indices: [usize; 3] = [0; 3];
-}
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-fn center_pdb_on_central_spin(pdb: &PDB, config: &Config) -> PDB{
-  let origin = get_electron_coordinates(&pdb, &config);
-
-  for ii in 0..pdb.number() {
-    pdb.x[ii] -= origin[0];
-    pdb.y[ii] -= origin[0];
-    pdb.z[ii] -= origin[0];
+  let exchange_groups = ExchangeGroup::from( pdb.find_methyls(), &config );
   
-  }
+  let exchange_group_ids = find_exchange_group_ids(
+      &pdb_indices, &exchange_groups);
 
-  pdb
+  PrimaryStructure{
+      exchange_groups,
+      exchange_group_ids,
+      pdb_indices,
+      pdb,
+  }
+}
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+impl ExchangeGroup{
+  pub fn from(methyls; Methyls, config: &Config) -> Vec<Self>{
+
+      for pdb_idx in exchange_groups[ii].indices{
+        let spin_idx = pdb_index_to_spin_index(pdb_idx);
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+fn find_exchange_group_ids(
+    pdb_indices: &Vec<usize>, exchange_groups: Vec<ExchangeGroup>) 
+  -> Vec<Option<usize>>{
+
+    let number = pdb_indices.len()
+    let mut exchange_group_ids = Vec::<Option<usize>>::with_capacity();
+    for _ii in 0..number{
+      exchange_group_ids.push(None);
+    }
+
+    for ii in exchange_groups.len() {
+
+      for spin_idx in exchange_groups[ii].indices{
+        exchange_group_ids[spin_idx] = Some(ii);  
+
+      }
+    
+    } 
+
 }
 
 //------------------------------------------------------------------------------
-fn get_electron_coordinates(pdb: &PDB, config: &Config) -> Vec::<f64>{
+
+fn determine_max_number_of_spinful_particles(pdb: &PDB,config: &Config) 
+  -> usize{
+  let mut counter = 0;  
+  for ipdb in 0..pdb.number(){
+    let element = pdb.element(ipdb);
+    if config.get_max_spin_multiplicity_for_any_isotope(element) > 1 {
+      counter += 1;
+    }
+  }
+  counter
+}
+//------------------------------------------------------------------------------
+fn get_electron_coordinates(pdb: &PDB, config: &Config) -> Option<Vector3>{
+
+  let coor = config.central_spin_coordinates.clone()?;
+
+  match coor{
+    CentralSpinCoordinates::Atoms(atoms) => Some(pdb.get_centroid(&atoms)),
+    CentralSpinCoordinates::XYZ(r) => Some(r), 
+  }
+
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+
+
+
 
 

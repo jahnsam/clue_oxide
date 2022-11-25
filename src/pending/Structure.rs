@@ -1,3 +1,11 @@
+pub struct Structure{ 
+  number: usize,
+  particles: Vec::<Particle>,
+  pdb_indices: Vec::<usize>,
+  pdb: PDB,
+  number_unit_cells: usize,
+}
+
 pub struct Structure{
   number: usize,
   coordinates: mox::Mat,

@@ -1,43 +1,24 @@
-//use super::ParticleSpecifier;
-use super::vector3::*;
+use super::ParticleSpecifier;
 
-#[derive(Debug,Clone)]
 pub struct Config{
-  pub radius: f64,
-  pub inner_radius: f64,
-  //max_number_of_cells: usize,
-  //pbc_style: PBCStyle,
-  //error_tolerance: f64,
-  pub magnetic_field: Vector3,
-  pub central_spin_coordinates: Option<CentralSpinCoordinates>,
-  //use_periodic_boundary_conditions: bool,
-  //isotope_abundances: IsotopeAbundaces,
-  //particles: Vec::<SpecifiedParticleProperties>
+
+  radius: f64,
+  inner_radius: f64,
+  max_number_of_cells: usize,
+  pbc_style: PBCStyle,
+  error_tolerance: f64,
+  magnetic_field: Vec::<f64>,
+  central_spin_coordinates: CentralSpinCoordinates,
+  use_periodic_boundary_conditions: bool,
+  isotope_abundances: IsotopeAbundaces,
+  particles: Vec::<SpecifiedParticleProperties>
 }
 
-impl Default for Config{
-  fn default() -> Self {
-    Config{
-      radius: f64::INFINITY,
-      inner_radius: 0.0,
-      magnetic_field: Vector3::from([0.0, 0.0, 1.2]),
-      central_spin_coordinates: None,
-    }
-  }
-}
-
-impl Config{
-  pub fn new() -> Self{
-    Default::default()
-  }
-}
-#[derive(Debug,Clone)]
-pub enum CentralSpinCoordinates{
+enum CentralSpinCoordinate{
   Atoms (Vec::<u32>),
-  XYZ (Vector3),
+  XYZ (f64, f64, f64),
 }
 
-/*
 
 pub enum PBCSyle{
   CRYST1,
@@ -100,4 +81,3 @@ impl IsotopeInfo{
 
   }
 }
-*/
