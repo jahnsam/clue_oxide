@@ -1,4 +1,6 @@
-//use super::ParticleSpecifier;
+use super::particle_config::{ParticleConfig,find_particle_configs};
+use super::particle_specifier::SpecifiedParticle;
+use super::physical_constants::*;
 use super::vector3::*;
 
 #[derive(Debug,Clone)]
@@ -11,8 +13,7 @@ pub struct Config{
   pub magnetic_field: Vector3,
   pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
-  //isotope_abundances: IsotopeAbundaces,
-  //particles: Vec::<SpecifiedParticleProperties>
+  particles: Vec::<ParticleConfig>,
 }
 
 impl Default for Config{
@@ -22,6 +23,7 @@ impl Default for Config{
       inner_radius: 0.0,
       magnetic_field: Vector3::from([0.0, 0.0, 1.2]),
       central_spin_coordinates: None,
+      particles: Vec::<ParticleConfig>::new(),
     }
   }
 }
@@ -30,6 +32,29 @@ impl Config{
   pub fn new() -> Self{
     Default::default()
   }
+  //----------------------------------------------------------------------------
+
+  pub fn get_max_spin_multiplicity_for_any_isotope(&self, element: Element)
+    -> usize{
+
+      let mut target = SpecifiedParticle::new();
+      target.element = Some(element);
+
+      let found_configs = find_particle_configs(&target, &self.particles);
+
+      let mut max_spin_multiplicity = 1;
+
+      for particle_config in found_configs{
+        for iso_abu in &particle_config
+          .config.isotopic_distribution.isotope_abundances{
+
+          max_spin_multiplicity = max_spin_multiplicity.max(
+              iso_abu.isotope.spin_multiplicity() );
+        }
+      }
+
+      max_spin_multiplicity
+    }
 }
 #[derive(Debug,Clone)]
 pub enum CentralSpinCoordinates{
@@ -37,67 +62,9 @@ pub enum CentralSpinCoordinates{
   XYZ (Vector3),
 }
 
-/*
 
+#[derive(Debug,Clone)]
 pub enum PBCSyle{
   CRYST1,
   TIGHT,
 }
-
-struct SpecifiedParticleProperties{
-  specifiers: ParticleSpecifier,
-  properties: ParticleConfigProperties,
-}
-
-struct ParticleConfigProperties{
-  isotopes: IsotopeInfo,
-  tunnel_splitting:  f64,
-}
-
-impl ParticleConfigProperties{
-  fn new() -> ParticleConfigProperties {
- 
-    let isotopes = most_common_isotopes();
-    let abundaces = vec![vec![1.0]; isotopes.len()];
-    let isotope_info = IsotopeInfo::new(isotopes, abundances);
-
-    ParticleConfigProperties{
-      isotopes: isotope_info,
-      tunnel_splitting:  0.0,
-    }
-  }
-}
-
-struct IsotopeInfo{
-particles: Vec::<Vec::<Particles>>,
-  abundances: Vec::<Vec::<f64>>,
-  force_no_pbc: bool,
-  extracell_void_probability: f64,
-}
-
-impl IsotopeInfo{
-  fn new(partilce_switch_list: Vec::<Particle>, probabilities: Vec::<f64>) 
-    -> Result<IsotopeInfo, TODO_ERROR> {
-
-      if partilce_switch_list,len() != probabilities.len() {
-        return Err();
-      }
-
-      if sum(probabilities) != 1.0 {
-        return Err();
-      }
-
-      if !all_positive(probabilities) {
-        return Err();
-      }
-      
-      Ok(IsotopeInfo{
-          particles: particles,
-          abundances: probabilities,
-          force_no_pbc: false,
-          extracell_void_probability: 0.0,
-          })
-
-  }
-}
-*/

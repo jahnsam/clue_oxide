@@ -12,9 +12,11 @@ pub struct PDB{
   number: usize,
   crystal: CrystalInfo,
   serials: Vec<u32>,
+  residues: Vec<String>,
   elements: Vec<Element>,
   coordinates: Vec<Vector3>,
   connections: Vec<ConnectionInfo>,
+  residue_sequence_numbers: Vec<u32>,
 }
 
 
@@ -34,10 +36,13 @@ pub fn read_pdb(filename: &str) -> Result<PDB, Box<dyn Error> >{
               match linetype {
                 LineType::CoordinateLine(coor_info) =>{
                   pdb.serials.push(coor_info.serial);
+                  pdb.residues.push(coor_info.residue);
                   pdb.elements.push(coor_info.element);
                   pdb.coordinates.push(
                         coor_info.coordinates,
-                  )
+                  );
+                  pdb.residue_sequence_numbers.push(
+                      coor_info.residue_sequence_number);
                 },
                 LineType::CrystalLine(crystal) => {
                   pdb.crystal = crystal;
@@ -73,8 +78,10 @@ impl PDB{
         gamma: 0.0,},
       elements: Vec::<Element>::with_capacity(n_atoms),
       serials: Vec::<u32>::with_capacity(n_atoms),
+      residues: Vec::<String>::with_capacity(n_atoms),
       coordinates: Vec::<Vector3>::with_capacity(n_atoms),
       connections: Vec::<ConnectionInfo>::with_capacity(n_atoms),
+      residue_sequence_numbers: Vec::<u32>::with_capacity(n_atoms),
     }
   }
     
@@ -115,7 +122,7 @@ impl PDB{
   }
   //----------------------------------------------------------------------------
   pub fn residue(&self, n: usize) -> String{
-    panic!("not implemented");
+    self.residues[n].clone()
   }
   //----------------------------------------------------------------------------
   pub fn element(&self, n: usize) -> Element {
@@ -123,7 +130,7 @@ impl PDB{
   }
   //----------------------------------------------------------------------------
   pub fn residue_sequence_number(&self, n: usize) -> u32{
-    panic!("not implemented");
+    self.residue_sequence_numbers[n]
   }
   //----------------------------------------------------------------------------
   pub fn crystal_a(&self) -> f64 {self.crystal.a}
@@ -276,8 +283,10 @@ struct CrystalInfo{
 #[derive(Debug, Clone)]
 struct CoordinateInfo {
   serial: u32,
+  residue: String,
   coordinates: Vector3,
   element: Element,
+  residue_sequence_number: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -348,13 +357,18 @@ fn read_coordinate_line(line: &str) -> LineType {
   let y: f64 = line[38..=45].trim().parse().expect("no y");
   let z: f64 = line[46..=53].trim().parse().expect("no z");
   let element = Element::from(line[76..=77].trim()).unwrap();
+  let residue: String = line[17..=19].trim().parse().expect("no residue");
+  let residue_sequence_number: u32 = line[22..=25].trim().parse()
+    .expect("no residue sequence number");
  
   let coordinates = Vector3::from([x,y,z]);
 
   let coor_info = CoordinateInfo{
     serial,
+    residue,
     coordinates,
     element: element,  
+    residue_sequence_number: residue_sequence_number,
   };
 
   LineType::CoordinateLine(coor_info)
@@ -460,7 +474,12 @@ mod tests {
     assert_eq!(pdb.number,29);
     assert_eq!(pdb.number,pdb.coordinates.len());
     assert_eq!(pdb.number,pdb.elements.len());
+    assert_eq!(Element::Nitrogen,pdb.elements[27]);
     assert_eq!(pdb.number,pdb.serials.len());
+    assert_eq!(pdb.number,pdb.residues.len());
+    assert_eq!("TEM",pdb.residues[0] );
+    assert_eq!(pdb.number,pdb.residue_sequence_numbers.len());
+    assert_eq!(1 ,pdb.residue_sequence_numbers[0]);
   }
   //----------------------------------------------------------------------------
   #[test]

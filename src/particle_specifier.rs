@@ -1,8 +1,8 @@
 use super::physical_constants::*;
 use super::pdb::PDB;
 
-
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone)]
 pub struct SpecifiedParticle{
   pub serial: Option<u32>,
   pub residue: Option<String> ,
@@ -11,8 +11,8 @@ pub struct SpecifiedParticle{
   pub distance: Option<f64>,
 }
 //------------------------------------------------------------------------------
-impl SpecifiedParticle{
-  fn new() -> Self{
+impl Default for SpecifiedParticle{
+  fn default() -> Self{
       SpecifiedParticle{
         serial: None,
         residue: None,
@@ -21,6 +21,10 @@ impl SpecifiedParticle{
         distance: None,
       }
   }
+}
+//------------------------------------------------------------------------------
+impl SpecifiedParticle{
+  pub fn new() -> Self {Default::default()}
   //----------------------------------------------------------------------------
   pub fn specify(pdb_idx: usize, pdb: &PDB) -> Self{
       SpecifiedParticle{
@@ -36,6 +40,7 @@ impl SpecifiedParticle{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone)]
 pub struct ParticleSpecifier{
   pub serials: Vec::<u32>,
   pub not_serials: Vec::<u32>,
@@ -91,9 +96,9 @@ impl PartialEq<ParticleSpecifier> for ParticleSpecifier {
 
 //------------------------------------------------------------------------------
 
-impl ParticleSpecifier{
+impl Default for ParticleSpecifier{
 
-    fn new() -> Self{
+    fn default() -> Self{
       ParticleSpecifier{
         serials: Vec::<u32>::new(),
         not_serials: Vec::<u32>::new(),
@@ -112,7 +117,12 @@ impl ParticleSpecifier{
        
       }
     }
+}
 
+//------------------------------------------------------------------------------
+impl ParticleSpecifier{
+
+  pub fn new() -> Self {Default::default()}
   //----------------------------------------------------------------------------
   pub fn covers(&self, target: &SpecifiedParticle) -> bool {
     
@@ -153,8 +163,8 @@ impl ParticleSpecifier{
 
       // Distances
       if let Some(r) = target.distance{
-        if r < self.max_distance { return false;}
-        if r > self.min_distance { return false;}
+        if r > self.max_distance { return false;}
+        if r < self.min_distance { return false;}
       }
 
     true
@@ -192,5 +202,83 @@ fn is_excluded<T: std::cmp::PartialEq>
   }
 
   false
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[cfg(test)]
+mod tests{
+  use super::*;
+
+  #[test]
+  fn test_covers(){
+    let mut specifier = ParticleSpecifier::new();
+    let mut target = SpecifiedParticle::new();
+
+    // Elements
+    target.element = Some(Element::Hydrogen);
+    assert!(specifier.covers(&target));
+
+    specifier.elements.push(Element::Nitrogen);
+    assert!(!specifier.covers(&target));
+
+    specifier.elements.push(Element::Hydrogen);
+    assert!(specifier.covers(&target));
+
+    // Distances
+    target.distance = Some(1.0);
+    assert!(specifier.covers(&target));
+
+    specifier.min_distance = 2.0;
+    assert!(!specifier.covers(&target));
+
+    target.distance = Some(3.0);
+    assert!(specifier.covers(&target));
+
+    specifier.max_distance = 2.5;
+    assert!(!specifier.covers(&target));
+
+    target.distance = Some(2.4);
+    assert!(specifier.covers(&target));
+
+    // Serials
+    specifier.serials = vec![1,2,4,8];
+    assert!(specifier.covers(&target));
+
+    target.serial = Some(16);
+    assert!(!specifier.covers(&target));
+
+    specifier.serials.push(16);
+    assert!(specifier.covers(&target));
+
+    // Residues
+    target.residue = Some(String::from("SOL"));
+    assert!(specifier.covers(&target));
+    
+    specifier.residues.push(String::from("WAT"));
+    assert!(!specifier.covers(&target));
+
+    specifier.residues.push(String::from("SOL"));
+    assert!(specifier.covers(&target));
+
+    // Residue Sequence Numbers
+    specifier.residue_sequence_numbers = vec![1,3,5];
+    assert!(specifier.covers(&target));
+
+    target.residue_sequence_number = Some(2);
+    assert!(!specifier.covers(&target));
+
+    specifier.residue_sequence_numbers.push(7);
+    assert!(!specifier.covers(&target));
+
+    specifier.residue_sequence_numbers.push(5);
+    assert!(!specifier.covers(&target));
+
+    specifier.residue_sequence_numbers.push(2);
+    assert!(specifier.covers(&target));
+
+  }
+
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

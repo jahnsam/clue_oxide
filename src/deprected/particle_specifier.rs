@@ -1,5 +1,57 @@
 use super::physical_constants::*;
+use super::pdb::PDB;
 
+// TODO: move this function to find ParticleSpecifier, Property pairs.
+pub fn find_specifiers<'a>(
+    target: &SpecifiedParticle,
+    specifiers: &'a Vec::<ParticleSpecifier>) 
+  -> Vec::<&'a ParticleSpecifier>{
+
+    let mut found_specifiers = Vec::<&ParticleSpecifier>::with_capacity(
+        specifiers.len());
+
+    for ii in 0..specifiers.len(){
+      if specifiers[ii].covers(target){
+        found_specifiers.push(&specifiers[ii]);
+      }
+    }
+
+    found_specifiers
+}
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+pub struct SpecifiedParticle{
+  pub serial: Option<u32>,
+  pub residue: Option<String> ,
+  pub element: Option<Element> ,
+  pub residue_sequence_number: Option<u32>,
+  pub distance: Option<f64>,
+}
+//------------------------------------------------------------------------------
+impl SpecifiedParticle{
+  pub fn new() -> Self{
+      SpecifiedParticle{
+        serial: None,
+        residue: None,
+        element: None,
+        residue_sequence_number: None,
+        distance: None,
+      }
+  }
+  //----------------------------------------------------------------------------
+  pub fn specify(pdb_idx: usize, pdb: &PDB) -> Self{
+      SpecifiedParticle{
+        serial: Some(pdb.serial(pdb_idx)),
+        residue: Some(pdb.residue(pdb_idx)) ,
+        element: Some(pdb.element(pdb_idx)),
+        residue_sequence_number: Some(pdb.residue_sequence_number(pdb_idx)) ,
+        distance: Some(pdb.pos(pdb_idx).magnitude()),
+      }
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct ParticleSpecifier{
   pub serials: Vec::<u32>,
   pub not_serials: Vec::<u32>,
@@ -16,28 +68,48 @@ pub struct ParticleSpecifier{
   pub max_distance: f64,
   pub min_distance: f64,
 }
-
-pub struct SpecifiedParticle{
-  pub serial: Option<u32>,
-  pub residues: Option<String> ,
-  pub elements: Option<Element> ,
-  pub residue_sequence_number: Option<u32>,
-  pub distance: Option<f64>,
-}
-impl SpecifiedParticle{
-  pub fn new(pdb_idx: usize, pdb: &PDB) -> Self{
-      SpecifiedParticle{
-        serial: Some(pdb.serial(pdb_idx)),
-        residue: Some(pdb.residue(pdb_idx)) ,
-        element: Some(pdb.element(pdb_idx)),
-        residue_sequence_number: Some(pdb.residue_sequence_number(pdb_idx)) ,
-        distance: pdb.pos(pdb_idx).magnitude(),
-      }
-  }
-}
+//------------------------------------------------------------------------------
 
 impl PartialEq<ParticleSpecifier> for ParticleSpecifier {
-    pub fn new() -> Self{
+    fn eq(&self, other: &ParticleSpecifier) -> bool {
+
+      // Serials
+      if !are_vecs_equal(&self.serials, &other.serials){
+        return false;
+      }
+
+      // Residues
+      if !are_vecs_equal(&self.residues, &other.residues){
+        return false;
+      }
+
+
+      // Elements
+      if !are_vecs_equal(&self.elements, &other.elements){
+        return false;
+      }
+
+
+      // Residue Sequence Numbers
+      if !are_vecs_equal(&self.residue_sequence_numbers, 
+          &other.residue_sequence_numbers){
+        return false;
+      }
+
+
+      // Distances
+      if self.max_distance != other.max_distance{ return false;}
+      if self.min_distance != other.min_distance{ return false;}
+
+      true
+    }
+}
+
+//------------------------------------------------------------------------------
+
+impl Default for ParticleSpecifier{
+
+    fn default() -> Self{
       ParticleSpecifier{
         serials: Vec::<u32>::new(),
         not_serials: Vec::<u32>::new(),
@@ -56,185 +128,199 @@ impl PartialEq<ParticleSpecifier> for ParticleSpecifier {
        
       }
     }
-
-    //--------------------------------------------------------------------------
-
-    pub fn specify(pdb_idx: usize, pdb: &PDB) -> Self{
-
-      let r = pdb.pos(pdb_idx).magnitude();
-
-      ParticleSpecifier{
-        serials: Vec::<u32>::from([pdb.serial(pdb_idx)]),
-        not_serials: Vec::<u32>::from([pdb.serial(pdb_idx)]),
-  
-        residues: Vec::<String>::from(pdb.residue(pdb_idx)); ,
-        not_residues: Vec::<String>::from(pdb.residue(pdb_idx)); ,
-  
-        elements: Vec::<Element>::from([pdb.element(pdb_idx)]) ,
-        not_elements: Vec::<Element>::from([pdb.element(pdb_idx)]) ,
-  
-        residue_sequence_numbers: Vec::<u32>::from(
-            [pdb.residue_sequence_number(pdb_idx)]) ,
-        not_residue_sequence_numbers: Vec::<u32>::from([
-            [pdb.residue_sequence_number(pdb_idx)]) ,
-  
-        max_distance: r,
-        min_distance: r,
-       
-      }
-    }
-
-    //--------------------------------------------------------------------------
-    fn eq(&self, other: &ParticleSpecifier) -> bool {
-
-      if self.serials.len() != other.serials.len()
-        || self.not_serials.len() != other.not_serials.len()
-        || self.residues.len() != other.residues.len()
-        || self.not_residues.len() != other.not_residues.len()
-        || self.elementss.len() != other.elementss.len()
-        || self.residue_sequence_numbers.len() 
-          != other.residue_sequence_numbers.len()
-        || self.not_residue_sequence_numbers.len() 
-          != other.not_residue_sequence_numbers.len()
-      {
-        return false;
-      }
-
-      // Serials
-      for ii in 0..self.serials.len() {
-        if self.serials[ii] != other.serials[ii]{
-          return false;
-        }
-      }
-      for ii in 0..self.not_serials.len() {
-        if self.not_serials[ii] != other.not_serials[ii]{
-          return false;
-        }
-      }
-      
-      // Residues
-      for ii in 0..self.residues.len() {
-        if self.residues[ii] != other.residues[ii]{
-          return false;
-        }
-      }
-      for ii in 0..self.not_residues.len() {
-        if self.not_residues[ii] != other.not_residues[ii]{
-          return false;
-        }
-      }
-      
-
-      // Elements
-      for ii in 0..self.elements.len() {
-        if self.elements[ii] != other.elements[ii]{
-          return false;
-        }
-      }
-      for ii in 0..self.elements.len() {
-        if self.not_elements[ii] != other.not_elements[ii]{
-          return false;
-        }
-      }
-
-      // Residue Sequence Numbers
-      for ii in 0..self.residue_sequence_numbers.len() {
-        if self.residue_sequence_numbers[ii] 
-          != other.residue_sequence_numbers[ii]{
-          return false;
-        }
-      }
-      for ii in 0..self.not_residue_sequence_numbers.len() {
-        if self.not_residue_sequence_numbers[ii] 
-          != other.not_residue_sequence_numbers[ii]{
-          return false;
-        }
-      }
-
-      // Distances
-      if self.max_distance != other.max_distance{ return false;}
-      if self.min_distance != other.min_distance{ return false;}
-
-      true
-    }
 }
 
+//------------------------------------------------------------------------------
 impl ParticleSpecifier{
 
-  pub fn covers(&self, other: &ParticleSpecifier) -> bool {
+  pub fn new() -> Self {ParticleSpecifier::default()}
+  //----------------------------------------------------------------------------
+  pub fn covers(&self, target: &SpecifiedParticle) -> bool {
     
-    let mut does_cover = true;
-    let mut does_serials_cover = false;
-
     // Serials
-    does_cover &= other.serials.len() == 0;
-    'outer: for value0 in &self.serials {
-      for value1 in &other.serials {
-        does_cover |= *value0 == *value;
-        if does_cover { break 'outer; }
-      }
-    } 
-    if !does_cover{ return false; }
+    if let Some(target_value) = target.serial{
 
-    for value0 in &self.not_serials {
-      for value1 in &other.not_serials {
-         if *value0 == *value{ return false; }
-      }
+      if !does_cover(target_value,&self.serials)
+        || is_excluded(target_value, &self.not_serials){
+          return false;
+        }
     }
     
     // Residues
-    does_residues_cover &= other.residues.len() == 0;
-    'outer: for value0 in &self.residues {
-      for value1 in &other.residues {
-        does_cover |= *value0 == *value;
-        if does_cover { break 'outer; }
-      }
-    }
-    if !does_cover{ return false; }
-
-    for value0 in &self.not_residues {
-      for value1 in &other.not_residues {
-         if *value0 == *value{ return false; }
-      }
+    if let Some(target_value) = target.residue.clone(){
+      if !does_cover(target_value.clone(),&self.residues)
+        || is_excluded(target_value, &self.not_residues){
+          return false;
+        }
     }
     
     // Elements
-    does_cover &= other.elements.len() == 0;
-    'outer: for value0 in &self.elements {
-      for value1 in &other.elements {
-        does_cover |= *value0 == *value;
-        if does_cover { break 'outer; }
-      }
+    if let Some(target_value) = target.element{
+      if !does_cover(target_value,&self.elements)
+        || is_excluded(target_value, &self.not_elements){
+          return false;
+        }
     }
-    if !does_cover{ return false; }
-
-    for value0 in &self.not_elements {
-      for value1 in &other.not_elements {
-         if *value0 == *value{ return false; }
-      }
-    }
+    
         
     // Residue Sequence Numbers
-    does_cover &= other.residue_sequence_numbers.len() == 0;
-    'outer: for value0 in &self.residue_sequence_numbers {
-      for value1 in &other.residue_sequence_numbers {
-        does_cover |= *value0 == *value;
-        if does_cover { break 'outer; }
-      }
+    if let Some(target_value) = target.residue_sequence_number{
+      if !does_cover(target_value,&self.residue_sequence_numbers)
+        || is_excluded(target_value, &self.not_residue_sequence_numbers){
+          return false;
+        }
     }
-    if !does_cover{ return false; }
-
-    for value0 in &self.not_residue_sequence_numbers {
-      for value1 in &other.not_residue_sequence_numbers {
-         if *value0 == *value{ return false; }
-      }
-    }
+    
 
       // Distances
-      if self.max_distance > other.max_distance{ return false;}
-      if self.min_distance < other.min_distance{ return false;}
+      if let Some(r) = target.distance{
+        if r > self.max_distance { return false;}
+        if r < self.min_distance { return false;}
+      }
 
-
-    does_cover
+    true
   }
 }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+fn are_vecs_equal<T: std::cmp::PartialEq>
+(vec0: &Vec::<T>, vec1: &Vec::<T>)-> bool{
+  if vec0.len() != vec1.len() {return false;}
+
+  for ii in 0..vec0.len(){
+    if vec0[ii] != vec1[ii]{ return false;}
+  }
+  true
+}
+//------------------------------------------------------------------------------
+fn does_cover<T: std::cmp::PartialEq>
+(target_value: T, filter_values: &Vec::<T> ) -> bool {
+  let mut doescover = filter_values.len()==0;
+  for filter_value in filter_values {
+    doescover |= *filter_value == target_value;
+     if doescover { break; }
+  }
+  doescover
+}
+//------------------------------------------------------------------------------
+fn is_excluded<T: std::cmp::PartialEq>
+(target_value: T, excluded_values: &Vec::<T>) -> bool
+{
+  for exclude_value in excluded_values{
+    if target_value == *exclude_value { return true;}
+  }
+
+  false
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[cfg(test)]
+mod tests{
+  use super::*;
+  use super::super::pdb::read_pdb;
+  #[test]
+  fn test_covers(){
+    let mut specifier = ParticleSpecifier::new();
+    let mut target = SpecifiedParticle::new();
+
+    // Elements
+    target.element = Some(Element::Hydrogen);
+    assert!(specifier.covers(&target));
+
+    specifier.elements.push(Element::Nitrogen);
+    assert!(!specifier.covers(&target));
+
+    specifier.elements.push(Element::Hydrogen);
+    assert!(specifier.covers(&target));
+
+    // Distances
+    target.distance = Some(1.0);
+    assert!(specifier.covers(&target));
+
+    specifier.min_distance = 2.0;
+    assert!(!specifier.covers(&target));
+
+    target.distance = Some(3.0);
+    assert!(specifier.covers(&target));
+
+    specifier.max_distance = 2.5;
+    assert!(!specifier.covers(&target));
+
+    target.distance = Some(2.4);
+    assert!(specifier.covers(&target));
+
+    // Serials
+    specifier.serials = vec![1,2,4,8];
+    assert!(specifier.covers(&target));
+
+    target.serial = Some(16);
+    assert!(!specifier.covers(&target));
+
+    specifier.serials.push(16);
+    assert!(specifier.covers(&target));
+
+    // Residues
+    target.residue = Some(String::from("SOL"));
+    assert!(specifier.covers(&target));
+    
+    specifier.residues.push(String::from("WAT"));
+    assert!(!specifier.covers(&target));
+
+    specifier.residues.push(String::from("SOL"));
+    assert!(specifier.covers(&target));
+
+    // Residue Sequence Numbers
+    specifier.residue_sequence_numbers = vec![1,3,5];
+    assert!(specifier.covers(&target));
+
+    target.residue_sequence_number = Some(2);
+    assert!(!specifier.covers(&target));
+
+    specifier.residue_sequence_numbers.push(7);
+    assert!(!specifier.covers(&target));
+
+    specifier.residue_sequence_numbers.push(5);
+    assert!(!specifier.covers(&target));
+
+    specifier.residue_sequence_numbers.push(2);
+    assert!(specifier.covers(&target));
+
+  }
+
+  #[test]
+  fn test_find_specifier(){
+    let filename = "./assets/TEMPO.pdb";
+    let mut pdb = read_pdb(filename).expect("Could not read pdb file.");  
+
+    assert_eq!(Element::Nitrogen,pdb.element(27));
+    let target = SpecifiedParticle::specify(27, &pdb);
+
+
+    let number = 3;
+    let mut specifiers = Vec::<ParticleSpecifier>::with_capacity(number);
+    for ii in 0..number{
+      specifiers.push(ParticleSpecifier::new());
+    }
+
+    specifiers[1].elements.push(Element::Hydrogen);
+    specifiers[2].elements.push(Element::Nitrogen);
+
+    let found_specifiers = find_specifiers(&target, &specifiers);
+    assert_eq!(2,found_specifiers.len());
+
+    for ii in 0..found_specifiers.len() {
+      assert!(found_specifiers[ii].covers(&target));
+    }
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+
+
+
+
