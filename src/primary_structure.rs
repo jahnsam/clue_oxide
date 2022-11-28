@@ -1,4 +1,5 @@
 use super::config::*;
+use super::clue_errors::*;
 use super::pdb::PDB;
 use super::vector3::Vector3;
 
@@ -10,17 +11,19 @@ pub struct PrimaryStructure{
   pdb: PDB,
 }
 
+/*
 #[derive(Debug,Clone)]
 pub struct ExchangeGroup{
   indices: Vec<usize>,
   exchange_coupling: f64,
 }
+*/
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl PrimaryStructure {
 // This function takes in a pdb, and
-pub fn from(mut pdb: PDB, config: &Config) -> Self {
+pub fn from(mut pdb: PDB, config: &Config) -> Result<Self,CluEError> {
 
-  let origin = get_electron_coordinates(&pdb, &config).unwrap();
+  let origin = get_electron_coordinates(&pdb, &config)?;
   pdb.set_origin(&origin);
 
   let number = determine_max_number_of_spinful_particles(&pdb,&config);
@@ -46,12 +49,12 @@ pub fn from(mut pdb: PDB, config: &Config) -> Self {
   //let exchange_group_ids = find_exchange_group_ids(
   //    &pdb_indices, &exchange_groups);
 
-  PrimaryStructure{
+  Ok(PrimaryStructure{
       //exchange_groups,
       //exchange_group_ids,
       pdb_indices,
       pdb,
-  }
+  })
 }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -60,7 +63,7 @@ pub fn from(mut pdb: PDB, config: &Config) -> Self {
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /*
 impl ExchangeGroup{
-  pub fn from(methyls; Methyls, config: &Config) -> Vec<Self>{
+  pub fn from(methyls: Methyls, config: &Config) -> Vec<Self>{
 
       for pdb_idx in exchange_groups[ii].indices{
         let spin_idx = pdb_index_to_spin_index(pdb_idx);
@@ -108,13 +111,15 @@ fn determine_max_number_of_spinful_particles(pdb: &PDB,config: &Config)
   counter
 }
 //------------------------------------------------------------------------------
-fn get_electron_coordinates(pdb: &PDB, config: &Config) -> Option<Vector3>{
+fn get_electron_coordinates(pdb: &PDB, config: &Config) 
+  -> Result<Vector3, CluEError>{
 
-  let coor = config.central_spin_coordinates.clone()?;
+  let coor = config.central_spin_coordinates.clone();
 
   match coor{
-    CentralSpinCoordinates::Atoms(atoms) => Some(pdb.get_centroid(&atoms)),
-    CentralSpinCoordinates::XYZ(r) => Some(r), 
+    Some(CentralSpinCoordinates::Atoms(atoms)) => Ok(pdb.get_centroid(&atoms)),
+    Some(CentralSpinCoordinates::XYZ(r)) => Ok(r), 
+    _ => Err(CluEError::NoCentralSpinCoor)
   }
 
 }
@@ -123,6 +128,38 @@ fn get_electron_coordinates(pdb: &PDB, config: &Config) -> Option<Vector3>{
 
 
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[cfg(test)]
+mod tests{
+  use super::*;
+  use super::super::pdb::*;
+  use super::super::physical_constants::*;
 
+  #[test]
+  #[allow(non_snake_case)]
+  fn test_PrimaryStructure() {
+    let filename = "./assets/TEMPO.pdb";
+    let mut pdb = read_pdb(filename).expect("Could not read pdb file.");
+    let r0 = pdb.get_centroid(&vec![28,29]);
+    pdb.set_origin(&r0);
+
+    let mut config = Config::new();
+
+
+    config.central_spin_coordinates = Some(
+        CentralSpinCoordinates::Atoms(vec![28,29]) );
+
+    let structure = PrimaryStructure::from(pdb, &config)
+      .unwrap_or_else(|e| { panic!("error = {:?}",e);});
+
+    assert_eq!(structure.pdb_indices.len(),19);
+    assert_eq!(structure.pdb.element(structure.pdb_indices[0]),
+        Element::Hydrogen);
+    assert_eq!(structure.pdb.element(structure.pdb_indices[18]),
+        Element::Nitrogen);
+
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

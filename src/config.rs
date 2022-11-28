@@ -1,7 +1,11 @@
-use super::particle_config::{ParticleConfig,find_particle_configs};
+use strum::IntoEnumIterator;
+
+use super::particle_config::*;
 use super::particle_specifier::SpecifiedParticle;
 use super::physical_constants::*;
 use super::vector3::*;
+
+
 
 #[derive(Debug,Clone)]
 pub struct Config{
@@ -13,17 +17,33 @@ pub struct Config{
   pub magnetic_field: Vector3,
   pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
-  particles: Vec::<ParticleConfig>,
+  pub particles: Vec::<ParticleConfig>,
 }
 
 impl Default for Config{
   fn default() -> Self {
+    let mut particles = Vec::<ParticleConfig>::new();
+    for element in Element::iter(){
+
+      let mut particle_config = ParticleConfig::new();
+      particle_config.filter.elements.push(element);
+
+      particle_config.config.isotopic_distribution.isotope_abundances.push(
+          IsotopeAbundance{
+            isotope: Isotope::most_common_for(&element),
+            abundance: 1.0,
+          });
+
+
+      particles.push(particle_config);
+    }
+
     Config{
       radius: f64::INFINITY,
       inner_radius: 0.0,
       magnetic_field: Vector3::from([0.0, 0.0, 1.2]),
       central_spin_coordinates: None,
-      particles: Vec::<ParticleConfig>::new(),
+      particles: particles,
     }
   }
 }

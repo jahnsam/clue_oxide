@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 #matrix_oxide = { path = "../matrix_oxide" }
+strum = "0.24"
+strum_macros = "0.24"

@@ -4,7 +4,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 
 use super::vector3::Vector3;
-use super::methyl::Methyl;
+use super::exchange_groups::*;
 use super::physical_constants::*;
 
 #[derive(Debug, Clone)]
@@ -17,6 +17,8 @@ pub struct PDB{
   coordinates: Vec<Vector3>,
   connections: Vec<ConnectionInfo>,
   residue_sequence_numbers: Vec<u32>,
+  exchange_groups: Vec::<ExchangeGroup>,
+  exchange_group_ids: Vec::<Option<usize>>,
 }
 
 
@@ -43,6 +45,8 @@ pub fn read_pdb(filename: &str) -> Result<PDB, Box<dyn Error> >{
                   );
                   pdb.residue_sequence_numbers.push(
                       coor_info.residue_sequence_number);
+
+                  pdb.exchange_group_ids.push(None);
                 },
                 LineType::CrystalLine(crystal) => {
                   pdb.crystal = crystal;
@@ -57,6 +61,17 @@ pub fn read_pdb(filename: &str) -> Result<PDB, Box<dyn Error> >{
     }
 
     pdb.set_connection_indices();
+
+    // Set exchange groups.
+    pdb.exchange_groups = pdb.find_exchange_groups();
+    
+    for (ii, egroup) in pdb.exchange_groups.iter().enumerate() {
+      let indices = egroup.indices();
+      for h in  indices{
+        pdb.exchange_group_ids[h] = Some(ii);
+      }
+    }
+    
 
   Ok(pdb)
 }
@@ -82,6 +97,8 @@ impl PDB{
       coordinates: Vec::<Vector3>::with_capacity(n_atoms),
       connections: Vec::<ConnectionInfo>::with_capacity(n_atoms),
       residue_sequence_numbers: Vec::<u32>::with_capacity(n_atoms),
+      exchange_groups: Vec::<ExchangeGroup>::new(),
+      exchange_group_ids: Vec::<Option<usize>>::with_capacity(n_atoms),
     }
   }
     
@@ -133,6 +150,13 @@ impl PDB{
     self.residue_sequence_numbers[n]
   }
   //----------------------------------------------------------------------------
+  pub fn exchange_group(&self, n: usize) -> Option<&ExchangeGroup>{
+    if let Some(idx) = self.exchange_group_ids[n]{
+      return Some(&self.exchange_groups[idx]);
+    }
+    None
+  }
+  //----------------------------------------------------------------------------
   pub fn crystal_a(&self) -> f64 {self.crystal.a}
   pub fn crystal_b(&self) -> f64 {self.crystal.b}
   pub fn crystal_c(&self) -> f64 {self.crystal.c}
@@ -151,11 +175,11 @@ impl PDB{
     None
   }
   //----------------------------------------------------------------------------
-  pub fn find_methyls(&self) -> Vec::<Methyl> {
+  pub fn find_exchange_groups(&self) -> Vec::<ExchangeGroup> {
   
     let n_max: usize = self.number/5;
 
-    let mut methyls = Vec::<Methyl>::with_capacity(n_max);
+    let mut exchange_groups = Vec::<ExchangeGroup>::with_capacity(n_max);
 
     for ii in 0..self.number{
 
@@ -167,13 +191,21 @@ impl PDB{
          let r_h1 = self.coordinates[h1].clone();
          let r_h2 = self.coordinates[h2].clone();
 
-         methyls.push(Methyl::from(r_carbon, r_h0, r_h1, r_h2))
+         
+         if self.elements[ii] == Element::Carbon{
+           exchange_groups.push(ExchangeGroup::Methyl(
+                 C3Rotor::from(r_carbon, r_h0, r_h1, r_h2, [h0,h1,h2]) ));
+
+         }else if self.elements[ii] == Element::Nitrogen{
+           exchange_groups.push(ExchangeGroup::PrimaryAmonium(
+                 C3Rotor::from(r_carbon, r_h0, r_h1, r_h2, [h0,h1,h2]) ));
+         }
        },
        None => (),
       }
     }
 
-    methyls
+    exchange_groups
   }
   //----------------------------------------------------------------------------
   pub fn get_centroid(&self, serials: &Vec::<u32>) -> Vector3 {
@@ -187,16 +219,19 @@ impl PDB{
     centroid.scale(1.0/serials.len() as f64)
   }
   //----------------------------------------------------------------------------
+  
   pub fn translate(&mut self, r: &Vector3){
     for ii in 0..self.number{
       self.coordinates[ii] = &self.coordinates[ii] + &r;
     }
+    for egroup in &mut self.exchange_groups{
+      egroup.translate(r); 
+    }
   }
+  
   //----------------------------------------------------------------------------
   pub fn set_origin(&mut self, r: &Vector3){
-    for ii in 0..self.number{
-      self.coordinates[ii] = &self.coordinates[ii] - &r;
-    }
+    self.translate(&r.scale(-1.0));
   }
   //----------------------------------------------------------------------------
   fn get_connections_index_from_serial(&self, serial: u32) 
@@ -215,7 +250,8 @@ impl PDB{
   
   fn get_methyl_hydrogen_indices(&self, index: usize) ->Option<[usize;3] >{
     
-    if self.elements[index] != Element::Carbon {
+    if self.elements[index] != Element::Carbon 
+     && self.elements[index] != Element::Nitrogen {
       return None;
     }
 
@@ -483,21 +519,24 @@ mod tests {
   }
   //----------------------------------------------------------------------------
   #[test]
-  fn test_find_methyls(){
+  fn test_find_exchange_groups(){
     let filename = "./assets/TEMPO.pdb";
     let mut pdb = read_pdb(filename).expect("Could not read pdb file.");
 
     let r0 = pdb.get_centroid(&vec![28,29]);
     pdb.set_origin(&r0);
 
-    let methyls = pdb.find_methyls();
 
-    assert_eq!(methyls.len(),4);
+    assert_eq!(pdb.exchange_groups.len(),4);
 
     let distances = [3.0352,   2.9653,   3.0415,   2.8101];
-    for ii in 0..methyls.len(){
-      let r = methyls[ii].center().magnitude();
-      assert!( (r-distances[ii]).abs()<1e-4 )
+    for ii in 0..pdb.exchange_groups.len(){
+      if let ExchangeGroup::Methyl(methyl) = &pdb.exchange_groups[ii] { 
+        let r = methyl.center().magnitude();
+        assert!( (r-distances[ii]).abs()<1e-4 )
+      }else{
+        panic!("There should only be methyls for exchange groups.")
+      }
     }
   }
 }

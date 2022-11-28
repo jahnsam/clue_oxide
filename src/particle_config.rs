@@ -38,7 +38,7 @@ impl Default for ParticleConfig{
   }
 }
 impl ParticleConfig{
-  fn new() -> Self{
+  pub fn new() -> Self{
     Default::default()
   }
 }

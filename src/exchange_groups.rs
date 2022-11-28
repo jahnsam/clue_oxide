@@ -1,20 +1,54 @@
 use super::vector3::Vector3;
 
+pub trait Translate{ fn translate(&mut self, r: &Vector3); }
+
+pub trait GetIndices{fn indices(&self) -> Vec::<usize>; }
+
+pub trait GetExchangeCoupling{fn exchange_coupling(&self) -> f64; }
+
+
+#[derive(Debug, Clone)]
+pub enum ExchangeGroup{
+  Methyl(C3Rotor),
+  PrimaryAmonium(C3Rotor),
+}
+
+impl GetIndices for ExchangeGroup{
+  fn indices(&self) -> Vec::<usize>{
+    match self{
+      ExchangeGroup::Methyl(rotor) => rotor.indices(),
+      ExchangeGroup::PrimaryAmonium(rotor) => rotor.indices(),
+    }
+  }
+}
+
+impl Translate for ExchangeGroup{
+  fn translate(&mut self, r: &Vector3){
+    match self{
+      ExchangeGroup::Methyl(rotor) => rotor.translate(r),
+      ExchangeGroup::PrimaryAmonium(rotor) => rotor.translate(r),
+    }
+  }
+}
+
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 
-pub struct Methyl{
+#[derive(Debug, Clone)]
+pub struct C3Rotor{
   center: Vector3,
   normal: Vector3,
+  indices: [usize;3],
 }
 
 //------------------------------------------------------------------------------
 
-impl Methyl{                                                                     
+impl C3Rotor{                                                                     
                                                                                  
 pub fn from(r_carbon: Vector3,                                                   
     h0: Vector3,                                                                 
     h1: Vector3,                                                                 
-    h2: Vector3,                                                                 
-    ) -> Methyl{                                                                 
+    h2: Vector3,
+    indices: [usize;3],    
+    ) -> Self{                                                                 
                                                                                  
   let center = (&( &h0 + &h1) + &h2).scale(1.0/3.0);                             
                                                                                  
@@ -31,7 +65,7 @@ pub fn from(r_carbon: Vector3,
     normal = normal.scale(-1.0);                                                 
   }                                                                              
                                                                                  
-  Methyl{ center, normal}                                                        
+  C3Rotor{ center, normal, indices}                                                        
                                                                                  
 }                                                                                
                                                                                  
@@ -42,10 +76,25 @@ pub fn center(&self) -> &Vector3 {
 pub fn normal(&self) -> &Vector3 {                                                
   &self.normal                                                      
 }
+}
 
-}                                                                                
-                                                                                    
-                                                                                    
+impl GetIndices for C3Rotor{
+  fn indices(&self) -> Vec::<usize>{
+    
+    let mut out = Vec::<usize>::with_capacity(3);
+
+    for h in self.indices.clone(){
+      out.push(h);
+    }
+    out
+  }
+}
+
+impl Translate for C3Rotor{
+  fn translate(&mut self, r: &Vector3){
+   self.center = &self.center + &r;
+  }
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

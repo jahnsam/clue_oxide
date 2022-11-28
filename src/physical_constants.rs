@@ -1,3 +1,4 @@
+use strum_macros::EnumIter;
 //extern crate matrix_oxide;
 //use matrix_oxide as mox;
 //use num_complex::Complex;
@@ -62,11 +63,10 @@ pub const RAD_PER_S_TO_HZ: f64 = 0.5/PI;
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, EnumIter)]
 pub enum Element{
    Electron,                                                              
    Hydrogen,                                                              
-   Deuterium,                                                             
    Helium,                                                                
    Lithium,                                                               
    Beryllium,                                                             
@@ -239,6 +239,33 @@ impl Isotope{
          Isotope::Argon39 => return 8,
          Isotope::Argon40 => return 1,
     }
+  }
+  //----------------------------------------------------------------------------
+  pub fn most_common_for(element: &Element) -> Isotope{
+
+    match element{
+      Element::Electron => Isotope::Electron,
+      Element::Hydrogen => Isotope::Hydrogen1,
+      //Element::Deuterium => Isotope::Hydrogen2,
+      Element::Helium => Isotope::Helium4,
+      Element::Lithium => Isotope::Lithium7,
+      Element::Beryllium => Isotope::Beryllium9,
+      Element::Boron => Isotope::Boron11,
+      Element::Carbon => Isotope::Carbon12,
+      Element::Nitrogen => Isotope::Nitrogen14,
+      Element::Oxygen => Isotope::Oxygen16,
+      Element::Fluorine => Isotope::Fluorine19,
+      Element::Neon => Isotope::Neon20,
+      Element::Sodium => Isotope::Sodium23,
+      Element::Magnesium => Isotope::Magnesium24,
+      Element::Aluminium => Isotope::Aluminium27,
+      Element::Silicon => Isotope::Silicon28,
+      Element::Phosphorus => Isotope::Phosphorus31,
+      Element::Sulfur => Isotope::Sulfur32,
+      Element::Chlorine => Isotope::Chlorine35,
+      Element::Argon => Isotope::Argon40,
+    }
+  
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
