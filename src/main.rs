@@ -13,41 +13,7 @@
 //
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-
-//use clue_oxide::*;
-//use clue_oxide::quantum::*;
-//use clue_oxide::tensors::*;
-//extern crate matrix_oxide;
-//use matrix_oxide as mox;
-//use clue_oxide::phys::*;
-
+use clue_oxide::clue;
 fn main() {
-println!("\n\n{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}",
-"##############################################################################\n",
-"#                                                                            #\n",
-"#                      ______    _             ________                      #\n",
-"#                     /  ____|  | |           | _______|                     #\n",
-"#                    |  |       | |   _   _   | |_____                       #\n",
-"#                    |  |       | |  | | | |  |  _____|                      #\n",
-"#                    |  |____   | |  | |_| |  | |______                      #\n",
-"#                     \\______|  |_|  \\_____/  |________|                     #\n",
-"#                                                                            #\n",
-"#                 ___               ______               ___                 #\n",   
-"#                    \\             /      \\             /                    #\n",
-"#                     \\           /        \\           /                     #\n",
-"#                      \\    O    /          \\    O    /                      #\n",
-"#                       \\       /            \\       /                       #\n",
-"#                        \\     /              \\     /                        #\n",
-"#                ()       \\   /       ()       \\   /       ()                #\n",
-"#                          \\ /                  \\ /                          #\n",
-"#                           V                    V                           #\n",
-"#                                                                            #\n",
-"##############################################################################\n");
-    println!("CLuE Copyright (C) 2022 Samuel M. Jahn");
-    println!("This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.");
-    println!("This is free software, and you are welcome to redistribute it");
-    println!("under certain conditions; type `show c' for details.\n");
-
-
+ clue()
 }

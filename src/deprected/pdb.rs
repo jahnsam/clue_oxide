@@ -90,9 +90,7 @@ impl PDB{
         c: 0.0,
         alpha: 0.0,
         beta: 0.0,
-        gamma: 0.0,
-        cell_offsets: [Vector3::new(), Vector3::new(), Vector3::new() ],
-        },
+        gamma: 0.0,},
       elements: Vec::<Element>::with_capacity(n_atoms),
       serials: Vec::<u32>::with_capacity(n_atoms),
       residues: Vec::<String>::with_capacity(n_atoms),
@@ -304,39 +302,6 @@ impl PDB{
 
   }
  //----------------------------------------------------------------------------- 
- pub fn reconnect_bonds(&mut self){
-
-    const MAXBOND: f64 = 3.0; 
-    for connections in self.connections.iter() {
-
-      let mut it = connections.indices.iter();
-      let idx0: &usize = it.next().unwrap(); 
-
-      let r0 = self.coordinates[*idx0].clone();
-
-      for idx in it{
-
-        let r = self.coordinates[*idx].clone();
-
-        if (&r-&r0).magnitude() < MAXBOND { continue; }
-
-        self.coordinates[*idx].x
-         = minimize_absolute_difference_for_step(r.x, r0.x, self.crystal.a);
-
-        self.coordinates[*idx].y
-         = minimize_absolute_difference_for_step(r.y, r0.y, self.crystal.b);
-
-        self.coordinates[*idx].z
-         = minimize_absolute_difference_for_step(r.z, r0.z, self.crystal.c);
-      }
-      
-
-
-
-
-    }
- }
- //----------------------------------------------------------------------------- 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -349,7 +314,6 @@ struct CrystalInfo{
   alpha: f64,
   beta: f64,
   gamma: f64,
-  cell_offsets: [Vector3; 3],
 }
 
 #[derive(Debug, Clone)]
@@ -467,14 +431,6 @@ fn read_crystal_line(line: &str) -> LineType {
   let beta: f64 = line[40..=46].trim().parse().expect("no beta");
   let gamma: f64 = line[47..=53].trim().parse().expect("no gamma");
 
-
-  let a_vec = Vector3{x: a, y: 0.0, z: 0.0};
-  let b_vec = Vector3{x: b*f64::cos(gamma), y: b*f64::sin(gamma), z: 0.0};
-  let cx = c * f64::cos(beta);
-  let cy = c*(f64::cos(alpha) - f64::cos(beta)*f64::cos(gamma))/f64::sin(gamma);
-  let cz = c * f64::sqrt( 1.0 -cx*cx - cy*cy);
-  let c_vec = Vector3{x: cx, y: cy, z: cz};
-  
   let cryst_info = CrystalInfo{
   a,
   b,
@@ -482,7 +438,6 @@ fn read_crystal_line(line: &str) -> LineType {
   alpha,
   beta,
   gamma,
-  cell_offsets: [a_vec, b_vec, c_vec],
   };
 
   LineType::CrystalLine(cryst_info)
@@ -502,18 +457,9 @@ COLUMNS       DATA  TYPE      FIELD        DEFINITION
 fn read_connetions_line(line: &str) -> LineType {
   let line = line[6..].trim_end();
 
-  let num = line.len();
-  let n = 5;
-  let mut serials = Vec::<u32>::with_capacity(num/n);
-  let mut idx = 0;
-  while idx < num {
-    let idx_end = usize::min(idx+n,num);
-    let connect: u32 = line[idx .. idx_end].trim().parse()
-      .expect(&format!("Cannot parse {}--{} of line: '{}'.",
-            idx,idx_end, line));
-    serials.push(connect);
-    idx += n;
-  }
+  let serials: Vec::<u32> = line.split_whitespace()
+       .filter_map(|word| word.parse().ok())
+       .collect();
 
   let indices = Vec::<usize>::with_capacity(serials.len());
 
@@ -541,33 +487,6 @@ fn parse_line(line: &str) -> LineType {
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-pub fn minimize_absolute_difference_for_step( x: f64, x0: f64, step: f64 )
- -> f64 {
-
-   assert!(step > 0.0);
-
-   let mut x1 = x;
-
-   loop{
-
-     if (x1 - x0).abs() <= (x1 + step - x0).abs()
-       && (x1 - x0).abs() <= (x1 - step - x0).abs(){
-         break;
-       }
-     else if (x1 - x0).abs() > (x1 + step - x0).abs(){
-      x1 += step; 
-     }
-     else if (x1 - x0).abs() > (x1 - step - x0).abs(){
-      x1 -= step; 
-     }
-   }
-
-  x1
-}
-
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -619,19 +538,6 @@ mod tests {
         panic!("There should only be methyls for exchange groups.")
       }
     }
-  }
-  
-  #[test]
-  fn test_minimize_absolute_difference_for_step(){
-
-    assert_eq!(minimize_absolute_difference_for_step(1.2,1.3,1.0),1.2);
-    assert!((minimize_absolute_difference_for_step(2.2,1.3,1.0)-1.2).abs()
-        < 1e-12);
-    assert!((minimize_absolute_difference_for_step(-2.8,1.3,1.0)-1.2).abs()
-        < 1e-12);
-
-    assert!((minimize_absolute_difference_for_step(1.0,1.5,1.0)-1.0).abs()
-        < 1e-12);
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

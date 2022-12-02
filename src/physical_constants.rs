@@ -63,6 +63,7 @@ pub const RAD_PER_S_TO_HZ: f64 = 0.5/PI;
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// Specifies a particle type, such as a chemical element or an electron spin.
 #[derive(PartialEq, Debug, Clone, Copy, EnumIter)]
 pub enum Element{
    Electron,                                                              
@@ -116,6 +117,7 @@ impl Element{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// Specifies the particle type and specific varient.  
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Isotope{
   Electron,                                                                  

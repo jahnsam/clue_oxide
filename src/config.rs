@@ -6,7 +6,7 @@ use super::physical_constants::*;
 use super::vector3::*;
 
 
-
+/// Config contains all the setting for CluE.
 #[derive(Debug,Clone)]
 pub struct Config{
   pub radius: f64,
