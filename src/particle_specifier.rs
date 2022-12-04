@@ -2,25 +2,13 @@ use super::physical_constants::*;
 use super::pdb::PDB;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Default)]
 pub struct SpecifiedParticle{
   pub serial: Option<u32>,
   pub residue: Option<String> ,
   pub element: Option<Element> ,
   pub residue_sequence_number: Option<u32>,
   pub distance: Option<f64>,
-}
-//------------------------------------------------------------------------------
-impl Default for SpecifiedParticle{
-  fn default() -> Self{
-      SpecifiedParticle{
-        serial: None,
-        residue: None,
-        element: None,
-        residue_sequence_number: None,
-        distance: None,
-      }
-  }
 }
 //------------------------------------------------------------------------------
 impl SpecifiedParticle{
@@ -32,7 +20,7 @@ impl SpecifiedParticle{
         residue: Some(pdb.residue(pdb_idx)) ,
         element: Some(pdb.element(pdb_idx)),
         residue_sequence_number: Some(pdb.residue_sequence_number(pdb_idx)) ,
-        distance: Some(pdb.pos(pdb_idx).magnitude()),
+        distance: Some(pdb.coordinates(pdb_idx).magnitude()),
       }
   }
 }
@@ -175,7 +163,7 @@ impl ParticleSpecifier{
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 fn are_vecs_equal<T: std::cmp::PartialEq>
-(vec0: &Vec::<T>, vec1: &Vec::<T>)-> bool{
+(vec0: &[T], vec1: &[T])-> bool{
   if vec0.len() != vec1.len() {return false;}
 
   for ii in 0..vec0.len(){
@@ -185,8 +173,8 @@ fn are_vecs_equal<T: std::cmp::PartialEq>
 }
 //------------------------------------------------------------------------------
 fn does_cover<T: std::cmp::PartialEq>
-(target_value: T, filter_values: &Vec::<T> ) -> bool {
-  let mut doescover = filter_values.len()==0;
+(target_value: T, filter_values: &[T] ) -> bool {
+  let mut doescover = filter_values.is_empty();
   for filter_value in filter_values {
     doescover |= *filter_value == target_value;
      if doescover { break; }
@@ -195,7 +183,7 @@ fn does_cover<T: std::cmp::PartialEq>
 }
 //------------------------------------------------------------------------------
 fn is_excluded<T: std::cmp::PartialEq>
-(target_value: T, excluded_values: &Vec::<T>) -> bool
+(target_value: T, excluded_values: &[T]) -> bool
 {
   for exclude_value in excluded_values{
     if target_value == *exclude_value { return true;}

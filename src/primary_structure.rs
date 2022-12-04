@@ -23,10 +23,10 @@ impl PrimaryStructure {
 // This function takes in a pdb, and
 pub fn from(mut pdb: PDB, config: &Config) -> Result<Self,CluEError> {
 
-  let origin = get_electron_coordinates(&pdb, &config)?;
+  let origin = get_electron_coordinates(&pdb, config)?;
   pdb.set_origin(&origin);
 
-  let number = determine_max_number_of_spinful_particles(&pdb,&config);
+  let number = determine_max_number_of_spinful_particles(&pdb,config);
 
   let mut pdb_indices = Vec::<usize>::with_capacity(number);
 

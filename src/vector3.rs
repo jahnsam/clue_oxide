@@ -1,11 +1,19 @@
-// 2021: https://introcs.cs.princeton.edu/java/data/pi-10million.txt
-pub const PI: f64 = 3.141592653589793;
 
 #[derive(Debug, Clone)]
 pub struct Vector3{ 
   pub x: f64,
   pub y: f64,
   pub z: f64
+}
+
+impl Default for Vector3{
+  fn default() -> Self{
+    Vector3{
+      x: 0.0,
+      y: 0.0,
+      z: 0.0,
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -18,15 +26,11 @@ pub struct SphereVec3{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Vector3{
 
-  pub fn new() -> Vector3{
-    Vector3{
-      x: 0.0,
-      y: 0.0,
-      z: 0.0,
-    }
+  pub fn new() -> Self{
+    Self::default()
   }    
 
-  pub fn from(r: [f64; 3]) -> Vector3{
+  pub fn from(r: [f64; 3]) -> Self{
     Vector3{
       x: r[0],
       y: r[1],
@@ -38,7 +42,7 @@ impl Vector3{
     (self.x*self.x + self.y*self.y + self.z*self.z).sqrt()
   }                                                                                   
                                                                                     
-  pub fn scale(&self,scale: f64) -> Vector3 {                                   
+  pub fn scale(&self,scale: f64) -> Self {                                   
     Vector3{                                                              
       x: scale*self.x,
       y: scale*self.y,
@@ -46,7 +50,7 @@ impl Vector3{
     }                                                                       
   }                                                                                
                                                                                  
-  pub fn normalize(&self) -> Vector3 {                                        
+  pub fn normalize(&self) -> Self {                                        
     let r = self.magnitude();                                                        
     self.scale(1.0/r)                                                            
   }                                                                                
@@ -55,7 +59,7 @@ impl Vector3{
     self.x*other.x + self.y*other.y + self.z*other.z
   }                                                                                
                                                                                     
-  pub fn add(&self, other: &Vector3) -> Vector3 {                              
+  pub fn add(&self, other: &Vector3) -> Self {                              
     Vector3{                                                              
       x: self.x + other.x,
       y: self.y + other.y,
@@ -63,7 +67,7 @@ impl Vector3{
     }                                                                       
   }                                                                                
                                                                                     
-  pub fn subtract(&self, other: &Vector3) -> Vector3 {                              
+  pub fn subtract(&self, other: &Vector3) -> Self {                              
     Vector3{                                                              
       x: self.x - other.x,
       y: self.y - other.y,
@@ -77,7 +81,7 @@ impl Vector3{
     && (self.z - other.z).abs() < tol
   }
 
-  pub fn cross(&self, other: &Vector3) -> Vector3{
+  pub fn cross(&self, other: &Vector3) -> Self{
     Vector3{                                                              
       x: self.y*other.z - self.z*other.y,
       y: self.z*other.x - self.x*other.z,
@@ -125,6 +129,7 @@ impl std::ops::Sub<&Vector3> for &Vector3{
 #[cfg(test)]
 mod tests {
   use super::*;
+  const PI: f64 = std::f64::consts::PI;
   
   #[test]
   fn test_add(){

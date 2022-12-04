@@ -19,44 +19,43 @@ pub struct PDB{
   residue_sequence_numbers: Vec<u32>,
   exchange_groups: Vec::<ExchangeGroup>,
   exchange_group_ids: Vec::<Option<usize>>,
+  solvent_exchangabilities: Vec::<bool>,
 }
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn read_pdb(filename: &str) -> Result<PDB, Box<dyn Error> >{
 
-    let n_atoms = count_pdb_atoms(&filename)?;
+    let n_atoms = count_pdb_atoms(filename)?;
     let mut pdb = PDB::new(n_atoms as usize);
 
     // Read lines.
     if let Ok(lines) = read_lines(filename) {
         // Consumes the iterator and returns an Option<String>.
-        for line in lines {
-            if let Ok(ip) = line {
-              let linetype = parse_line(&ip[..]);
+        for line in lines.flatten() {
+          let linetype = parse_line(&line[..]);
 
-              match linetype {
-                LineType::CoordinateLine(coor_info) =>{
-                  pdb.serials.push(coor_info.serial);
-                  pdb.residues.push(coor_info.residue);
-                  pdb.elements.push(coor_info.element);
-                  pdb.coordinates.push(
-                        coor_info.coordinates,
-                  );
-                  pdb.residue_sequence_numbers.push(
-                      coor_info.residue_sequence_number);
+          match linetype {
+            LineType::Coordinate(coor_info) =>{
+              pdb.serials.push(coor_info.serial);
+              pdb.residues.push(coor_info.residue);
+              pdb.elements.push(coor_info.element);
+              pdb.coordinates.push(
+                    coor_info.coordinates,
+              );
+              pdb.residue_sequence_numbers.push(
+                  coor_info.residue_sequence_number);
 
-                  pdb.exchange_group_ids.push(None);
-                },
-                LineType::CrystalLine(crystal) => {
-                  pdb.crystal = crystal;
-                },
-                LineType::ConnectionLine(connection_info) => {
-                  pdb.connections.push(connection_info);
-                }
-                _ => (),
-              }
+              pdb.exchange_group_ids.push(None);
+            },
+            LineType::Crystal(crystal) => {
+              pdb.crystal = crystal;
+            },
+            LineType::Connection(connection_info) => {
+              pdb.connections.push(connection_info);
             }
+            _ => (),
+          }
         }
     }
 
@@ -101,13 +100,14 @@ impl PDB{
       residue_sequence_numbers: Vec::<u32>::with_capacity(n_atoms),
       exchange_groups: Vec::<ExchangeGroup>::new(),
       exchange_group_ids: Vec::<Option<usize>>::with_capacity(n_atoms),
+      solvent_exchangabilities: Vec::<bool>::with_capacity(n_atoms),
     }
   }
     
   //----------------------------------------------------------------------------
   pub fn print(&self) {
   
-    println!("PDB {}", "{");
+    println!("PDB {{");
     println!("  number: {}\n", self.number);
     println!("  {:?}",self.crystal);
 
@@ -122,7 +122,7 @@ impl PDB{
     for ii in 0..self.connections.len(){
       println!("    {:?}", self.connections[ii].serials);
     }
-    println!("{}", "}");
+    println!("}}");
   }
   
   
@@ -132,7 +132,7 @@ impl PDB{
   }
   
   //----------------------------------------------------------------------------
-  pub fn pos(&self,n: usize) -> Vector3{
+  pub fn coordinates(&self,n: usize) -> Vector3{
     self.coordinates[n].clone()
   }
   //----------------------------------------------------------------------------
@@ -186,8 +186,7 @@ impl PDB{
     for ii in 0..self.number{
 
       let hydrogens = self.get_methyl_hydrogen_indices(ii);
-      match hydrogens {
-       Some([h0,h1,h2]) => {
+       if let Some([h0,h1,h2]) = hydrogens {
          let r_carbon = self.coordinates[ii].clone();
          let r_h0 = self.coordinates[h0].clone();
          let r_h1 = self.coordinates[h1].clone();
@@ -202,15 +201,13 @@ impl PDB{
            exchange_groups.push(ExchangeGroup::PrimaryAmonium(
                  C3Rotor::from(r_carbon, r_h0, r_h1, r_h2, [h0,h1,h2]) ));
          }
-       },
-       None => (),
-      }
+       } 
     }
 
     exchange_groups
   }
   //----------------------------------------------------------------------------
-  pub fn get_centroid(&self, serials: &Vec::<u32>) -> Vector3 {
+  pub fn get_centroid(&self, serials: &[u32]) -> Vector3 {
   
     let mut centroid = Vector3::new();
     for id in serials {
@@ -224,7 +221,7 @@ impl PDB{
   
   pub fn translate(&mut self, r: &Vector3){
     for ii in 0..self.number{
-      self.coordinates[ii] = &self.coordinates[ii] + &r;
+      self.coordinates[ii] = &self.coordinates[ii] + r;
     }
     for egroup in &mut self.exchange_groups{
       egroup.translate(r); 
@@ -240,11 +237,11 @@ impl PDB{
     -> Option<usize>
     {
     for ii in 0..self.connections.len(){
-      if self.connections[ii].serials.len() >= 1 {
-        if self.connections[ii].serials[0] == serial{
+      if !self.connections[ii].serials.is_empty() 
+        && self.connections[ii].serials[0] == serial{
           return Some(ii);
-        }
       }
+      
     }
     None
   }
@@ -368,10 +365,10 @@ struct ConnectionInfo {
 }
 
 enum LineType {
-  CrystalLine(CrystalInfo),
-  CoordinateLine(CoordinateInfo),
-  ConnectionLine(ConnectionInfo),
-  OtherLine,
+  Crystal(CrystalInfo),
+  Coordinate(CoordinateInfo),
+  Connection(ConnectionInfo),
+  Other,
 }
 
 
@@ -380,11 +377,9 @@ fn count_pdb_atoms(filename: &str) -> Result<u32,Box<dyn Error>> {
 
     let mut count: u32 = 0;
     let lines = read_lines(filename)?;
-        for line in lines {
-          if let Ok(ip) = line {
-            if ip.contains("ATOM") || ip.contains("HETATM") {
-              count += 1;
-            }
+        for line in lines.flatten() {
+          if line.contains("ATOM") || line.contains("HETATM") {
+            count += 1;
           }
         }
     Ok(count)
@@ -439,11 +434,11 @@ fn read_coordinate_line(line: &str) -> LineType {
     serial,
     residue,
     coordinates,
-    element: element,  
-    residue_sequence_number: residue_sequence_number,
+    element,  
+    residue_sequence_number,
   };
 
-  LineType::CoordinateLine(coor_info)
+  LineType::Coordinate(coor_info)
 }
 
 /*
@@ -485,7 +480,7 @@ fn read_crystal_line(line: &str) -> LineType {
   cell_offsets: [a_vec, b_vec, c_vec],
   };
 
-  LineType::CrystalLine(cryst_info)
+  LineType::Crystal(cryst_info)
 }
 
 
@@ -509,7 +504,7 @@ fn read_connetions_line(line: &str) -> LineType {
   while idx < num {
     let idx_end = usize::min(idx+n,num);
     let connect: u32 = line[idx .. idx_end].trim().parse()
-      .expect(&format!("Cannot parse {}--{} of line: '{}'.",
+      .unwrap_or_else(|_| panic!("Cannot parse {}--{} of line: '{}'.",
             idx,idx_end, line));
     serials.push(connect);
     idx += n;
@@ -517,9 +512,9 @@ fn read_connetions_line(line: &str) -> LineType {
 
   let indices = Vec::<usize>::with_capacity(serials.len());
 
-  LineType::ConnectionLine(ConnectionInfo{
-    serials: serials,
-    indices: indices,
+  LineType::Connection(ConnectionInfo{
+    serials,
+    indices,
   })
 
 }
@@ -527,15 +522,15 @@ fn read_connetions_line(line: &str) -> LineType {
 fn parse_line(line: &str) -> LineType {
 
   if line.len() < 4 {
-    return LineType::OtherLine;
+    return LineType::Other;
   }
 
   let model = line[0..6].trim();
   match model {
-    "ATOM" | "HETATM" => read_coordinate_line(&line),
-    "CONECT" => read_connetions_line(&line),
-    "CRYST1" => read_crystal_line(&line),
-    _ => LineType::OtherLine
+    "ATOM" | "HETATM" => read_coordinate_line(line),
+    "CONECT" => read_connetions_line(line),
+    "CRYST1" => read_crystal_line(line),
+    _ => LineType::Other
   }
 
 }

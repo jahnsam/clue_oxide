@@ -43,7 +43,7 @@ impl Default for Config{
       inner_radius: 0.0,
       magnetic_field: Vector3::from([0.0, 0.0, 1.2]),
       central_spin_coordinates: None,
-      particles: particles,
+      particles,
     }
   }
 }

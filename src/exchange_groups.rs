@@ -83,7 +83,7 @@ impl GetIndices for C3Rotor{
     
     let mut out = Vec::<usize>::with_capacity(3);
 
-    for h in self.indices.clone(){
+    for h in self.indices{
       out.push(h);
     }
     out
@@ -92,7 +92,7 @@ impl GetIndices for C3Rotor{
 
 impl Translate for C3Rotor{
   fn translate(&mut self, r: &Vector3){
-   self.center = &self.center + &r;
+   self.center = &self.center + r;
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

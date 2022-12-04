@@ -6,15 +6,15 @@ use super::vector3::Vector3;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn find_particle_configs<'a>(
     target: &SpecifiedParticle,
-    particle_configs: &'a Vec::<ParticleConfig>) 
+    particle_configs: &'a [ParticleConfig]) 
   -> Vec::<&'a ParticleConfig>{
 
     let mut found_configs = Vec::<&ParticleConfig>::with_capacity(
         particle_configs.len());
 
-    for ii in 0..particle_configs.len(){
-      if particle_configs[ii].filter.covers(target){
-        found_configs.push(&particle_configs[ii]);
+    for particle_config in particle_configs.iter(){
+      if particle_config.filter.covers(target){
+        found_configs.push(particle_config);
       }
     }
 
@@ -129,7 +129,7 @@ pub enum AxisSpecifier{
 #[derive(Debug,Clone)]
 pub enum ParticleSelector{
   This,
-  Other(ParticleSpecifier),
+  Other(Box<ParticleSpecifier>),
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
