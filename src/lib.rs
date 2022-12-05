@@ -14,8 +14,14 @@ pub mod physical_constants;
 pub mod primary_structure;
 pub mod vector3;
 
+pub mod spin_operators;
 /// This is the function called when using CluE through the command line.
 pub fn clue() {
+
+  print_splash();
+}
+
+fn print_splash() {  
 println!("\n\n
 ##############################################################################\n\
 #                                                                            #\n\

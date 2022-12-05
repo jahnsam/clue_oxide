@@ -6,6 +6,20 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#matrix_oxide = { path = "../matrix_oxide" }
+num-complex = "0.4"
 strum = "0.24"
 strum_macros = "0.24"
+
+ndarray = '0.15.0'
+ndarray-rand = "0.14.0"
+
+[target.'cfg(unix)'.dependencies]
+ndarray-linalg = { version = "0.15", features = ["openblas-static"] }
+
+[target.'cfg(windows)'.dependencies.ndarray-linalg]
+version = '0.15.0'
+features = ['intel-mkl']
+
+
+[target.'cfg(windows)'.dev-dependencies]
+criterion = '0.3.0'
