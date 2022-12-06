@@ -12,27 +12,28 @@ impl Lexer{
     Err(CluEError::InvalidConfigFile(filename.clone()))
   };
   //----------------------------------------------------------------------------
-  fn next_token(&mut self) -> Result<Token, CluEError>{
+  fn next_token(&mut self) -> Token {
 
-    let err_token: String;
+    let idx = self.position;
+    
+    for read_to in idx..self.input.len() {
 
-    for read_to in self.position..self.input.len() {
+      if !is_token_over(self.input[read_to]){ continue; }
+        
+      self.position = read_to;
 
-      if let Some(token) == identify_token(self.input[self.position..=read_to]){
-        self.position = read_to + 1;
-        return Ok(token);
-
+      if let Some(token) = identify_token(self.input[idx..=read_to]){
+        return token;
       }
-      else if is_token_over(self.input[self.read_to]){
-        self.position = read_to;
 
-        return Ok(
-            Token::UserInputValue(
-              Box(self.input[self.position .. read_to].clone()))
-            );
-      }
+      return Token::UserInputValue( Box(self.input[idx .. read_to].clone()) );
+      
     }
-    Err(CluEError::InvalidToken(self.line_number, err_token))
+
+    self.position = self.input.len();
+
+    Token::UserInputValue(Box(self.input[idx ..].clone()))
+
   }
 
 }
@@ -42,7 +43,8 @@ impl Lexer{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 fn is_token_over(word: &str) -> bool{
   match word{
-    "\n" | " " | "," | "]" | "}" | ")" | ";" => true,
+    "\n" | " " | "," | "]" | "}" | ")" | ";" 
+      | "=" | "+" | "-" | "*" | "/" => true,
       _ => false,
   }
 }
@@ -64,10 +66,61 @@ fn parse_token(filename: &str){
 }
 
 //------------------------------------------------------------------------------
+fn find_comments(in_tokens: Vec::<Token>) -> Result<Vec::<Token>,CluEError> {
 
+  let mut out_tokens = Vec::<Token>::with_capacity(in_tokens.len());
+  
+  let mut was_last_token_slash = false;
+  let mut was_last_token_times = false;
+
+  for token in in_tokens{
+
+    if !was_last_token_slash && !was_last_token_times {
+      if token == Token::Slash{
+        was_last_token_slash = true;
+        continue;
+      }
+      else if token == Token::Times{
+        was_last_token_times = true;
+        continue
+      }
+    }
+
+    if !was_last_token_slash && !was_last_token_times{
+      out_tokens.push(token);
+    }
+    else if was_last_token_slash && token == Token::Slash{
+      was_last_token_slash = false;
+      out_tokens.push(Token::LineComment);
+    }
+    else if was_last_token_slash && token == Token::Times
+      was_last_token_slash = false;
+      out_tokens.push(Token::BlockCommentStart);
+    }
+    else if was_last_token_times && token == Token::Slash{
+      was_last_token_times = true;
+      out_tokens.push(Token::BlockCommentEnd);
+    }
+    else if was_last_token_slash{
+      was_last_token_slash = false;
+      out_tokens.push(Token::Slash);
+      out_tokens.push(token);
+    }
+    else if was_last_token_times{
+      was_last_token_times = true;
+      out_tokens.push(Token::times);
+      out_tokens.push(token);
+    }
+
+
+  }
+
+  out_tokens
+}
+//------------------------------------------------------------------------------
 fn prune_tokens(in_tokens: Vec::<Token>) -> Result<Vec::<Token>,CluEError> {
 
-  let out_tokens = Vec::<Token>::with_capacity(in_tokens.len());
+  let mut out_tokens = Vec::<Token>::with_capacity(in_tokens.len());
 
   let mut block_commenting: i32 = 0;
   let mut is_line_commenting = false;
@@ -131,8 +184,10 @@ enum Token{
  Residue,
  Semicolon,
  Sharp,
+ Slash,
  SquareBracketClose,
  SquareBracketOpen,
+ Times,
  TunnelSplitting,
  UserInputValue(Box<String>),
  WhiteSpace,
@@ -141,8 +196,8 @@ enum Token{
 //------------------------------------------------------------------------------
 fn identify_token(word &str) -> Option<Token>{
   match word{
-    "*\\" => Some(Token::BlockCommetEnd),
-    "\\*" => Some(Token::BlockCommetStart),
+    //"*/" => Some(Token::BlockCommetEnd),
+    //"/*" => Some(Token::BlockCommetStart),
     "," => Some(Token::Coma),
     "}" => Some(Token::CurlyBracketClose),
     "{" => Some(Token::CurlyBracketOpen),
@@ -150,14 +205,16 @@ fn identify_token(word &str) -> Option<Token>{
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
     "in" => Some(Token::In),
-    "//" => Some(Token::LineComent),
+    //"//" => Some(Token::LineComent),
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
     "residue" => Some(Token::Residue),
     ";" => Some(Token::Semicolon),
     "#" => Some(Token::Sharp),
+    "/" => Some(Token::Slash),
     "]" => Some(Token::SquareBracketClose),
     "[" => Some(Token::SquareBracketOpen),
+    "*" => Some(Token::Times),
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     " " => Some(Token::Whitespace),
     _ => None
