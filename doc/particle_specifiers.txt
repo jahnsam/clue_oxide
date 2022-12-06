@@ -1,0 +1,20 @@
+#[primary_filter(label=water_h)]
+  element in [H];
+  residue in [WAT,SOL]
+
+#[secondary_filter(label=water_o)]
+  element in [O];
+  residue in [WAT,SOL]
+  
+
+#[primary_filter(label=methyl_h)]
+  element in [H];
+  exchange_group in [methyl]
+
+
+
+#[config]
+
+hf_z_axis(water_h) = connected(water_o);  
+
+tunnel_splitting(methyl_h) = 80e3; // Hz
