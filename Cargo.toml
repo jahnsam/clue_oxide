@@ -9,6 +9,7 @@ edition = "2021"
 num-complex = "0.4"
 strum = "0.24"
 strum_macros = "0.24"
+substring = "1.4"
 
 ndarray = '0.15.0'
 ndarray-rand = "0.14.0"
