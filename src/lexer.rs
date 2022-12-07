@@ -1,6 +1,28 @@
 use crate::clue_errors::*;
 use substring::Substring;
 
+pub struct TokenStream{
+  statements: Vec::<Vec::<Token>>,
+  line_numbers: Vec::<usize>,
+}
+
+
+pub fn get_tokens_from_file(filename: &str) -> Result<TokenStream,CluEError>{
+
+    let lexer = Lexer::new(filename)?;
+    let tokens = parse_tokens(lexer)?;
+    let tokens = find_comments(tokens);
+    let (tokens,line_numbers) = prune_tokens(tokens)?;
+    let statements = get_token_statements(tokens);
+
+    Ok(TokenStream{
+        statements,
+        line_numbers,
+        })
+}
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 struct Lexer{
   input: String,
   position: usize,
@@ -113,7 +135,7 @@ fn find_comments(in_tokens: Vec::<Token>) -> Vec::<Token> {
       out_tokens.push(Token::BlockCommentStart);
     }
     else if was_last_token_times && token == Token::Slash{ // */
-      was_last_token_times = true;
+      was_last_token_times = false;
       out_tokens.push(Token::BlockCommentEnd);
     }
     else if was_last_token_slash{ // /R
@@ -122,7 +144,7 @@ fn find_comments(in_tokens: Vec::<Token>) -> Vec::<Token> {
       out_tokens.push(token);
     }
     else if was_last_token_times{ // *R
-      was_last_token_times = true;
+      was_last_token_times = false;
       out_tokens.push(Token::Times);
       out_tokens.push(token);
     }
@@ -133,12 +155,15 @@ fn find_comments(in_tokens: Vec::<Token>) -> Vec::<Token> {
   out_tokens
 }
 //------------------------------------------------------------------------------
-fn prune_tokens(in_tokens: Vec::<Token>) -> Result<Vec::<Token>,CluEError> {
+fn prune_tokens(in_tokens: Vec::<Token>) 
+  -> Result<( Vec::<Token>, Vec::<usize>),CluEError> {
 
   let mut out_tokens = Vec::<Token>::with_capacity(in_tokens.len());
+  let mut line_numbers = Vec::<usize>::with_capacity(in_tokens.len());
 
   let mut block_commenting: i32 = 0;
   let mut is_line_commenting = false;
+  let mut is_newline = true;
 
   let mut is_attribute =  false;
 
@@ -146,6 +171,7 @@ fn prune_tokens(in_tokens: Vec::<Token>) -> Result<Vec::<Token>,CluEError> {
   for token in in_tokens{
 
     if token == Token::EOL{
+      is_newline = true;
       is_line_commenting = false;
       line_number += 1;
       if is_attribute{
@@ -159,6 +185,7 @@ fn prune_tokens(in_tokens: Vec::<Token>) -> Result<Vec::<Token>,CluEError> {
       block_commenting += 1;
     }else if token == Token::BlockCommentEnd{
       block_commenting -= 1;
+      continue
     }
 
     if block_commenting > 0 {
@@ -169,22 +196,27 @@ fn prune_tokens(in_tokens: Vec::<Token>) -> Result<Vec::<Token>,CluEError> {
 
 
     if token == Token::LineComment{
-      is_line_commenting = true;
-    
+      is_line_commenting = true; 
     }
+    if is_line_commenting {continue;}
 
     if token == Token::Whitespace{ continue; }
       
     if token == Token::Sharp{is_attribute = true;}
     out_tokens.push(token);
     
+    if is_newline {
+      is_newline = false;
+      line_numbers.push(line_number);
+    }
+    
   }
 
-  Ok(out_tokens)
+  Ok((out_tokens,line_numbers))
 }
 //------------------------------------------------------------------------------
 #[derive(PartialEq, Debug, Clone)]
-enum Token{
+pub enum Token{
  BlockCommentEnd, 
  BlockCommentStart, 
  Coma,
@@ -195,6 +227,7 @@ enum Token{
  Equals,
  In,
  LineComment, 
+ MagneticField,
  ParenthesisClose,
  ParenthesisOpen,
  Residue,
@@ -212,8 +245,8 @@ enum Token{
 //------------------------------------------------------------------------------
 fn identify_token(word: &str) -> Option<Token>{
   match word{
-    //"*/" => Some(Token::BlockCommetEnd),
-    //"/*" => Some(Token::BlockCommetStart),
+    "*/" => Some(Token::BlockCommentEnd),
+    "/*" => Some(Token::BlockCommentStart),
     "," => Some(Token::Coma),
     "}" => Some(Token::CurlyBracketClose),
     "{" => Some(Token::CurlyBracketOpen),
@@ -221,7 +254,8 @@ fn identify_token(word: &str) -> Option<Token>{
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
     "in" => Some(Token::In),
-    //"//" => Some(Token::LineComent),
+    "//" => Some(Token::LineComment),
+    "magnetic_field" => Some(Token::MagneticField),
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
     "residue" => Some(Token::Residue),
@@ -239,13 +273,9 @@ fn identify_token(word: &str) -> Option<Token>{
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-struct TokenStatements{
-  statements: Vec::<Vec::<Token>>,
-  line_numbers: Vec::<usize>,
-}
 
-fn get_token_statements(tokens: Vec::<Token>) -> TokenStatements {
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+fn get_token_statements(tokens: Vec::<Token>) -> Vec::<Vec::<Token>> {
 
     // Count statements.
     let mut num_statements = 0;
@@ -259,15 +289,20 @@ fn get_token_statements(tokens: Vec::<Token>) -> TokenStatements {
 
     // Get Statements.
     let mut statements = Vec::<Vec::<Token>>::with_capacity(num_statements);
-    let mut line_numbers = Vec::<usize>::with_capacity(num_statements);
+    //let mut line_numbers = Vec::<usize>::with_capacity(num_statements);
 
+    let mut read_from = 0;
     for _istatement in 0..num_statements{
     
       // Count tokens in statement.
       let mut num_tokens_in_statement = 0;
       
-      for token in tokens.iter(){
-        if *token == Token::Semicolon { break;}
+      let mut read_to = tokens.len();
+      for ii in read_from..tokens.len(){
+        if tokens[ii] == Token::Semicolon { 
+          read_to = ii;
+          break;
+        }
         num_tokens_in_statement += 1;
       }
 
@@ -275,15 +310,16 @@ fn get_token_statements(tokens: Vec::<Token>) -> TokenStatements {
       // Get statement.
       let mut statement = Vec::<Token>::with_capacity(num_tokens_in_statement);
 
-      for token in tokens.iter(){
-        if *token == Token::Semicolon { break;}
-        statement.push(token.clone());
+      for ii in read_from..read_to{
+        statement.push(tokens[ii].clone());
       }
 
+      read_from = read_to + 1;
       statements.push(statement);
     } 
 
-    TokenStatements{ statements, line_numbers}
+    //TokenStatements{ statements, line_numbers}
+    statements
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -296,14 +332,30 @@ mod tests{
 
   #[test]
   fn test_identify_token(){
-  
+    assert_eq!(identify_token("*/").unwrap(), Token::BlockCommentEnd);
+    assert_eq!(identify_token("/*").unwrap(), Token::BlockCommentStart);
+    assert_eq!(identify_token(",").unwrap(), Token::Coma);
+    assert_eq!(identify_token("}").unwrap(), Token::CurlyBracketClose);
+    assert_eq!(identify_token("{").unwrap(), Token::CurlyBracketOpen);
     assert_eq!(identify_token("element").unwrap(), Token::Element);
-    assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
-    assert_eq!(identify_token("in").unwrap(), Token::In);
-    assert_eq!(identify_token("[").unwrap(), Token::SquareBracketOpen);
-    assert_eq!(identify_token("]").unwrap(), Token::SquareBracketClose);
-    assert_eq!(identify_token(";").unwrap(), Token::Semicolon);
     assert_eq!(identify_token("\n").unwrap(), Token::EOL);
+    assert_eq!(identify_token("=").unwrap(), Token::Equals);
+    assert_eq!(identify_token("in").unwrap(), Token::In);
+    assert_eq!(identify_token("//").unwrap(), Token::LineComment);
+    assert_eq!(identify_token("magnetic_field").unwrap(), Token::MagneticField);
+    assert_eq!(identify_token(")").unwrap(), Token::ParenthesisClose);
+    assert_eq!(identify_token("(").unwrap(), Token::ParenthesisOpen);
+    assert_eq!(identify_token("residue").unwrap(), Token::Residue);
+    assert_eq!(identify_token(";").unwrap(), Token::Semicolon);
+    assert_eq!(identify_token("#").unwrap(), Token::Sharp);
+    assert_eq!(identify_token("/").unwrap(), Token::Slash);
+    assert_eq!(identify_token("]").unwrap(), Token::SquareBracketClose);
+    assert_eq!(identify_token("[").unwrap(), Token::SquareBracketOpen);
+    assert_eq!(identify_token("*").unwrap(), Token::Times);
+    assert_eq!(identify_token("tunnel_splitting").unwrap(), 
+        Token::TunnelSplitting);
+    assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
+
   }
   //----------------------------------------------------------------------------
 
@@ -370,7 +422,83 @@ tunnel_splitting = 80e3; // Hz"),
       assert_eq!(tokens[ii], ref_tokens[ii]);
     }
 
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_prune_tokens(){
+    let lexer = Lexer{
+      input: String::from(
+"/*element in [H];*/
+tunnel_splitting = 80e3; // Hz
+magnetic_field = 1.2; // T"),
+      position: 0, 
+      line_number: 0,
+    };
+    let ref_tokens = vec![ 
+     Token::TunnelSplitting, 
+     Token::Equals, 
+     Token::UserInputValue(Box::new("80e3".to_string())), Token::Semicolon,
+     Token::MagneticField, 
+     Token::Equals, 
+     Token::UserInputValue(Box::new("1.2".to_string())), Token::Semicolon,
+    ];
+
+    let tokens = parse_tokens(lexer).unwrap();
+    let tokens = find_comments(tokens);
+    let (tokens,line_numbers) = prune_tokens(tokens).unwrap();
+
+
+    assert_eq!(tokens.len(), ref_tokens.len());
+   
+    for ii in 0..tokens.len(){
+      assert_eq!(tokens[ii], ref_tokens[ii]);
+    }
 
   }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_get_token_statements(){
+    let lexer = Lexer{
+      input: String::from(
+"/*element in [H];*/
+tunnel_splitting = 80e3; // Hz
+magnetic_field = 1.2; // T"),
+      position: 0, 
+      line_number: 0,
+    };
+    let ref_statements = vec![ 
+     vec![Token::TunnelSplitting, 
+     Token::Equals, 
+     Token::UserInputValue(Box::new("80e3".to_string()))],
+     vec![Token::MagneticField, 
+     Token::Equals, 
+     Token::UserInputValue(Box::new("1.2".to_string()))],
+    ];
+
+    let ref_line_numbers = vec![2,3];
+    let tokens = parse_tokens(lexer).unwrap();
+    let tokens = find_comments(tokens);
+    let (tokens,line_numbers) = prune_tokens(tokens).unwrap();
+    let statements = get_token_statements(tokens);
+
+    //let statements = &token_statements.statements;
+    //let line_numbers = &token_statements.line_numbers;
+
+    
+    assert_eq!(statements.len(), ref_statements.len());
+    assert_eq!(line_numbers.len(), ref_line_numbers.len());
+   
+    println!("\n\n{:?}\n\n",statements);
+
+    for jj in 0..statements.len(){
+      assert_eq!(line_numbers[jj], ref_line_numbers[jj] );
+      assert_eq!(statements[jj].len(), ref_statements[jj].len());
+      for ii in 0..statements[jj].len(){
+        assert_eq!(statements[jj][ii], ref_statements[jj][ii]);
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
