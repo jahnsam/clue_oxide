@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(PartialEq,Debug,Clone)]
 pub enum CluEError{
+  CannotCombineTokens(usize),
   CannotConvertToFloat(usize,String),
   EmptyVector(usize),
   InvalidConfigFile(String),
@@ -18,6 +19,10 @@ pub enum CluEError{
 impl fmt::Display for CluEError{
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
+
+      CluEError::CannotCombineTokens(line_number) => write!(f,
+          "{}: cannot combine tokens meaningfully", line_number),
+
       CluEError::CannotConvertToFloat(line_number, token) => write!(f,
           "{}: cannot convert \"{}\" to type float", line_number,token),
 
