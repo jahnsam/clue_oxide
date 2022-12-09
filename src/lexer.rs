@@ -372,9 +372,12 @@ fn is_numeric(token: &Token) -> bool{
   }
 }
 //------------------------------------------------------------------------------
-fn basic_token_algebraic_operations_f64(tokens: &[Token;3],line_number: usize) 
+fn basic_token_algebraic_operations_f64(tokens: [Token;3],line_number: usize) 
  ->Result<Token,CluEError>{
 
+  if tokens.len() != 3{
+    return Err(CluEError::WrongVectorLength(line_number, 3, tokens.len()));
+  }
   let a: f64;
   match tokens[0]{
     Token::Float(x) => a = x,
@@ -398,6 +401,213 @@ fn basic_token_algebraic_operations_f64(tokens: &[Token;3],line_number: usize)
     Token::Slash => Ok(Token::Float(a/b)),
     _ => Err(CluEError::NotAnOperator(line_number, tokens[1].to_string())),
   }
+
+}
+//------------------------------------------------------------------------------
+fn contract_operator_inverse_operator_tokens(
+    tokens: Vec::<Token>,line_number: usize,
+    op: Token, inv_op: Token)
+ -> Result<Vec::<Token>, CluEError>{
+
+  let mut out = Vec::<Token>::with_capacity(tokens.len());
+
+  if tokens.is_empty(){
+    return Err(CluEError::EmptyVector(line_number))
+  }
+
+  out.push(tokens[0].clone());
+
+  let mut skip_next = false;
+
+  for ii in 1..tokens.len()-1 {
+
+    if skip_next{
+      skip_next = false;
+      continue;
+    }
+
+    if (tokens[ii] == op || tokens[ii] == inv_op) 
+      && is_numeric(&out[out.len()-1]) && is_numeric(&tokens[ii+1]){
+
+      let new_token = basic_token_algebraic_operations_f64(
+       [out[out.len()-1].clone(), tokens[ii].clone(), tokens[ii+1].clone()],
+       line_number)?;
+
+      let idx = out.len() - 1;
+      out[idx] = new_token;
+      skip_next = true;
+
+    }else{
+      out.push(tokens[ii].clone());
+    }
+
+  }
+  if !skip_next{
+    out.push(tokens[tokens.len()-1].clone());
+  }
+  
+  Ok(out)
+}
+//------------------------------------------------------------------------------
+fn contract_multiply_divide_tokens(tokens: Vec::<Token>,line_number: usize)
+ -> Result<Vec::<Token>, CluEError>{
+
+   contract_operator_inverse_operator_tokens(tokens, line_number,
+       Token::Times, Token::Slash)
+ }
+//------------------------------------------------------------------------------
+fn contract_add_subtract_tokens(tokens: Vec::<Token>,line_number: usize)
+ -> Result<Vec::<Token>, CluEError>{
+
+   contract_operator_inverse_operator_tokens(tokens, line_number,
+       Token::Plus, Token::Minus)
+ }
+//------------------------------------------------------------------------------
+fn count_token(target: &Token, tokens: &[Token]) -> usize{
+
+  let mut counter = 0;
+
+  for token in tokens.iter(){
+    if token == target{
+      counter += 1;
+    }
+  }
+  counter   
+}
+//------------------------------------------------------------------------------
+fn is_opening_delimiter(token: &Token) -> bool{
+  match token{
+    Token::ParenthesisOpen => true,
+    Token::SquareBracketOpen => true,
+    Token::CurlyBracketOpen => true,
+    _ => false,
+  }
+}
+//------------------------------------------------------------------------------
+fn is_closing_delimiter(token: &Token) -> bool{
+  match token{
+    Token::ParenthesisClose => true,
+    Token::SquareBracketClose => true,
+    Token::CurlyBracketClose => true,
+    _ => false,
+  }
+}
+//------------------------------------------------------------------------------
+fn are_delimiters_paired(open: &Token, close: &Token, line_number: usize) 
+ -> Result<bool,CluEError>{
+
+  if !is_opening_delimiter(open){
+    return Err(CluEError::InvalidToken(line_number, open.to_string()));
+  }
+  if !is_closing_delimiter(close){
+    return Err(CluEError::InvalidToken(line_number, close.to_string()));
+  } 
+
+  if (*open == Token::ParenthesisOpen && *close == Token::ParenthesisClose)  
+    || (*open == Token::SquareBracketOpen 
+        && *close == Token::SquareBracketClose)
+    || (*open == Token::CurlyBracketOpen && *close == Token::CurlyBracketClose){
+      return Ok(true);
+    }
+  Ok(false)
+}
+//------------------------------------------------------------------------------
+fn count_delimiter_pairs(tokens: &[Token],line_number: usize)
+  -> Result<usize, CluEError>{
+  
+  let n_parentheses_open = count_token(&Token::ParenthesisOpen, tokens);  
+  let n_parentheses_close = count_token(&Token::ParenthesisClose, tokens);  
+  
+  let n_brackets_open = count_token(&Token::SquareBracketOpen, tokens);  
+  let n_brackets_close = count_token(&Token::SquareBracketClose, tokens);  
+
+  let n_braces_open = count_token(&Token::CurlyBracketOpen, tokens);  
+  let n_braces_close = count_token(&Token::CurlyBracketClose, tokens);
+
+  if n_parentheses_open != n_parentheses_close
+   || n_brackets_open != n_brackets_close
+   || n_braces_open != n_braces_close
+  {
+    return Err(CluEError::UnmatchedDelimiter(line_number) ) 
+  }
+
+  Ok(n_parentheses_open + n_brackets_open + n_braces_open)
+}
+//------------------------------------------------------------------------------
+fn get_delimiter_depths(tokens: &[Token], line_number: usize)
+  -> Result<(Vec::<i32>, i32), CluEError>{
+
+  let mut depths = Vec::<i32>::with_capacity(tokens.len()); 
+  let mut depth: i32 = 0; 
+  let mut max_depth: i32 = 0;
+
+  for token in tokens.iter(){
+    if is_opening_delimiter(token){
+      depth += 1;
+    } else if is_closing_delimiter(token){
+      depth -= 1;
+    }
+     
+    if depth < 0{
+      return Err(CluEError::UnmatchedDelimiter(line_number) ) 
+    }
+
+    max_depth = std::cmp::max(max_depth, depth);
+
+    depths.push(depth);
+  }
+
+  if depth != 0{
+    return Err(CluEError::UnmatchedDelimiter(line_number) ) 
+  }
+
+  Ok((depths, max_depth))
+}  
+//------------------------------------------------------------------------------
+fn find_deepest_parentheses(tokens: &[Token], line_number: usize) 
+  -> Result<Option<(usize,usize)>, CluEError>{
+
+  
+  let n_pairs = count_delimiter_pairs(tokens,line_number)?;
+  
+  if n_pairs == 0{
+    return Ok(None);
+  }
+
+
+  let (depths, max_depth) = get_delimiter_depths(tokens,line_number)?;
+
+
+  let mut found_open_of_max_depth = false; 
+  let mut found_close_of_max_depth = false; 
+  let mut idx_open = 0;
+  let mut idx_close = tokens.len() - 1;
+
+  for (ii, depth) in depths.iter().enumerate(){
+    if !found_open_of_max_depth{
+      if *depth == max_depth{
+        idx_open = ii;
+        found_open_of_max_depth = true;
+      }
+    } else if !found_close_of_max_depth && *depth < max_depth{
+      idx_close = ii;
+      found_close_of_max_depth = true;
+    }  
+  }
+
+  if !found_open_of_max_depth || !found_close_of_max_depth{
+    return Err(CluEError::UnmatchedDelimiter(line_number) ) 
+  }
+
+  let are_matched = are_delimiters_paired(
+      &tokens[idx_open], &tokens[idx_close],line_number)?;
+  
+  if !are_matched{
+    return Err(CluEError::UnmatchedDelimiter(line_number) ) 
+  }
+
+  Ok( Some( (idx_open,idx_close) ) )
+
 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -619,7 +829,6 @@ magnetic_field = 1.2; // T"),
     assert_eq!(statements.len(), ref_statements.len());
     assert_eq!(line_numbers.len(), ref_line_numbers.len());
    
-    println!("\n\n{:?}\n\n",statements);
 
     for jj in 0..statements.len(){
       assert_eq!(line_numbers[jj], ref_line_numbers[jj] );
@@ -663,6 +872,121 @@ magnetic_field = 1.2; // T"),
     assert_eq!(expression.rhs[0],tokens[4]);
   }
   //----------------------------------------------------------------------------
+  #[test]
+  fn test_basic_token_algebraic_operations_f64(){
+  
+    let mut tokens = vec![Token::Float(2.0), Token::Plus, Token::Float(3.0),
+     Token::Equals, Token::Float(3.0)];
+    
+    let answer = basic_token_algebraic_operations_f64(
+        [tokens[0].clone(),tokens[1].clone(),tokens[2].clone()],0).unwrap();
+    assert_eq!(answer, Token::Float(2.0 + 3.0));
+
+    tokens[1] = Token::Minus;
+    let answer = basic_token_algebraic_operations_f64(
+        [tokens[0].clone(),tokens[1].clone(),tokens[2].clone()],0).unwrap();
+    assert_eq!(answer, Token::Float(2.0 - 3.0));
+
+    tokens[1] = Token::Times;
+    let answer = basic_token_algebraic_operations_f64(
+        [tokens[0].clone(),tokens[1].clone(),tokens[2].clone()],0).unwrap();
+    assert_eq!(answer, Token::Float(2.0 * 3.0));
+
+    tokens[1] = Token::Slash;
+    let answer = basic_token_algebraic_operations_f64(
+        [tokens[0].clone(),tokens[1].clone(),tokens[2].clone()],0).unwrap();
+    assert_eq!(answer, Token::Float(2.0 / 3.0));
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_contract_multiply_divide_tokens(){
+
+    let tokens = vec![Token::Float(2.0), Token::Times, Token::Float(3.0),
+     Token::Comma, Token::Float(3.0)];
+
+    let tokens = contract_multiply_divide_tokens(tokens,0).unwrap();
+    assert_eq!(tokens.len(), 3);
+    assert_eq!(tokens, 
+        vec![Token::Float(6.0), Token::Comma, Token::Float(3.0)]);
+
+    let tokens = vec![Token::Float(2.0), Token::Slash, Token::Float(3.0),
+     Token::Comma, Token::Float(3.0)];
+
+    let tokens = contract_multiply_divide_tokens(tokens,0).unwrap();
+    assert_eq!(tokens.len(), 3);
+    assert_eq!(tokens, 
+        vec![Token::Float(2.0/3.0), Token::Comma, Token::Float(3.0)]);
+
+    let tokens = vec![Token::Float(6.0), Token::Times, Token::Float(2.0), 
+        Token::Slash, Token::Float(3.0), Token::Times, Token::Float(5.0)];
+
+    let tokens = contract_multiply_divide_tokens(tokens,0).unwrap();
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens, vec![Token::Float(6.0*2.0/3.0*5.0)]);
+
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_contract_add_subtract_tokens(){
+
+    let tokens = vec![Token::Float(2.0), Token::Plus, Token::Float(3.0),
+     Token::Comma, Token::Float(3.0)];
+
+    let tokens = contract_add_subtract_tokens(tokens,0).unwrap();
+    assert_eq!(tokens.len(), 3);
+    assert_eq!(tokens, 
+        vec![Token::Float(5.0), Token::Comma, Token::Float(3.0)]);
+
+    let tokens = vec![Token::Float(2.0), Token::Minus, Token::Float(3.0),
+     Token::Comma, Token::Float(3.0)];
+
+    let tokens = contract_add_subtract_tokens(tokens,0).unwrap();
+    assert_eq!(tokens.len(), 3);
+    assert_eq!(tokens, 
+        vec![Token::Float(2.0 - 3.0), Token::Comma, Token::Float(3.0)]);
+
+    let tokens = vec![Token::Float(6.0), Token::Plus, Token::Float(2.0), 
+        Token::Minus, Token::Float(3.0), Token::Plus, Token::Float(5.0)];
+
+    let tokens = contract_add_subtract_tokens(tokens,0).unwrap();
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens, vec![Token::Float(6.0 + 2.0 - 3.0 + 5.0)]);
+
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_find_deepest_parentheses(){
+    
+    let tokens = vec![Token::ParenthesisClose, Token::ParenthesisOpen];
+    let result = find_deepest_parentheses(&tokens,0);
+    assert_eq!(result,Err(CluEError::UnmatchedDelimiter(0)));
+
+    let tokens = vec![Token::ParenthesisOpen, Token::SquareBracketClose];
+    let result = find_deepest_parentheses(&tokens,0);
+    assert_eq!(result,Err(CluEError::UnmatchedDelimiter(0)));
+
+    let tokens = vec![Token::Comma, Token::Equals];
+    let option = find_deepest_parentheses(&tokens,0).unwrap();
+    assert_eq!(option,None);
+
+    let tokens = vec![Token::ParenthesisOpen, Token::ParenthesisClose];
+    let (idx_open, idx_close) = find_deepest_parentheses(&tokens,0)
+      .unwrap().unwrap();
+    assert_eq!(idx_open,0);
+    assert_eq!(idx_close,1);
+
+    let tokens = vec![Token::CurlyBracketOpen, Token::CurlyBracketClose];
+    let option = find_deepest_parentheses(&tokens,0).unwrap();
+    assert_eq!(option,Some((0,1)));
+  
+    let tokens = vec![Token::ParenthesisOpen,
+        Token::SquareBracketOpen,Token::SquareBracketClose,
+        Token::Comma,
+        Token::CurlyBracketOpen, Token::CurlyBracketClose,
+        Token::ParenthesisClose];
+    let option = find_deepest_parentheses(&tokens,0).unwrap();
+    assert_eq!(option,Some((1,2)));
+  }
 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
