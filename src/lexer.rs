@@ -225,15 +225,91 @@ fn simplify_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
     }
     n = tokens.len();
   }  
+
+  tokens
 }
 //------------------------------------------------------------------------------
-fn build_composit_tokens(tokens: Vec::<Token>) -> Vec::<Token>
+fn build_composit_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
 {
-  tokens
+  if tokens.len() < 2{
+    return tokens;
+  }
+
+  let mut out = Vec::<Token>::with_capacity(tokens.len());
+
+  // Add an extra token at the end to make the loop cleaner.
+  tokens.push(Token::Whitespace);
+
+  let mut skip_next = false;
+
+  for ii in 1..tokens.len(){
+  
+    if skip_next{
+      skip_next = false;
+      continue;
+    }
+    skip_next = true;
+
+    // !=
+    if tokens[ii-1] == Token::Bang && tokens[ii] == Token::Equals{
+      out.push(Token::NotEqual);
+      continue;}
+  
+    // /*
+    if tokens[ii-1] == Token::Times && tokens[ii] == Token::Slash{
+      out.push(Token::BlockCommentEnd);
+      continue;}
+  
+    // */
+    if tokens[ii-1] == Token::Slash && tokens[ii] == Token::Times{
+      out.push(Token::BlockCommentStart);
+      continue;}
+  
+    // >=
+    if tokens[ii-1] == Token::GreaterThan && tokens[ii] == Token::Equals{
+      out.push(Token::GreaterThanEqualTo);
+      continue;}
+  
+    // -+
+    if tokens[ii-1] == Token::Minus && tokens[ii] == Token::Plus{
+      out.push(Token::Minus);
+      continue;}
+  
+    // --
+    if tokens[ii-1] == Token::Minus && tokens[ii] == Token::Minus{
+      out.push(Token::Plus);
+      continue;}
+  
+    // <=
+    if tokens[ii-1] == Token::LessThan && tokens[ii] == Token::Equals{
+      out.push(Token::LessThanEqualTo);
+      continue;}
+  
+    // +-
+    if tokens[ii-1] == Token::Plus && tokens[ii] == Token::Minus{
+      out.push(Token::Minus);
+      continue;}
+  
+    // ++
+    if tokens[ii-1] == Token::Plus && tokens[ii] == Token::Plus{
+      out.push(Token::Plus);
+      continue;}
+  
+    // //
+    if tokens[ii-1] == Token::Slash && tokens[ii] == Token::Slash{
+      out.push(Token::LineComment);
+      continue;}
+
+    skip_next = false;
+    out.push(tokens[ii-1].clone());
+  }
+
+  out
 }
 //------------------------------------------------------------------------------
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token{
+ Bang,
  BlockCommentEnd, 
  BlockCommentStart, 
  Comma,
@@ -253,7 +329,9 @@ pub enum Token{
  LineComment, 
  MagneticField,
  Minus,
+ Not,
  NotEqual,
+ NotIn,
  ParenthesisClose,
  ParenthesisOpen,
  Plus,
@@ -271,6 +349,7 @@ pub enum Token{
 impl Token{
   pub fn to_string(&self) -> String{
     match self{
+      Token::Bang => "!".to_string(), 
       Token::BlockCommentEnd => "*/".to_string(), 
       Token::BlockCommentStart => "/*".to_string(), 
       Token::Comma => ",".to_string(),
@@ -290,7 +369,9 @@ impl Token{
       Token::LineComment => "//".to_string(), 
       Token::MagneticField => "magnetic_field".to_string(),
       Token::Minus => "-".to_string(),
+      Token::Not => "not".to_string(),
       Token::NotEqual => "!=".to_string(),
+      Token::NotIn => "not in".to_string(),
       Token::ParenthesisClose => ")".to_string(),
       Token::ParenthesisOpen => "(".to_string(),
       Token::Plus => "+".to_string(),
@@ -311,6 +392,7 @@ impl Token{
 //------------------------------------------------------------------------------
 fn identify_token(word: &str) -> Option<Token>{
   match word{
+    "!" => Some(Token::Bang),
     "*/" => Some(Token::BlockCommentEnd),
     "/*" => Some(Token::BlockCommentStart),
     "," => Some(Token::Comma),
@@ -328,7 +410,9 @@ fn identify_token(word: &str) -> Option<Token>{
     "//" => Some(Token::LineComment),
     "magnetic_field" => Some(Token::MagneticField),
     "-" => Some(Token::Minus),
+    "not" => Some(Token::Not),
     "!=" => Some(Token::NotEqual),
+    "not in" => Some(Token::NotIn),
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
     "+" => Some(Token::Plus),
@@ -379,6 +463,7 @@ fn is_relational_operator(token: &Token) -> bool{
     Token::LessThan => true,
     Token::LessThanEqualTo => true,
     Token::NotEqual => true,
+    Token::NotIn => true,
     _ => false,
   }
 }
@@ -519,9 +604,34 @@ fn contract_add_subtract_tokens(tokens: Vec::<Token>,line_number: usize)
        Token::Plus, Token::Minus)
  }
 //------------------------------------------------------------------------------
+fn add_token_at_index(add_this_token: Token, idx: usize, tokens: Vec::<Token>,
+    line_number: usize)
+  -> Result<Vec::<Token>,CluEError>
+{
+  if idx > tokens.len(){
+    return Err(CluEError::IndexOutOfBounds(line_number, idx,tokens.len() +1));
+  }
+
+  let mut out = Vec::<Token>::with_capacity(tokens.len() +1);
+  
+  for (ii,token) in tokens.iter().enumerate(){
+    if ii == idx{
+      out.push(add_this_token.clone());
+    }
+    out.push((*token).clone());
+  }
+
+  Ok(out)
+}  
+//------------------------------------------------------------------------------
 fn contract_emdas(tokens: Vec::<Token>, line_number: usize) 
  -> Result<Token, CluEError>
 {
+
+  // gate keeping section
+  if tokens.is_empty(){
+    return Err(CluEError::IndexOutOfBounds(line_number,0, 0));
+  }
 
   let n_pairs = count_delimiter_pairs(&tokens,line_number)?;
 
@@ -530,6 +640,7 @@ fn contract_emdas(tokens: Vec::<Token>, line_number: usize)
   }
 
 
+  // Evaluate exponentials.
   let tokens = contract_exponentiation_tokens(tokens,line_number)?;
 
   if count_token(&Token::Hat,&tokens) != 0{
@@ -537,7 +648,8 @@ fn contract_emdas(tokens: Vec::<Token>, line_number: usize)
   }
 
 
-  let tokens = contract_multiply_divide_tokens(tokens,line_number)?;
+  // Evaluate mutiplications and divisions.
+  let mut tokens = contract_multiply_divide_tokens(tokens,line_number)?;
 
   if count_token(&Token::Times,&tokens) != 0{
     return Err(CluEError::InvalidToken(line_number,Token::Times.to_string()));
@@ -547,24 +659,44 @@ fn contract_emdas(tokens: Vec::<Token>, line_number: usize)
   }
 
 
+  // Evaluate additions and subtractions.
+  if tokens[0] == Token::Plus || tokens[0] == Token::Minus{
+    tokens = add_token_at_index(Token::Float(0.0),0,tokens, line_number)?;
+  }
+
   let tokens = contract_add_subtract_tokens(tokens,line_number)?;
   
 
-  if tokens.len() > 2 {
+  // Check for errors.
+  if tokens.len() != 1 {
     return Err(CluEError::CannotCombineTokens(line_number));
   }
 
-  let token: Token;
-  if tokens.len() == 2{
-    token = basic_token_algebraic_operations_f64(
-        [Token::Float(0.0), tokens[0].clone(), tokens[1].clone()],line_number)?;
-  }else{
-    token = tokens[0].clone();
-  }
-
-  Ok(token)
-
+  // Get return value
+  Ok(tokens[0].clone())
 }  
+//------------------------------------------------------------------------------
+/*
+// TODO
+fn contract_pemdas(tokens: Vec::<Token>, line_number: usize) 
+ -> Result<Token, CluEError>
+{
+
+  let idx_option = find_deepest_parentheses(&tokens, line_number)?;
+
+  if let Some((idx0,idx1)) = idx_option{
+    if idx0+1==idx1{
+    }else{
+     contract_emdas()
+    }
+
+  }else{ // no parentheses case
+     let idx0 = 0;
+     let idx1 = tokens.len() -1;
+     contract_emdas()
+  }
+}
+*/
 //------------------------------------------------------------------------------
 fn count_token(target: &Token, tokens: &[Token]) -> usize{
 
@@ -718,20 +850,17 @@ fn find_deepest_parentheses(tokens: &[Token], line_number: usize)
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 fn get_token_statements(tokens: Vec::<Token>) -> Vec::<Vec::<Token>> {
-
+  split_on_token(tokens, Token::Semicolon)
+}
+//------------------------------------------------------------------------------
+fn split_on_token(tokens: Vec::<Token>, split_on: Token) 
+ -> Vec::<Vec::<Token>>
+{
     // Count statements.
-    let mut num_statements = 0;
-
-    for token in tokens.iter(){
-      if *token == Token::Semicolon { 
-        num_statements += 1;
-      }
-    }
-
+    let num_statements = count_token(&split_on,&tokens);
 
     // Get Statements.
     let mut statements = Vec::<Vec::<Token>>::with_capacity(num_statements);
-    //let mut line_numbers = Vec::<usize>::with_capacity(num_statements);
 
     let mut read_from = 0;
     for _istatement in 0..num_statements{
@@ -741,7 +870,7 @@ fn get_token_statements(tokens: Vec::<Token>) -> Vec::<Vec::<Token>> {
       
       let mut read_to = tokens.len();
       for ii in read_from..tokens.len(){
-        if tokens[ii] == Token::Semicolon { 
+        if tokens[ii] == split_on { 
           read_to = ii;
           break;
         }
@@ -760,9 +889,31 @@ fn get_token_statements(tokens: Vec::<Token>) -> Vec::<Vec::<Token>> {
       statements.push(statement);
     } 
 
-    //TokenStatements{ statements, line_numbers}
     statements
 }
+//------------------------------------------------------------------------------
+/*
+// TODO
+fn to_string_vector(mut tokens: Vec::<Token>) 
+ -> Result<Vec::<String>, CluEError>
+{
+  let vector_elements =  split_on_token(tokens, Token::Comma);
+  let out = Vec::<String>::with_capacity(vector_elements.len());
+}
+*/
+//------------------------------------------------------------------------------
+/*
+// TODO
+fn to_float_vector(mut tokens: Vec::<Token>) 
+ -> Result<Vec::<f64>, CluEError>
+{
+  // Find brackets.
+
+  // Get elements
+  let vector_elements =  split_on_token(tokens, Token::Comma);
+  let out = Vec::<f64>::with_capacity(vector_elements.len());
+}
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -774,6 +925,7 @@ mod tests{
 
   #[test]
   fn test_identify_token(){
+    assert_eq!(identify_token("!").unwrap(), Token::Bang);
     assert_eq!(identify_token("*/").unwrap(), Token::BlockCommentEnd);
     assert_eq!(identify_token("/*").unwrap(), Token::BlockCommentStart);
     assert_eq!(identify_token(",").unwrap(), Token::Comma);
@@ -791,7 +943,9 @@ mod tests{
     assert_eq!(identify_token("//").unwrap(), Token::LineComment);
     assert_eq!(identify_token("magnetic_field").unwrap(), Token::MagneticField);
     assert_eq!(identify_token("-").unwrap(), Token::Minus);
+    assert_eq!(identify_token("not").unwrap(), Token::Not);
     assert_eq!(identify_token("!=").unwrap(), Token::NotEqual);
+    assert_eq!(identify_token("not in").unwrap(), Token::NotIn);
     assert_eq!(identify_token(")").unwrap(), Token::ParenthesisClose);
     assert_eq!(identify_token("(").unwrap(), Token::ParenthesisOpen);
     assert_eq!(identify_token("+").unwrap(), Token::Plus);
@@ -945,6 +1099,26 @@ magnetic_field = 1.2; // T"),
       for ii in 0..statements[jj].len(){
         assert_eq!(statements[jj][ii], ref_statements[jj][ii]);
       }
+    }
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_simplify_tokens(){
+  
+    let tokens = vec![Token::Float(1.0), Token::Plus, Token::Minus,
+     Token::Float(2.0), Token::Minus, Token::Minus, Token::Minus, 
+     Token::Float(5.0), Token::Bang, Token::Equals, Token::Float(3.0)];
+
+    let ref_tokens = vec![Token::Float(1.0), Token::Minus, 
+        Token::Float(2.0), Token::Minus, Token::Float(5.0), Token::NotEqual,
+       Token::Float(3.0)];
+
+    let tokens = simplify_tokens(tokens);
+
+    assert_eq!(tokens.len(), ref_tokens.len());
+
+    for ii in 0..tokens.len(){
+      assert_eq!(tokens[ii], ref_tokens[ii]);
     }
   }
   //----------------------------------------------------------------------------

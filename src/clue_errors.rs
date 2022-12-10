@@ -5,6 +5,7 @@ pub enum CluEError{
   CannotCombineTokens(usize),
   CannotConvertToFloat(usize,String),
   EmptyVector(usize),
+  IndexOutOfBounds(usize,usize,usize),
   InvalidConfigFile(String),
   InvalidToken(usize,String),
   NoCentralSpinCoor,
@@ -28,6 +29,10 @@ impl fmt::Display for CluEError{
 
       CluEError::EmptyVector(line_number) => write!(f,
           "{}: supplied vector is emptry", line_number),
+
+      CluEError::IndexOutOfBounds(line_number,idx, len) => write!(f,
+          "{}: cannot access element {} from array of length {}", 
+          line_number, idx, len),
 
       CluEError::InvalidConfigFile(filename) => write!(f,
           "cannot not read config file \"{}\"", filename),
