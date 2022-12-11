@@ -4,6 +4,7 @@ use std::fmt;
 pub enum CluEError{
   CannotCombineTokens(usize),
   CannotConvertToFloat(usize,String),
+  CannotConvertToVector(usize),
   EmptyVector(usize),
   IndexOutOfBounds(usize,usize,usize),
   InvalidConfigFile(String),
@@ -26,6 +27,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotConvertToFloat(line_number, token) => write!(f,
           "{}: cannot convert \"{}\" to type float", line_number,token),
+
+      CluEError::CannotConvertToVector(line_number) => write!(f,
+          "{}: cannot find vector", line_number),
 
       CluEError::EmptyVector(line_number) => write!(f,
           "{}: supplied vector is emptry", line_number),

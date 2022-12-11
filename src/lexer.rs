@@ -2,8 +2,8 @@ use crate::clue_errors::*;
 use substring::Substring;
 
 pub struct TokenStream{
-  statements: Vec::<Vec::<Token>>,
-  line_numbers: Vec::<usize>,
+  pub statements: Vec::<TokenExpression>,
+  pub line_numbers: Vec::<usize>,
 }
 
 
@@ -13,13 +13,56 @@ pub fn get_tokens_from_file(filename: &str) -> Result<TokenStream,CluEError>{
     let tokens = parse_tokens(lexer)?;
     let tokens = find_comments(tokens);
     let (tokens,line_numbers) = prune_tokens(tokens)?;
-    let statements = get_token_statements(tokens);
+    let statements = get_token_statements(tokens, &line_numbers)?;
 
     Ok(TokenStream{
         statements,
         line_numbers,
         })
 }
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+pub struct TokenExpression{
+  pub lhs: Vec::<Token>,
+  pub rhs: Option<Vec::<Token>>,
+  pub relationship: Option<Token>
+}
+
+impl TokenExpression{
+  fn from(tokens: Vec::<Token>, line_number:usize) -> Result<Self,CluEError>{
+
+    let idx: usize; 
+    let idx_option = find_lhs_rhs_delimiter_index(&tokens, line_number)?;
+    
+    if let Some(index) = idx_option{
+      idx = index;
+    }else{
+      idx = tokens.len();
+    }
+
+    let mut lhs = Vec::<Token>::with_capacity(idx);
+    let mut rhs = Vec::<Token>::with_capacity(tokens.len() - idx - 1);
+
+    for (ii,token) in tokens.iter().enumerate(){
+
+      if ii < idx{
+        lhs.push(token.clone());
+      }else if ii > idx{
+        rhs.push(token.clone());
+      }
+    }
+
+    if rhs.is_empty(){
+      return Ok(TokenExpression{lhs, rhs: None,relationship: None})
+    }
+
+    let rhs = Some(rhs);
+    let relationship = Some(tokens[idx].clone());
+    Ok(TokenExpression{lhs, rhs, relationship})
+
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -433,7 +476,7 @@ fn identify_token(word: &str) -> Option<Token>{
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize) 
-  -> Result<usize,CluEError>{
+  -> Result<Option<usize>,CluEError>{
   let mut found_token = false;
   let mut index: usize = 0;
 
@@ -448,9 +491,10 @@ fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize)
     }
   }
   if found_token{
-    return Ok(index);
+    return Ok(Some(index));
   }else{
-    return Err(CluEError::NoRelationalOperators(line_number));
+    //return Err(CluEError::NoRelationalOperators(line_number));
+    return Ok(None);
   }
 }
 //------------------------------------------------------------------------------
@@ -465,33 +509,6 @@ fn is_relational_operator(token: &Token) -> bool{
     Token::NotEqual => true,
     Token::NotIn => true,
     _ => false,
-  }
-}
-//------------------------------------------------------------------------------
-struct TokenExpression{
-  lhs: Vec::<Token>,
-  rhs: Vec::<Token>,
-  relationship: Token
-}
-impl TokenExpression{
-  fn from(tokens: Vec::<Token>, line_number:usize) -> Result<Self,CluEError>{
-
-    let idx = find_lhs_rhs_delimiter_index(&tokens, line_number)?;
-
-    let mut lhs = Vec::<Token>::with_capacity(idx);
-    let mut rhs = Vec::<Token>::with_capacity(tokens.len() - idx - 1);
-    let relationship = tokens[idx].clone();
-
-    for (ii,token) in tokens.iter().enumerate(){
-
-      if ii < idx{
-        lhs.push(token.clone());
-      }else if ii > idx{
-        rhs.push(token.clone());
-      }
-    }
-    Ok(TokenExpression{lhs, rhs, relationship})
-
   }
 }
 //------------------------------------------------------------------------------
@@ -633,7 +650,9 @@ fn contract_emdas(tokens: Vec::<Token>, line_number: usize)
     return Err(CluEError::IndexOutOfBounds(line_number,0, 0));
   }
 
-  let n_pairs = count_delimiter_pairs(&tokens,line_number)?;
+  let n_pairs = count_delimiter_pairs(&tokens,
+      &Token::ParenthesisOpen, &Token::ParenthesisClose,
+      line_number)?;
 
   if n_pairs != 0 {
     return Err(CluEError::InvalidToken(line_number,"parenthaesis".to_string()));
@@ -803,26 +822,22 @@ fn are_delimiters_paired(open: &Token, close: &Token, line_number: usize)
   Ok(false)
 }
 //------------------------------------------------------------------------------
-fn count_delimiter_pairs(tokens: &[Token],line_number: usize)
+fn count_delimiter_pairs(tokens: &[Token], 
+    opening_delimiter: &Token, closing_delimiter: &Token, 
+    line_number: usize)
   -> Result<usize, CluEError>{
   
-  let n_parentheses_open = count_token(&Token::ParenthesisOpen, tokens);  
-  let n_parentheses_close = count_token(&Token::ParenthesisClose, tokens);  
+  let n_open = count_token(&opening_delimiter, tokens);  
+  let n_close = count_token(&closing_delimiter, tokens);  
   
-  let n_brackets_open = count_token(&Token::SquareBracketOpen, tokens);  
-  let n_brackets_close = count_token(&Token::SquareBracketClose, tokens);  
 
-  let n_braces_open = count_token(&Token::CurlyBracketOpen, tokens);  
-  let n_braces_close = count_token(&Token::CurlyBracketClose, tokens);
 
-  if n_parentheses_open != n_parentheses_close
-   || n_brackets_open != n_brackets_close
-   || n_braces_open != n_braces_close
+  if n_open != n_close
   {
     return Err(CluEError::UnmatchedDelimiter(line_number) ) 
   }
 
-  Ok(n_parentheses_open + n_brackets_open + n_braces_open)
+  Ok(n_open)
 }
 //------------------------------------------------------------------------------
 fn get_delimiter_depths(tokens: &[Token], line_number: usize)
@@ -859,7 +874,9 @@ fn find_deepest_parentheses(tokens: &[Token], line_number: usize)
   -> Result<Option<(usize,usize)>, CluEError>{
 
   
-  let n_pairs = count_delimiter_pairs(tokens,line_number)?;
+  let n_pairs = count_delimiter_pairs(tokens,
+      &Token::ParenthesisOpen, &Token::ParenthesisClose,
+      line_number)?;
   
   if n_pairs == 0{
     return Ok(None);
@@ -905,8 +922,23 @@ fn find_deepest_parentheses(tokens: &[Token], line_number: usize)
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-fn get_token_statements(tokens: Vec::<Token>) -> Vec::<Vec::<Token>> {
-  split_on_token(tokens, Token::Semicolon)
+fn get_token_statements(tokens: Vec::<Token>, line_numbers: &[usize]) 
+ -> Result<Vec::<TokenExpression>,CluEError>
+{
+  let splits = split_on_token(tokens, Token::Semicolon);
+
+  let mut statements = Vec::<TokenExpression>::with_capacity(splits.len());
+  
+  let mut counter = 0;
+  for tokens in splits{
+    let line_number = line_numbers[counter];
+    counter += 1;
+    let tok_exp = TokenExpression::from(tokens, line_number)?;
+    statements.push(tok_exp);
+  } 
+
+  Ok(statements)
+
 }
 //------------------------------------------------------------------------------
 fn split_on_token(tokens: Vec::<Token>, split_on: Token) 
@@ -948,6 +980,18 @@ fn split_on_token(tokens: Vec::<Token>, split_on: Token)
     statements
 }
 //------------------------------------------------------------------------------
+fn find_token(target: &Token, tokens: &[Token]) -> Vec::<usize>{
+
+  let mut out = Vec::<usize>::with_capacity(count_token(target,tokens) );
+
+  for (ii, token) in tokens.iter().enumerate(){
+    if *token == *target{
+      out.push(ii);
+    }
+  }
+  out
+}
+//------------------------------------------------------------------------------
 /*
 // TODO
 fn to_string_vector(mut tokens: Vec::<Token>) 
@@ -960,14 +1004,72 @@ fn to_string_vector(mut tokens: Vec::<Token>)
 //------------------------------------------------------------------------------
 /*
 // TODO
-fn to_float_vector(mut tokens: Vec::<Token>) 
+fn to_float_vector(mut tokens: Vec::<Token>, line_number: usize) 
  -> Result<Vec::<f64>, CluEError>
 {
   // Find brackets.
 
+  let n_pairs = count_delimiter_pairs(&tokens, 
+      &Token::SquareBracketOpen, &Token::SquareBraketClose,
+      line_number)?;
+  
+  if n_pairs > 1{
+    return Err(CluEError::CannotConvertToVector(line_number));
+  }
+
+  if n_pairs == 0{
+    let token = contract_pemdas(tokens,line_number)?;
+    if let Some(float) = token{
+      let mut out = Vec::<f64>::with_capacity(1);
+      out.push(float);
+      return out;
+    }else{
+      return Err(CluEError::CannotConvertToFloat(
+            line_number,token.to_string()) );
+    }
+  }
+
   // Get elements
   let vector_elements =  split_on_token(tokens, Token::Comma);
   let out = Vec::<f64>::with_capacity(vector_elements.len());
+
+  let index0 = find_token(&Token::SquareBracketOpen, tokens);
+  let index0 = index0[0];
+
+  let index1 = find_token(&Token::SquareBracketClose, tokens);
+  let index1 = index1[0];
+
+
+  let prefactor: f64;
+  let token = contract_pemdas(tokens[0..index0-1].to_vec(), line_number);
+  if Token::Float(x) = token{
+    prefactor = x;
+  }else{
+    return Err(CluEError::CannotConvertToFloat(line_number, token.to_string()));
+  }
+
+  let postfactor: f64;
+  let token = contract_pemdas(tokens[index1+2..tokens.len()].to_vec(),
+      line_number);
+  if Token::Float(x) = token{
+    postfactor = x;
+  }else{
+    return Err(CluEError::CannotConvertToFloat(line_number, token.to_string()));
+  }
+
+
+  for token_element in vector_elements{
+    // Contract the parentheses.
+    let token = contract_emdas(token_element,line_number)?;
+    if Token::Float(x) = token{
+      out.push(prefactor * x *postfactor);
+    }else{
+      return Err(CluEError::CannotConvertToFloat(line_number, 
+            token.to_string()));
+    }
+  
+  }
+
 }
 */
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1139,7 +1241,7 @@ magnetic_field = 1.2; // T"),
     let tokens = parse_tokens(lexer).unwrap();
     let tokens = find_comments(tokens);
     let (tokens,line_numbers) = prune_tokens(tokens).unwrap();
-    let statements = get_token_statements(tokens);
+    let statements = get_token_statements(tokens,&line_numbers).unwrap();
 
     //let statements = &token_statements.statements;
     //let line_numbers = &token_statements.line_numbers;
@@ -1151,10 +1253,14 @@ magnetic_field = 1.2; // T"),
 
     for jj in 0..statements.len(){
       assert_eq!(line_numbers[jj], ref_line_numbers[jj] );
-      assert_eq!(statements[jj].len(), ref_statements[jj].len());
-      for ii in 0..statements[jj].len(){
-        assert_eq!(statements[jj][ii], ref_statements[jj][ii]);
-      }
+      assert_eq!(statements[jj].lhs.len(), 1);
+      
+      assert_eq!(statements[jj].lhs[0], ref_statements[jj][0]);
+      if let Some(rhs) = &statements[jj].rhs{
+        assert_eq!(rhs[0], ref_statements[jj][2]);
+      }else{
+      panic!("Expected Some(rhs), but found None.");
+    }
     }
   }
   //----------------------------------------------------------------------------
@@ -1184,12 +1290,12 @@ magnetic_field = 1.2; // T"),
     let mut tokens = vec![Token::Float(1.0), Token::Plus, Token::Float(2.0),
     Token::Comma, Token::Float(3.0)];
 
-    let result = find_lhs_rhs_delimiter_index(&tokens,0);
-    assert_eq!(result,Err(CluEError::NoRelationalOperators(0)));
+    let result = find_lhs_rhs_delimiter_index(&tokens,0).unwrap();
+    assert_eq!(result,None);
 
     tokens[3] = Token::Equals;
     let result = find_lhs_rhs_delimiter_index(&tokens,0);
-    assert_eq!(result,Ok(3));
+    assert_eq!(result,Ok(Some(3)));
 
     tokens[0] = Token::In;
     let result = find_lhs_rhs_delimiter_index(&tokens,0);
@@ -1204,11 +1310,16 @@ magnetic_field = 1.2; // T"),
 
     let expression = TokenExpression::from(tokens.clone(),0).unwrap();
 
-    assert_eq!(expression.relationship,tokens[3]);
+    assert_eq!(expression.relationship,Some(tokens[3].clone()));
     for ii in 0..3{
       assert_eq!(expression.lhs[ii],tokens[ii]);
     }
-    assert_eq!(expression.rhs[0],tokens[4]);
+    if let Some(rhs) = expression.rhs{
+      assert_eq!(rhs[0],tokens[4]);
+    }
+    else{
+      panic!("Expected Some(rhs), but found None.");
+    }
   }
   //----------------------------------------------------------------------------
   #[test]
@@ -1412,19 +1523,6 @@ magnetic_field = 1.2; // T"),
       .unwrap().unwrap();
     assert_eq!(idx_open,0);
     assert_eq!(idx_close,1);
-
-    let tokens = vec![Token::CurlyBracketOpen, Token::CurlyBracketClose];
-    let option = find_deepest_parentheses(&tokens,0).unwrap();
-    assert_eq!(option,Some((0,1)));
-  
-    let tokens = vec![Token::ParenthesisOpen,
-        Token::SquareBracketOpen,Token::SquareBracketClose,
-        Token::Comma,
-        Token::CurlyBracketOpen, Token::CurlyBracketClose,
-        Token::ParenthesisClose];
-    let option = find_deepest_parentheses(&tokens,0).unwrap();
-    assert_eq!(option,Some((1,2)));
-
 
     let tokens = vec![
       Token::ParenthesisOpen,
