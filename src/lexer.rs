@@ -545,8 +545,8 @@ fn contract_operator_inverse_operator_tokens(
 
   let mut out = Vec::<Token>::with_capacity(tokens.len());
 
-  if tokens.is_empty(){
-    return Err(CluEError::EmptyVector(line_number))
+  if tokens.len() < 3{
+    return Ok(tokens);
   }
 
   out.push(tokens[0].clone());
@@ -640,6 +640,7 @@ fn contract_emdas(tokens: Vec::<Token>, line_number: usize)
   }
 
 
+
   // Evaluate exponentials.
   let tokens = contract_exponentiation_tokens(tokens,line_number)?;
 
@@ -676,27 +677,82 @@ fn contract_emdas(tokens: Vec::<Token>, line_number: usize)
   Ok(tokens[0].clone())
 }  
 //------------------------------------------------------------------------------
-/*
-// TODO
-fn contract_pemdas(tokens: Vec::<Token>, line_number: usize) 
+fn combine_staements(statements: Vec::<Vec::<Token>>) -> Vec::<Token>{
+
+  let mut n_tokens = 0;
+  for tokens in statements.iter(){
+    n_tokens += tokens.len();
+  }
+
+  let mut out = Vec::<Token>::with_capacity(n_tokens);
+
+
+  for tokens in statements.iter(){
+    for token in tokens{
+      out.push((*token).clone());
+    }
+  }
+
+  out
+}
+//------------------------------------------------------------------------------
+fn contract_pemdas(mut tokens: Vec::<Token>, line_number: usize) 
  -> Result<Token, CluEError>
 {
 
-  let idx_option = find_deepest_parentheses(&tokens, line_number)?;
+  let mut is_fully_contracted = false;
 
-  if let Some((idx0,idx1)) = idx_option{
-    if idx0+1==idx1{
-    }else{
-     contract_emdas()
+  while !is_fully_contracted {
+    let idx_option = find_deepest_parentheses(&tokens, line_number)?;
+
+    let index0: usize;
+    let index1: usize;
+
+    let found_parentheses: bool;
+    if let Some((idx0,idx1)) = idx_option{
+
+      index0 = idx0+1;
+      index1 = idx1-1;
+      found_parentheses = true;
+
+    }else{ // no parentheses case
+       index0 = 0;
+       index1 = tokens.len() - 1;
+       found_parentheses = false;
+       is_fully_contracted = true;
     }
 
-  }else{ // no parentheses case
-     let idx0 = 0;
-     let idx1 = tokens.len() -1;
-     contract_emdas()
+    let mut new_tokens = Vec::<Token>::with_capacity( tokens.len() );
+
+    // Include everthing up to the opening parenthesis.
+    if found_parentheses {
+      new_tokens.append(&mut tokens[0..index0-1].to_vec());
+    }
+
+    // Contract the parentheses.
+    if index1 >= index0 {
+      let toks = contract_emdas(tokens[index0..=index1].to_vec(),line_number)?;
+      new_tokens.push(toks);
+    }
+
+    // Add everthing after the closing parenthesis.
+    if found_parentheses && index1+2 < tokens.len()-1{
+      new_tokens.append(
+          &mut tokens[index1+2..tokens.len()].to_vec()
+          );
+    }
+
+    tokens = new_tokens;
   }
+
+  // Check for errors.
+  if tokens.len() != 1 {
+    return Err(CluEError::CannotCombineTokens(line_number));
+  }
+
+  // Get return value
+  Ok(tokens[0].clone())
 }
-*/
 //------------------------------------------------------------------------------
 fn count_token(target: &Token, tokens: &[Token]) -> usize{
 
@@ -1243,7 +1299,34 @@ magnetic_field = 1.2; // T"),
   }
   //----------------------------------------------------------------------------
   #[test]
+  fn test_contract_exponentiation_tokens(){
+
+    let tokens = vec![Token::Float(2.0), Token::Hat, Token::Float(3.0),
+     Token::Comma, Token::Float(3.0)];
+
+    let tokens = contract_exponentiation_tokens(tokens,0).unwrap();
+    assert_eq!(tokens.len(), 3);
+
+    assert_eq!(tokens, 
+        vec![Token::Float(8.0), Token::Comma, Token::Float(3.0)]);
+
+    let tokens = vec![Token::Float(-2.0), Token::Hat, Token::Float(3.0),
+     Token::Comma, Token::Float(3.0)];
+
+    let tokens = contract_exponentiation_tokens(tokens,0).unwrap();
+    assert_eq!(tokens.len(), 3);
+
+    assert_eq!(tokens, 
+        vec![Token::Float(-8.0), Token::Comma, Token::Float(3.0)]);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
   fn test_contract_emdas(){
+
+    let tokens = vec![ Token::Float(1.0) ];
+    let result = contract_emdas(tokens,0).unwrap();
+    assert_eq!(result, Token::Float(1.0));
+
 
     let tokens = vec![
         Token::Float(2.0), Token::Hat, Token::Float(5.0),
@@ -1262,6 +1345,50 @@ magnetic_field = 1.2; // T"),
     let result = contract_emdas(tokens,0).unwrap();
 
     assert_eq!(result, Token::Float(-24.0));
+  
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_contract_pemdas(){
+
+    let tokens = vec![ Token::ParenthesisOpen,
+        Token::Float(2.0), Token::Hat, Token::Float(5.0),
+        Token::Plus, Token::Float(3.0), Token::Times, Token::Float(12.0),
+        Token::Slash, Token::Float(9.0), Token::Minus, Token::Float(-4.0),
+        Token::ParenthesisClose];
+    
+    let result = contract_pemdas(tokens,0).unwrap();
+
+    assert_eq!(result, Token::Float(40.0));
+
+    let tokens = vec![
+      Token::ParenthesisOpen,
+        Token::Minus,Token::Float(2.0), 
+      Token::ParenthesisClose, Token::Hat, Token::Float(2.0),
+      Token::Plus, Token::Float(3.0), 
+      Token::Times, Token::Float(12.0),
+      Token::Slash, Token::Float(9.0), Token::Minus, Token::Float(-4.0)];
+
+    let result = contract_pemdas(tokens,0).unwrap();
+    assert_eq!(result, Token::Float(12.0));
+
+
+    let tokens = vec![
+      Token::ParenthesisOpen,
+        Token::ParenthesisOpen,
+          Token::Minus,Token::Float(2.0), 
+        Token::ParenthesisClose, Token::Hat, Token::Float(2.0),
+        Token::Plus, Token::Float(3.0), 
+      Token::ParenthesisClose,
+      Token::Times, Token::Float(12.0),
+      Token::Slash, Token::Float(7.0), Token::Minus, 
+      Token::ParenthesisOpen,
+        Token::Float(-2.0), Token::Plus, Token::Float(-2.0),
+      Token::ParenthesisClose,
+    ];
+    
+    let result = contract_pemdas(tokens,0).unwrap();
+    assert_eq!(result, Token::Float(16.0));
   
   }
   //----------------------------------------------------------------------------
@@ -1297,6 +1424,24 @@ magnetic_field = 1.2; // T"),
         Token::ParenthesisClose];
     let option = find_deepest_parentheses(&tokens,0).unwrap();
     assert_eq!(option,Some((1,2)));
+
+
+    let tokens = vec![
+      Token::ParenthesisOpen,
+        Token::ParenthesisOpen,
+          Token::Minus,Token::Float(2.0), 
+        Token::ParenthesisClose, Token::Hat, Token::Float(2.0),
+        Token::Plus, Token::Float(3.0), 
+      Token::ParenthesisClose,
+      Token::Times, Token::Float(12.0),
+      Token::Slash, Token::Float(7.0), Token::Minus, 
+      Token::ParenthesisOpen,
+        Token::Float(-2.0), Token::Plus, Token::Float(-2.0),
+      Token::ParenthesisClose,
+    ];
+    
+    let option = find_deepest_parentheses(&tokens,0).unwrap();
+    assert_eq!(option,Some((1,4)));
   }
 
 }
