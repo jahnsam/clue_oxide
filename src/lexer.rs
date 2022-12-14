@@ -1002,15 +1002,14 @@ fn to_string_vector(mut tokens: Vec::<Token>)
 }
 */
 //------------------------------------------------------------------------------
-/*
 // TODO
-fn to_float_vector(mut tokens: Vec::<Token>, line_number: usize) 
- -> Result<Vec::<f64>, CluEError>
+fn find_brackets(tokens: &[Token], line_number: usize) 
+ -> Result<Option<(usize,usize)>, CluEError>
 {
   // Find brackets.
 
   let n_pairs = count_delimiter_pairs(&tokens, 
-      &Token::SquareBracketOpen, &Token::SquareBraketClose,
+      &Token::SquareBracketOpen, &Token::SquareBracketClose,
       line_number)?;
   
   if n_pairs > 1{
@@ -1018,60 +1017,104 @@ fn to_float_vector(mut tokens: Vec::<Token>, line_number: usize)
   }
 
   if n_pairs == 0{
+    return Ok(None); 
+  }
+
+
+  let index0 = find_token(&Token::SquareBracketOpen, &tokens);
+  let index0 = index0[0];
+
+  let index1 = find_token(&Token::SquareBracketClose, &tokens);
+  let index1 = index1[0];
+
+
+  if index0 + 1 >= index1{
+    return Err(CluEError::CannotConvertToFloat(
+          line_number,"[]".to_string()) );
+  }
+ 
+  Ok(Some( (index0,index1) ))
+}
+//------------------------------------------------------------------------------
+// TODO
+fn to_float_vector(tokens: Vec::<Token>, line_number: usize) 
+ -> Result<Vec::<f64>, CluEError>
+{
+
+  let indices = find_brackets(&tokens,line_number)?;
+
+  let index0;
+  let index1;
+
+  if let Some((idx0,idx1)) = indices{
+    index0 = idx0;
+    index1 = idx1;
+  }else{
     let token = contract_pemdas(tokens,line_number)?;
-    if let Some(float) = token{
+  
+    if let Token::Float(x) = token{
+  
       let mut out = Vec::<f64>::with_capacity(1);
-      out.push(float);
-      return out;
+      out.push(x);
+      return Ok(out);
+ 
     }else{
       return Err(CluEError::CannotConvertToFloat(
             line_number,token.to_string()) );
     }
   }
-
-  // Get elements
-  let vector_elements =  split_on_token(tokens, Token::Comma);
-  let out = Vec::<f64>::with_capacity(vector_elements.len());
-
-  let index0 = find_token(&Token::SquareBracketOpen, tokens);
-  let index0 = index0[0];
-
-  let index1 = find_token(&Token::SquareBracketClose, tokens);
-  let index1 = index1[0];
-
-
+  
+  // Parse tthe scalar prefactor.
   let prefactor: f64;
-  let token = contract_pemdas(tokens[0..index0-1].to_vec(), line_number);
-  if Token::Float(x) = token{
+  
+  let token = contract_pemdas(tokens[0..index0-1].to_vec(), line_number)?;
+  
+  if let Token::Float(x) = token{
     prefactor = x;
   }else{
     return Err(CluEError::CannotConvertToFloat(line_number, token.to_string()));
   }
 
+
+  // Parse the scalar post-factor.
   let postfactor: f64;
+  
   let token = contract_pemdas(tokens[index1+2..tokens.len()].to_vec(),
-      line_number);
-  if Token::Float(x) = token{
+      line_number)?;
+  
+  if let Token::Float(x) = token{
     postfactor = x;
   }else{
     return Err(CluEError::CannotConvertToFloat(line_number, token.to_string()));
   }
 
 
+
+  // Get elements
+  let vector_elements =  split_on_token(
+      tokens[index0+1..index1].to_vec(), Token::Comma);
+
+
+  // Initialize the output.
+  let mut out = Vec::<f64>::with_capacity(vector_elements.len());
+
+  // Assign output. 
   for token_element in vector_elements{
+
     // Contract the parentheses.
     let token = contract_emdas(token_element,line_number)?;
-    if Token::Float(x) = token{
+    
+    if let Token::Float(x) = token{
       out.push(prefactor * x *postfactor);
     }else{
       return Err(CluEError::CannotConvertToFloat(line_number, 
             token.to_string()));
     }
-  
   }
+  
+  Ok(out)
 
 }
-*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -1501,6 +1544,66 @@ magnetic_field = 1.2; // T"),
     let result = contract_pemdas(tokens,0).unwrap();
     assert_eq!(result, Token::Float(16.0));
   
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_to_float_vector(){
+  
+    let tokens = vec![
+      Token::SquareBracketOpen,
+        Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
+      Token::SquareBracketClose];
+
+    let vec64 = to_float_vector(tokens,0).unwrap();
+    assert_eq!(vec64, vec![1.0,-1.0]);    
+
+
+    let inv_sqrt2 = f64::sqrt(1.0/2.0);
+
+    let tokens = vec![ 
+      Token::Float(inv_sqrt2), Token::Times,
+      Token::SquareBracketOpen,
+        Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
+      Token::SquareBracketClose];
+
+    let vec64 = to_float_vector(tokens,0).unwrap();
+    assert_eq!(vec64, vec![inv_sqrt2,-inv_sqrt2]);    
+
+
+    let sqrt2 = f64::sqrt(2.0);
+    let tokens = vec![ 
+      Token::SquareBracketOpen,
+        Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
+      Token::SquareBracketClose,
+      Token::Slash, Token::Float(sqrt2),
+    ];
+
+    let vec64 = to_float_vector(tokens,0).unwrap();
+    assert_eq!(vec64, vec![1.0/sqrt2, -1.0/sqrt2]);    
+
+
+    // TODO: What should this be?
+    let tokens = vec![
+      Token::Float(1.0), Token::Plus,
+      Token::SquareBracketOpen,
+        Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
+      Token::SquareBracketClose];
+    
+    assert!(false);
+
+
+    // TODO: What should this be?
+    let tokens = vec![
+      Token::SquareBracketOpen,
+        Token::Float(-1.0), Token::Comma, Token::Float(1.0) ,
+      Token::SquareBracketClose,
+      Token::Plus,
+      Token::SquareBracketOpen,
+        Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
+      Token::SquareBracketClose];
+    
+    assert!(false);
+
   }
   //----------------------------------------------------------------------------
   #[test]
