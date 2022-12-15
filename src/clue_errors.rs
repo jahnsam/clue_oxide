@@ -2,7 +2,12 @@ use std::fmt;
 
 #[derive(PartialEq,Debug,Clone)]
 pub enum CluEError{
+  CannotAddTokens,
   CannotCombineTokens(usize),
+  CannotDivTokens,
+  CannotMulTokens,
+  CannotPowTokens,
+  CannotSubTokens,
   CannotConvertToFloat(usize,String),
   CannotConvertToVector(usize),
   EmptyVector(usize),
@@ -22,8 +27,23 @@ impl fmt::Display for CluEError{
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
 
+      CluEError::CannotAddTokens => write!(f,
+          "cannot add tokens meaningfully"),
+
       CluEError::CannotCombineTokens(line_number) => write!(f,
           "{}: cannot combine tokens meaningfully", line_number),
+
+      CluEError::CannotDivTokens => write!(f,
+          "cannot divide tokens meaningfully"),
+
+      CluEError::CannotMulTokens => write!(f,
+          "cannot multiply tokens meaningfully"),
+
+      CluEError::CannotSubTokens => write!(f,
+          "cannot subtract tokens meaningfully"),
+
+      CluEError::CannotPowTokens => write!(f,
+          "cannot do token^token meaningfully"),
 
       CluEError::CannotConvertToFloat(line_number, token) => write!(f,
           "{}: cannot convert \"{}\" to type float", line_number,token),
