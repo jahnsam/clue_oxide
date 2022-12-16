@@ -520,7 +520,6 @@ impl Add for Token{
         Ok(Token::VectorF64( u.iter().map(|a| *a as f64 +y).collect()  )),
       (Token::VectorI32(u), Token::Int(b)) => 
         Ok(Token::VectorI32( u.iter().map(|a| a+b).collect()  )),
-      (_,_) => Err(CluEError::CannotAddTokens),
       (Token::VectorI32(u), Token::VectorF64(v)) => {
         if u.len() != v.len(){ return Err(CluEError::CannotAddTokens);}
         let mut w = Vec::<f64>::with_capacity(u.len());
@@ -579,7 +578,6 @@ impl Sub for Token{
         Ok(Token::VectorF64( u.iter().map(|a| *a as f64 -y).collect()  )),
       (Token::VectorI32(u), Token::Int(b)) => 
         Ok(Token::VectorI32( u.iter().map(|a| a-b).collect()  )),
-      (_,_) => Err(CluEError::CannotAddTokens),
       (Token::VectorI32(u), Token::VectorF64(v)) => {
         if u.len() != v.len(){ return Err(CluEError::CannotSubTokens);}
         let mut w = Vec::<f64>::with_capacity(u.len());
@@ -638,7 +636,6 @@ impl Mul for Token{
         Ok(Token::VectorF64( u.iter().map(|a| *a as f64 *y).collect()  )),
       (Token::VectorI32(u), Token::Int(b)) => 
         Ok(Token::VectorI32( u.iter().map(|a| a*b).collect()  )),
-      (_,_) => Err(CluEError::CannotAddTokens),
       (Token::VectorI32(u), Token::VectorF64(v)) => {
         if u.len() != v.len(){ return Err(CluEError::CannotMulTokens);}
         let mut w = Vec::<f64>::with_capacity(u.len());
@@ -697,7 +694,6 @@ impl Div for Token{
         Ok(Token::VectorF64( u.iter().map(|a| *a as f64 /y).collect()  )),
       (Token::VectorI32(u), Token::Int(b)) => 
         Ok(Token::VectorI32( u.iter().map(|a| a/b).collect()  )),
-      (_,_) => Err(CluEError::CannotAddTokens),
       (Token::VectorI32(u), Token::VectorF64(v)) => {
         if u.len() != v.len(){ return Err(CluEError::CannotDivTokens);}
         let mut w = Vec::<f64>::with_capacity(u.len());
@@ -749,7 +745,7 @@ impl Token{
         }
         if any_neg{
           return Ok(Token::VectorF64( v.iter().map(
-                |b| (a as f64).powi( (*b) )).collect()  ));
+                |b| (a as f64).powi( *b )).collect()  ));
         }
         Ok(Token::VectorI32( v.iter().map(
                 |b| a.pow((*b).try_into().unwrap()) ).collect()  ))
@@ -760,13 +756,13 @@ impl Token{
       (Token::VectorF64(u), Token::Int(b)) =>
         Ok(Token::VectorF64( u.iter().map(|x| x.powi(b) ).collect()  )),
       (Token::VectorF64(u), Token::VectorF64(v)) => {
-        if u.len() != v.len(){ return Err(CluEError::CannotAddTokens);}
+        if u.len() != v.len(){ return Err(CluEError::CannotPowTokens);}
         let mut w = Vec::<f64>::with_capacity(u.len());
         for ii in 0..u.len(){ w.push(u[ii] .powf( v[ii]) ); }
         Ok(Token::VectorF64(w))
       },
       (Token::VectorF64(u), Token::VectorI32(v)) => {
-        if u.len() != v.len(){ return Err(CluEError::CannotAddTokens);}
+        if u.len() != v.len(){ return Err(CluEError::CannotPowTokens);}
         let mut w = Vec::<f64>::with_capacity(u.len());
         for ii in 0..u.len(){ w.push(u[ii].powi(v[ii]) ); }
         Ok(Token::VectorF64(w))
@@ -783,15 +779,14 @@ impl Token{
         Ok(Token::VectorI32( u.iter().map(
                 |a| a.pow(b.try_into().unwrap()) ).collect()  ))
       },
-      (_,_) => Err(CluEError::CannotAddTokens),
       (Token::VectorI32(u), Token::VectorF64(v)) => {
-        if u.len() != v.len(){ return Err(CluEError::CannotAddTokens);}
+        if u.len() != v.len(){ return Err(CluEError::CannotPowTokens);}
         let mut w = Vec::<f64>::with_capacity(u.len());
         for ii in 0..u.len(){ w.push((u[ii] as f64).powf(v[ii]) ); }
         Ok(Token::VectorF64(w))
       },
       (Token::VectorI32(u), Token::VectorI32(v)) => {
-        if u.len() != v.len(){ return Err(CluEError::CannotAddTokens);}
+        if u.len() != v.len(){ return Err(CluEError::CannotPowTokens);}
 
         let mut any_neg = false;
         for b in v.iter(){
@@ -1326,17 +1321,46 @@ fn find_token(target: &Token, tokens: &[Token]) -> Vec::<usize>{
   out
 }
 //------------------------------------------------------------------------------
-/*
-// TODO
-fn to_string_vector(mut tokens: Vec::<Token>) 
- -> Result<Vec::<String>, CluEError>
+fn get_vector_elements(tokens: Vec::<Token>, line_number: usize)
+ -> Result<Vec::<Vec::<Token>>, CluEError>
 {
-  let vector_elements =  split_on_token(tokens, Token::Comma);
-  let out = Vec::<String>::with_capacity(vector_elements.len());
+  let indices = find_brackets(&tokens,line_number)?;
+
+
+  let vector_elements: Vec::<Vec::<Token>>;
+
+  if let Some((idx0,idx1)) = indices{
+    vector_elements =  split_on_token(
+      tokens[idx0+1..idx1].to_vec(), Token::Comma);
+  }else{
+    let mut temp =  Vec::<Vec::<Token>>::with_capacity(1);
+    temp.push(tokens);
+    vector_elements = temp;
+  }
+
+  Ok(vector_elements)
 }
-*/
 //------------------------------------------------------------------------------
-// TODO
+fn to_string_vector(tokens: Vec::<Token>, line_number: usize) 
+ -> Result<Token, CluEError>
+{
+
+  let vector_elements = get_vector_elements(tokens,line_number)?;
+
+  let mut out = Vec::<String>::with_capacity(vector_elements.len());
+
+  for vec_el in vector_elements.iter(){
+    let mut str_el = String::from("");
+    for el in vec_el.iter(){
+      str_el.push_str( &el.to_string() );
+    }
+
+    out.push(str_el);
+  }
+
+  Ok(Token::VectorString(out))
+}
+//------------------------------------------------------------------------------
 fn find_brackets(tokens: &[Token], line_number: usize) 
  -> Result<Option<(usize,usize)>, CluEError>
 {
@@ -1370,7 +1394,11 @@ fn find_brackets(tokens: &[Token], line_number: usize)
   Ok(Some( (index0,index1) ))
 }
 //------------------------------------------------------------------------------
-// TODO
+// TODO: 
+//  rewrite, 
+//  remove pre,post-factor logic, 
+//  generalize to allow for int vectors,
+//  fix return type to Result<Token, CluEError>
 fn to_float_vector(tokens: Vec::<Token>, line_number: usize) 
  -> Result<Vec::<f64>, CluEError>
 {
@@ -1449,6 +1477,14 @@ fn to_float_vector(tokens: Vec::<Token>, line_number: usize)
   Ok(out)
 
 }
+//------------------------------------------------------------------------------
+/*
+// TODO   
+fn contract_numeric_vectors(tokens: Vec::<Token>, line_number: usize)
+-> Result<Token, CluEError>
+{
+}
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -1937,6 +1973,45 @@ magnetic_field = 1.2; // T"),
       Token::SquareBracketClose];
     
     assert!(false);
+
+  }
+  //----------------------------------------------------------------------------
+  fn test_to_string_vector(){
+
+    let tokens = vec![Token::UserInputValue("SOL".to_string())]; 
+    
+    let token = to_string_vector(tokens,0).unwrap();
+    
+    assert_eq!(token, 
+        Token::VectorString(vec!["SOL".to_string()])
+        );
+
+
+
+    let tokens = vec![
+      Token::SquareBracketOpen,
+        Token::UserInputValue("SOL".to_string()), Token::Comma, 
+        Token::UserInputValue("WAT".to_string()) ,
+      Token::SquareBracketClose];
+    
+    let token = to_string_vector(tokens,0).unwrap();
+
+    assert_eq!(token, 
+        Token::VectorString(vec!["SOL".to_string(),"WAT".to_string()])
+        );
+
+
+
+    let tokens = vec![
+      Token::SquareBracketOpen,
+        Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
+      Token::SquareBracketClose];
+
+    let token = to_string_vector(tokens,0).unwrap();
+
+    assert_eq!(token, 
+        Token::VectorString(vec![1.0.to_string(),(-1.0).to_string()])
+        );
 
   }
   //----------------------------------------------------------------------------
