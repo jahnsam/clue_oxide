@@ -269,8 +269,6 @@ fn simplify_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
     }
     n = tokens.len();
   }  
-
-  tokens
 }
 //------------------------------------------------------------------------------
 fn build_composit_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
@@ -861,6 +859,8 @@ fn is_numeric(token: &Token) -> bool{
   match token{
     Token::Float(_x) => true,
     Token::Int(_n) => true,
+    Token::VectorF64(_v) => true,
+    Token::VectorI32(_v) => true,
     _ => false
 
   }
@@ -1258,10 +1258,8 @@ fn get_token_statements(tokens: Vec::<Token>, line_numbers: &[usize])
 
   let mut statements = Vec::<TokenExpression>::with_capacity(splits.len());
   
-  let mut counter = 0;
-  for tokens in splits{
-    let line_number = line_numbers[counter];
-    counter += 1;
+  for (idx, tokens) in splits.into_iter().enumerate(){
+    let line_number = line_numbers[idx];
     let tok_exp = TokenExpression::from(tokens, line_number)?;
     statements.push(tok_exp);
   } 
@@ -1274,7 +1272,10 @@ fn split_on_token(tokens: Vec::<Token>, split_on: Token)
  -> Vec::<Vec::<Token>>
 {
     // Count statements.
-    let num_statements = count_token(&split_on,&tokens);
+    let mut num_statements = count_token(&split_on,&tokens);
+    if tokens[tokens.len()-1] != split_on{
+      num_statements += 1;
+    }
 
     // Get Statements.
     let mut statements = Vec::<Vec::<Token>>::with_capacity(num_statements);
@@ -1394,68 +1395,11 @@ fn find_brackets(tokens: &[Token], line_number: usize)
   Ok(Some( (index0,index1) ))
 }
 //------------------------------------------------------------------------------
-// TODO: 
-//  rewrite, 
-//  remove pre,post-factor logic, 
-//  generalize to allow for int vectors,
-//  fix return type to Result<Token, CluEError>
 fn to_float_vector(tokens: Vec::<Token>, line_number: usize) 
- -> Result<Vec::<f64>, CluEError>
+ -> Result<Token, CluEError>
 {
 
-  let indices = find_brackets(&tokens,line_number)?;
-
-  let index0;
-  let index1;
-
-  if let Some((idx0,idx1)) = indices{
-    index0 = idx0;
-    index1 = idx1;
-  }else{
-    let token = contract_pemdas(tokens,line_number)?;
-  
-    if let Token::Float(x) = token{
-  
-      let mut out = Vec::<f64>::with_capacity(1);
-      out.push(x);
-      return Ok(out);
- 
-    }else{
-      return Err(CluEError::CannotConvertToFloat(
-            line_number,token.to_string()) );
-    }
-  }
-  
-  // Parse tthe scalar prefactor.
-  let prefactor: f64;
-  
-  let token = contract_pemdas(tokens[0..index0-1].to_vec(), line_number)?;
-  
-  if let Token::Float(x) = token{
-    prefactor = x;
-  }else{
-    return Err(CluEError::CannotConvertToFloat(line_number, token.to_string()));
-  }
-
-
-  // Parse the scalar post-factor.
-  let postfactor: f64;
-  
-  let token = contract_pemdas(tokens[index1+2..tokens.len()].to_vec(),
-      line_number)?;
-  
-  if let Token::Float(x) = token{
-    postfactor = x;
-  }else{
-    return Err(CluEError::CannotConvertToFloat(line_number, token.to_string()));
-  }
-
-
-
-  // Get elements
-  let vector_elements =  split_on_token(
-      tokens[index0+1..index1].to_vec(), Token::Comma);
-
+  let vector_elements = get_vector_elements(tokens,line_number)?;
 
   // Initialize the output.
   let mut out = Vec::<f64>::with_capacity(vector_elements.len());
@@ -1466,15 +1410,15 @@ fn to_float_vector(tokens: Vec::<Token>, line_number: usize)
     // Contract the parentheses.
     let token = contract_emdas(token_element,line_number)?;
     
-    if let Token::Float(x) = token{
-      out.push(prefactor * x *postfactor);
-    }else{
-      return Err(CluEError::CannotConvertToFloat(line_number, 
-            token.to_string()));
+    match token{
+      Token::Float(x) => out.push(x),
+      Token::Int(a) => out.push(a as f64),
+      _ => return Err(CluEError::CannotConvertToFloat(line_number, 
+            token.to_string() ) ),
     }
   }
   
-  Ok(out)
+  Ok(Token::VectorF64(out))
 
 }
 //------------------------------------------------------------------------------
@@ -1917,6 +1861,37 @@ magnetic_field = 1.2; // T"),
   }
   //----------------------------------------------------------------------------
   #[test]
+  fn test_split_on_token(){
+  
+    let tokens = vec![
+      Token::SquareBracketOpen,
+        Token::UserInputValue("SOL".to_string()), Token::Comma, 
+        Token::UserInputValue("WAT".to_string()), Token::Comma, 
+        Token::UserInputValue("GLY".to_string()) ,
+      Token::SquareBracketClose];
+
+    let result = split_on_token(tokens,Token::Comma);
+
+
+    assert_eq!(result, vec![
+      vec![Token::SquareBracketOpen, Token::UserInputValue("SOL".to_string())],
+      vec![Token::UserInputValue("WAT".to_string())],
+      vec![Token::UserInputValue("GLY".to_string()),Token::SquareBracketClose]  
+    ]);
+
+    let tokens = vec![
+        Token::Float(2.0), Token::Comma, Token::Float(-2.0) 
+    ];
+
+    let result = split_on_token(tokens,Token::Comma);
+
+    assert_eq!(result, vec![
+        vec![Token::Float(2.0)],
+        vec![Token::Float(-2.0)]  ]);
+
+  }
+  //----------------------------------------------------------------------------
+  #[test]
   fn test_to_float_vector(){
   
     let tokens = vec![
@@ -1925,7 +1900,33 @@ magnetic_field = 1.2; // T"),
       Token::SquareBracketClose];
 
     let vec64 = to_float_vector(tokens,0).unwrap();
-    assert_eq!(vec64, vec![1.0,-1.0]);    
+    assert_eq!(vec64, Token::VectorF64(vec![1.0,-1.0]));    
+
+
+    let inv_sqrt2 = f64::sqrt(1.0/2.0);
+
+    let tokens = vec![ 
+      Token::SquareBracketOpen,
+        Token::Float(1.0*inv_sqrt2), Token::Comma, Token::Float(-1.0*inv_sqrt2),
+      Token::SquareBracketClose];
+
+    let vec64 = to_float_vector(tokens,0).unwrap();
+    assert_eq!(vec64, Token::VectorF64(vec![inv_sqrt2,-inv_sqrt2]));    
+
+
+
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_contract_float_vector(){
+  
+    let tokens = vec![
+      Token::SquareBracketOpen,
+        Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
+      Token::SquareBracketClose];
+
+    let vec64 = to_float_vector(tokens,0).unwrap();
+    assert_eq!(vec64, Token::VectorF64(vec![1.0,-1.0]));    
 
 
     let inv_sqrt2 = f64::sqrt(1.0/2.0);
@@ -1937,7 +1938,7 @@ magnetic_field = 1.2; // T"),
       Token::SquareBracketClose];
 
     let vec64 = to_float_vector(tokens,0).unwrap();
-    assert_eq!(vec64, vec![inv_sqrt2,-inv_sqrt2]);    
+    assert_eq!(vec64, Token::VectorF64(vec![inv_sqrt2,-inv_sqrt2]));    
 
 
     let sqrt2 = f64::sqrt(2.0);
@@ -1949,7 +1950,7 @@ magnetic_field = 1.2; // T"),
     ];
 
     let vec64 = to_float_vector(tokens,0).unwrap();
-    assert_eq!(vec64, vec![1.0/sqrt2, -1.0/sqrt2]);    
+    assert_eq!(vec64, Token::VectorF64(vec![1.0/sqrt2, -1.0/sqrt2]));    
 
 
     // TODO: What should this be?
