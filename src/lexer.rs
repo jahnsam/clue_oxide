@@ -1422,13 +1422,91 @@ fn to_float_vector(tokens: Vec::<Token>, line_number: usize)
 
 }
 //------------------------------------------------------------------------------
-/*
-// TODO   
 fn contract_numeric_vectors(tokens: Vec::<Token>, line_number: usize)
 -> Result<Token, CluEError>
 {
+  // Find "[" and "]".
+  let indices_open = find_token(&Token::SquareBracketOpen, &tokens);
+  let indices_close = find_token(&Token::SquareBracketClose, &tokens);
+
+  // Ensure there every "[" is paired with a "]".
+  if indices_open.len() != indices_close.len(){
+    return Err(CluEError::UnmatchedDelimiter(line_number));
+  }
+
+  // Exclude nested bracket such as "[ [] ]".
+  for (ii, idx_o) in indices_open.iter().enumerate(){
+    let idx_c = indices_close[ii];
+    
+    if *idx_o >= idx_c 
+      || (ii+1<indices_open.len() 
+          && indices_open[ii+1] <= idx_c){
+      return Err(CluEError::UnmatchedDelimiter(line_number));
+      } 
+  }
+
+  // Initialized output.
+  let mut out = Vec::<Token>::with_capacity(tokens.len());
+  let mut read_from = 0;
+  let mut read_to;
+
+  // Contract vectors.
+  for (ii, idx_o) in indices_open.iter().enumerate(){
+    let idx_c = indices_close[ii];
+
+    read_to = *idx_o;
+    for idx in read_from .. read_to{
+      out.push(tokens[idx].clone());
+    }
+    read_from = idx_c + 1;
+
+
+    let array = to_float_vector(tokens[*idx_o..=idx_c].to_vec(),line_number)?;
+    out.push(array);
+  }
+
+  read_to = tokens.len();
+  for idx in read_from .. read_to{
+    out.push(tokens[idx].clone());
+  }
+
+  contract_pemdas(out, line_number)
 }
-*/
+//------------------------------------------------------------------------------
+fn read_strings_as_floats(tokens: Vec::<Token>, line_number: usize)
+-> Result<Vec::<Token>, CluEError>
+{
+
+  // Initialized output.
+  let mut out = Vec::<Token>::with_capacity(tokens.len());
+
+  for token in tokens.iter(){
+    
+    match token{
+    
+      Token::UserInputValue(val) => {
+    
+        match val.parse(){
+          Ok(x) => out.push(Token::Float(x)),
+          Err(_) => return Err(CluEError::CannotConvertToFloat(
+                line_number,val.to_string() )),
+        }
+      }, 
+    
+      _ => out.push((*token).clone() )
+    }
+  }
+
+  Ok(out)
+  
+}
+//------------------------------------------------------------------------------
+pub fn to_f64_token(tokens: Vec::<Token>, line_number: usize)
+-> Result<Token, CluEError>
+{
+  let tokens = read_strings_as_floats(tokens, line_number)?; 
+  contract_numeric_vectors(tokens, line_number)
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -1475,6 +1553,26 @@ mod tests{
         Token::TunnelSplitting);
     assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
 
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_read_strings_as_floats(){
+    assert!(false);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_read_strings_as_integers(){
+    assert!(false);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_to_f64_token(){
+    assert!(false);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_to_i32_token(){
+    assert!(false);
   }
   //----------------------------------------------------------------------------
 
@@ -1918,14 +2016,14 @@ magnetic_field = 1.2; // T"),
   }
   //----------------------------------------------------------------------------
   #[test]
-  fn test_contract_float_vector(){
+  fn test_contract_numeric_vector(){
   
     let tokens = vec![
       Token::SquareBracketOpen,
         Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
       Token::SquareBracketClose];
 
-    let vec64 = to_float_vector(tokens,0).unwrap();
+    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
     assert_eq!(vec64, Token::VectorF64(vec![1.0,-1.0]));    
 
 
@@ -1937,7 +2035,7 @@ magnetic_field = 1.2; // T"),
         Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
       Token::SquareBracketClose];
 
-    let vec64 = to_float_vector(tokens,0).unwrap();
+    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
     assert_eq!(vec64, Token::VectorF64(vec![inv_sqrt2,-inv_sqrt2]));    
 
 
@@ -1949,21 +2047,20 @@ magnetic_field = 1.2; // T"),
       Token::Slash, Token::Float(sqrt2),
     ];
 
-    let vec64 = to_float_vector(tokens,0).unwrap();
+    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
     assert_eq!(vec64, Token::VectorF64(vec![1.0/sqrt2, -1.0/sqrt2]));    
 
 
-    // TODO: What should this be?
     let tokens = vec![
       Token::Float(1.0), Token::Plus,
       Token::SquareBracketOpen,
         Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
       Token::SquareBracketClose];
     
-    assert!(false);
+    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
+    assert_eq!(vec64, Token::VectorF64(vec![2.0, 0.0]));    
 
 
-    // TODO: What should this be?
     let tokens = vec![
       Token::SquareBracketOpen,
         Token::Float(-1.0), Token::Comma, Token::Float(1.0) ,
@@ -1973,7 +2070,8 @@ magnetic_field = 1.2; // T"),
         Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
       Token::SquareBracketClose];
     
-    assert!(false);
+    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
+    assert_eq!(vec64, Token::VectorF64(vec![0.0, 0.0]));    
 
   }
   //----------------------------------------------------------------------------
