@@ -10,10 +10,14 @@ pub enum CluEError{
   CannotSubTokens,
   CannotConvertToFloat(usize,String),
   CannotConvertToVector(usize),
+  ConfigModeNotRecognized(String),
   EmptyVector(usize),
   IndexOutOfBounds(usize,usize,usize),
   InvalidConfigFile(String),
   InvalidToken(usize,String),
+  ModeAttributeWrongBrackets,
+  ModeAttributeWrongOption(String),
+  ModeAttributeWrongSharp,
   NoCentralSpinCoor,
   NoRelationalOperators(usize),
   NotAnOperator(usize,String),
@@ -51,6 +55,9 @@ impl fmt::Display for CluEError{
       CluEError::CannotConvertToVector(line_number) => write!(f,
           "{}: cannot find vector", line_number),
 
+      CluEError::ConfigModeNotRecognized(mode) => write!(f,
+          "#[{}] is not recognized",mode),
+
       CluEError::EmptyVector(line_number) => write!(f,
           "{}: supplied vector is emptry", line_number),
 
@@ -63,6 +70,15 @@ impl fmt::Display for CluEError{
 
       CluEError::InvalidToken(line_number,err_token) => write!(f,
           "{}: invalid token \"{}\"",line_number, err_token),
+
+      CluEError::ModeAttributeWrongBrackets => write!(f,
+          "modes details should with square brackets"),
+
+      CluEError::ModeAttributeWrongOption(mode)=> write!(f,
+          "#[{}...] contains an invalid option",mode),
+
+      CluEError::ModeAttributeWrongSharp => write!(f,
+          "modes are specified with a single '#' at the start"),
 
       CluEError::NoCentralSpinCoor => write!(f,
           "coordinates for the detected spin were not defined"),

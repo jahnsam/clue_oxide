@@ -32,6 +32,13 @@ pub struct TokenExpression{
 impl TokenExpression{
   fn from(tokens: Vec::<Token>, line_number:usize) -> Result<Self,CluEError>{
 
+    if tokens[0]==Token::Sharp{
+      let mode = ModeAttribute::from(tokens)?;
+      let mut lhs = Vec::<Token>::with_capacity(1);
+      lhs.push(Token::Mode(mode));
+      return Ok(TokenExpression{lhs, rhs: None, relationship: None});
+    }
+
     let idx: usize; 
     let idx_option = find_lhs_rhs_delimiter_index(&tokens, line_number)?;
     
@@ -61,6 +68,130 @@ impl TokenExpression{
     let relationship = Some(tokens[idx].clone());
     Ok(TokenExpression{lhs, rhs, relationship})
 
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(PartialEq, Debug, Clone)]
+pub struct ModeAttribute{
+  mode:  ConfigMode,
+  label: Option<String>,
+  path: Option<String>,
+}
+
+impl ModeAttribute{
+
+  pub fn from(tokens: Vec::<Token>) -> Result<Self,CluEError>
+  {
+
+    let sharp_indices = find_token(&Token::Sharp,&tokens);
+    if sharp_indices.len() != 1 || sharp_indices[0] != 0{
+      return Err(CluEError::ModeAttributeWrongSharp);
+    } 
+
+    let idx = sharp_indices[0];
+    if tokens[idx+1] != Token::SquareBracketOpen
+    && tokens[tokens.len()-1] != Token::SquareBracketClose{
+      return Err(CluEError::ModeAttributeWrongBrackets);
+    }
+
+    let mode = ConfigMode::from(tokens[idx+2].clone())?; 
+
+
+    let label: Option<String>;
+    let label_indices = find_token(&Token::Label,&tokens);
+    
+    if label_indices.is_empty(){
+      label = None;
+    } else if label_indices.len() == 1 
+      && tokens[label_indices[0]+1] == Token::Equals{
+      if let Token::UserInputValue(value)=&tokens[label_indices[0]+2]{
+        label = Some(value.clone());
+      }else{
+        return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+      }
+    } else {
+      return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+    }
+
+    let path: Option<String>;
+    let path_indices = find_token(&Token::Path, &tokens);
+
+    if path_indices.is_empty(){
+      path = None;
+    } else if path_indices.len() == 1 
+      && tokens[path_indices[0]+1] == Token::Equals{
+       if  let Token::UserInputValue(value)=&tokens[path_indices[0]+2]{
+        path = Some(value.clone());
+      }else{
+        return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+      }
+       
+    } else {
+      return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+    }
+
+    Ok(ModeAttribute{ mode,label, path})
+  }
+  //----------------------------------------------------------------------------
+  pub fn to_string(&self) -> String{
+  
+    let mode_str = self.mode.to_string();
+
+    let label_str: String;
+    if let Some(value) = &self.label{
+      label_str = format!(", label = {}",value);
+    }else{
+      label_str = "".to_string();
+    }
+
+    let path_str: String;
+    if let Some(value) = &self.path{
+      path_str = format!(", path = {}",value);
+    }else{
+      path_str = "".to_string();
+    }
+
+    format!("#[{}{}{}]",mode_str,label_str,path_str)
+
+  }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum ConfigMode{
+  Clusters,
+  Config,
+  Filter,
+  Spins,
+  Structures,
+  Tensors,
+}
+
+impl ConfigMode{
+  pub fn from(token: Token) -> Result<Self,CluEError>{
+
+    match token{
+      Token::Clusters => Ok(ConfigMode::Clusters),
+      Token::Config => Ok(ConfigMode::Config),
+      Token::Filter => Ok(ConfigMode::Filter),
+      Token::Spins => Ok(ConfigMode::Spins),
+      Token::Structures => Ok(ConfigMode::Structures),
+      Token::Tensors => Ok(ConfigMode::Tensors),
+      _ => Err(CluEError::ConfigModeNotRecognized(token.to_string())),
+    }
+  }
+  //----------------------------------------------------------------------------
+  pub fn to_string(&self) -> String{
+    match self{
+      ConfigMode::Clusters => "clusters".to_string(),
+      ConfigMode::Config => "config".to_string(),
+      ConfigMode::Filter => "filter".to_string(),
+      ConfigMode::Spins => "spins".to_string(),
+      ConfigMode::Structures => "structures".to_string(),
+      ConfigMode::Tensors => "tensors".to_string(),
+    }
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -354,26 +485,32 @@ pub enum Token{
  Bang,
  BlockCommentEnd, 
  BlockCommentStart, 
+ Clusters,
  Comma,
+ Config,
  CurlyBracketClose,
  CurlyBracketOpen,
  Element,
  EOL,
  Equals,
+ Filter,
  Float(f64),
  GreaterThan,
  GreaterThanEqualTo,
  Hat,
  In,
  Int(i32),
+ Label,
  LessThan,
  LessThanEqualTo,
  LineComment, 
  MagneticField,
  Minus,
+ Mode(ModeAttribute),
  Not,
  NotEqual,
  NotIn,
+ Path,
  ParenthesisClose,
  ParenthesisOpen,
  Plus,
@@ -381,8 +518,11 @@ pub enum Token{
  Semicolon,
  Sharp,
  Slash,
+ Spins,
  SquareBracketClose,
  SquareBracketOpen,
+ Structures,
+ Tensors,
  Times,
  TunnelSplitting,
  UserInputValue(String),
@@ -397,26 +537,32 @@ impl Token{
       Token::Bang => "!".to_string(), 
       Token::BlockCommentEnd => "*/".to_string(), 
       Token::BlockCommentStart => "/*".to_string(), 
+      Token::Clusters => "clusters".to_string(),
       Token::Comma => ",".to_string(),
+      Token::Config => "config".to_string(),
       Token::CurlyBracketClose => "}".to_string(),
       Token::CurlyBracketOpen => "{".to_string(),
       Token::Element => "element".to_string(),
       Token::EOL => "\n".to_string(),
       Token::Equals => "=".to_string(),
+      Token::Filter => "filter".to_string(),
       Token::Float(x) => x.to_string(),
       Token::GreaterThan => ">".to_string(),
       Token::GreaterThanEqualTo => ">=".to_string(),
       Token::Hat => "^".to_string(),
       Token::In => "in".to_string(),
       Token::Int(n) => n.to_string(),
+      Token::Label => "label".to_string(),
       Token::LessThan => "<".to_string(),
       Token::LessThanEqualTo => "<=".to_string(),
       Token::LineComment => "//".to_string(), 
       Token::MagneticField => "magnetic_field".to_string(),
       Token::Minus => "-".to_string(),
+      Token::Mode(mode) => mode.to_string(),
       Token::Not => "not".to_string(),
       Token::NotEqual => "!=".to_string(),
       Token::NotIn => "not in".to_string(),
+      Token::Path => "path".to_string(),
       Token::ParenthesisClose => ")".to_string(),
       Token::ParenthesisOpen => "(".to_string(),
       Token::Plus => "+".to_string(),
@@ -424,8 +570,11 @@ impl Token{
       Token::Semicolon => ";".to_string(),
       Token::Sharp => "#".to_string(),
       Token::Slash => "/".to_string(),
+      Token::Spins => "spins".to_string(),
       Token::SquareBracketClose => "]".to_string(),
       Token::SquareBracketOpen => "[".to_string(),
+      Token::Structures => "structures".to_string(),
+      Token::Tensors => "tensors".to_string(),
       Token::Times => "*".to_string(),
       Token::TunnelSplitting => "tunnel_splitting".to_string(),
       Token::UserInputValue(string) => (*string).clone(),
@@ -443,15 +592,19 @@ fn identify_token(word: &str) -> Option<Token>{
     "!" => Some(Token::Bang),
     "*/" => Some(Token::BlockCommentEnd),
     "/*" => Some(Token::BlockCommentStart),
+    "clusters" => Some(Token::Clusters),
     "," => Some(Token::Comma),
+    "config" => Some(Token::Config),
     "}" => Some(Token::CurlyBracketClose),
     "{" => Some(Token::CurlyBracketOpen),
     "element" => Some(Token::Element),
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
+    "filter" => Some(Token::Filter),
     ">" => Some(Token::GreaterThan),
     ">=" => Some(Token::GreaterThanEqualTo),
     "in" => Some(Token::In),
+    "label" => Some(Token::Label),
     "^" => Some(Token::Hat),
     "<" => Some(Token::LessThan),
     "<=" => Some(Token::LessThanEqualTo),
@@ -461,6 +614,7 @@ fn identify_token(word: &str) -> Option<Token>{
     "not" => Some(Token::Not),
     "!=" => Some(Token::NotEqual),
     "not in" => Some(Token::NotIn),
+    "path" => Some(Token::Path),
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
     "+" => Some(Token::Plus),
@@ -468,8 +622,11 @@ fn identify_token(word: &str) -> Option<Token>{
     ";" => Some(Token::Semicolon),
     "#" => Some(Token::Sharp),
     "/" => Some(Token::Slash),
+    "spins" => Some(Token::Spins),
     "]" => Some(Token::SquareBracketClose),
     "[" => Some(Token::SquareBracketOpen),
+    "structures" => Some(Token::Structures),
+    "tensors" => Some(Token::Tensors),
     "*" => Some(Token::Times),
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     " " => Some(Token::Whitespace),
@@ -1422,7 +1579,34 @@ fn to_float_vector(tokens: Vec::<Token>, line_number: usize)
 
 }
 //------------------------------------------------------------------------------
-fn contract_numeric_vectors(tokens: Vec::<Token>, line_number: usize)
+fn to_integer_vector(tokens: Vec::<Token>, line_number: usize) 
+ -> Result<Token, CluEError>
+{
+
+  let vector_elements = get_vector_elements(tokens,line_number)?;
+
+  // Initialize the output.
+  let mut out = Vec::<i32>::with_capacity(vector_elements.len());
+
+  // Assign output. 
+  for token_element in vector_elements{
+
+    // Contract the parentheses.
+    let token = contract_emdas(token_element,line_number)?;
+    
+    match token{
+      Token::Int(a) => out.push(a),
+      _ => return Err(CluEError::CannotConvertToFloat(line_number, 
+            token.to_string() ) ),
+    }
+  }
+  
+  Ok(Token::VectorI32(out))
+
+}
+//------------------------------------------------------------------------------
+fn contract_numeric_vectors(tokens: Vec::<Token>, as_f64: bool,
+    line_number: usize)
 -> Result<Token, CluEError>
 {
   // Find "[" and "]".
@@ -1461,7 +1645,12 @@ fn contract_numeric_vectors(tokens: Vec::<Token>, line_number: usize)
     read_from = idx_c + 1;
 
 
-    let array = to_float_vector(tokens[*idx_o..=idx_c].to_vec(),line_number)?;
+    let array: Token;
+    if as_f64{
+      array = to_float_vector(tokens[*idx_o..=idx_c].to_vec(),line_number)?;
+    }else{
+      array = to_integer_vector(tokens[*idx_o..=idx_c].to_vec(),line_number)?;
+    }
     out.push(array);
   }
 
@@ -1501,11 +1690,46 @@ fn read_strings_as_floats(tokens: Vec::<Token>, line_number: usize)
   
 }
 //------------------------------------------------------------------------------
+fn read_strings_as_integers(tokens: Vec::<Token>, line_number: usize)
+-> Result<Vec::<Token>, CluEError>
+{
+
+  // Initialized output.
+  let mut out = Vec::<Token>::with_capacity(tokens.len());
+
+  for token in tokens.iter(){
+    
+    match token{
+    
+      Token::UserInputValue(val) => {
+    
+        match val.parse(){
+          Ok(a) => out.push(Token::Int(a)),
+          Err(_) => return Err(CluEError::CannotConvertToFloat(
+                line_number,val.to_string() )),
+        }
+      }, 
+    
+      _ => out.push((*token).clone() )
+    }
+  }
+
+  Ok(out)
+  
+}
+//------------------------------------------------------------------------------
 pub fn to_f64_token(tokens: Vec::<Token>, line_number: usize)
 -> Result<Token, CluEError>
 {
   let tokens = read_strings_as_floats(tokens, line_number)?; 
-  contract_numeric_vectors(tokens, line_number)
+  contract_numeric_vectors(tokens, true, line_number)
+}
+//------------------------------------------------------------------------------
+pub fn to_i32_token(tokens: Vec::<Token>, line_number: usize)
+-> Result<Token, CluEError>
+{
+  let tokens = read_strings_as_integers(tokens, line_number)?; 
+  contract_numeric_vectors(tokens, false, line_number)
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -1521,16 +1745,20 @@ mod tests{
     assert_eq!(identify_token("!").unwrap(), Token::Bang);
     assert_eq!(identify_token("*/").unwrap(), Token::BlockCommentEnd);
     assert_eq!(identify_token("/*").unwrap(), Token::BlockCommentStart);
+    assert_eq!(identify_token("clusters").unwrap(), Token::Clusters);
     assert_eq!(identify_token(",").unwrap(), Token::Comma);
+    assert_eq!(identify_token("config").unwrap(), Token::Config);
     assert_eq!(identify_token("}").unwrap(), Token::CurlyBracketClose);
     assert_eq!(identify_token("{").unwrap(), Token::CurlyBracketOpen);
     assert_eq!(identify_token("element").unwrap(), Token::Element);
     assert_eq!(identify_token("\n").unwrap(), Token::EOL);
     assert_eq!(identify_token("=").unwrap(), Token::Equals);
+    assert_eq!(identify_token("filter").unwrap(), Token::Filter);
     assert_eq!(identify_token(">").unwrap(), Token::GreaterThan);
     assert_eq!(identify_token(">=").unwrap(), Token::GreaterThanEqualTo);
     assert_eq!(identify_token("^").unwrap(), Token::Hat);
     assert_eq!(identify_token("in").unwrap(), Token::In);
+    assert_eq!(identify_token("label").unwrap(), Token::Label);
     assert_eq!(identify_token("<").unwrap(), Token::LessThan);
     assert_eq!(identify_token("<=").unwrap(), Token::LessThanEqualTo);
     assert_eq!(identify_token("//").unwrap(), Token::LineComment);
@@ -1539,6 +1767,7 @@ mod tests{
     assert_eq!(identify_token("not").unwrap(), Token::Not);
     assert_eq!(identify_token("!=").unwrap(), Token::NotEqual);
     assert_eq!(identify_token("not in").unwrap(), Token::NotIn);
+    assert_eq!(identify_token("path").unwrap(), Token::Path);
     assert_eq!(identify_token(")").unwrap(), Token::ParenthesisClose);
     assert_eq!(identify_token("(").unwrap(), Token::ParenthesisOpen);
     assert_eq!(identify_token("+").unwrap(), Token::Plus);
@@ -1546,8 +1775,11 @@ mod tests{
     assert_eq!(identify_token(";").unwrap(), Token::Semicolon);
     assert_eq!(identify_token("#").unwrap(), Token::Sharp);
     assert_eq!(identify_token("/").unwrap(), Token::Slash);
+    assert_eq!(identify_token("spins").unwrap(), Token::Spins);
     assert_eq!(identify_token("]").unwrap(), Token::SquareBracketClose);
     assert_eq!(identify_token("[").unwrap(), Token::SquareBracketOpen);
+    assert_eq!(identify_token("structures").unwrap(), Token::Structures);
+    assert_eq!(identify_token("tensors").unwrap(), Token::Tensors);
     assert_eq!(identify_token("*").unwrap(), Token::Times);
     assert_eq!(identify_token("tunnel_splitting").unwrap(), 
         Token::TunnelSplitting);
@@ -1557,22 +1789,52 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_read_strings_as_floats(){
-    assert!(false);
+    let tokens = vec![Token::SquareBracketOpen, 
+        Token::UserInputValue("1".to_string()),Token::Comma, 
+        Token::UserInputValue("-1".to_string()),
+      Token::SquareBracketClose];
+
+    let result = read_strings_as_floats(tokens,0).unwrap();
+    assert_eq!(result, vec![Token::SquareBracketOpen, 
+        Token::Float(1.0),Token::Comma, Token::Float(-1.0),
+        Token::SquareBracketClose]
+        );
   }
   //----------------------------------------------------------------------------
   #[test]
   fn test_read_strings_as_integers(){
-    assert!(false);
+    let tokens = vec![Token::SquareBracketOpen, 
+        Token::UserInputValue("1".to_string()),Token::Comma, 
+        Token::UserInputValue("-1".to_string()),
+      Token::SquareBracketClose];
+
+    let result = read_strings_as_integers(tokens,0).unwrap();
+    assert_eq!(result, vec![Token::SquareBracketOpen, 
+        Token::Int(1),Token::Comma, Token::Int(-1),
+        Token::SquareBracketClose]
+        );
   }
   //----------------------------------------------------------------------------
   #[test]
   fn test_to_f64_token(){
-    assert!(false);
+    let tokens = vec![Token::SquareBracketOpen, 
+        Token::UserInputValue("1".to_string()),Token::Comma, 
+        Token::UserInputValue("-1".to_string()),
+      Token::SquareBracketClose];
+
+    let result = to_f64_token(tokens,0).unwrap();
+    assert_eq!(result, Token::VectorF64(vec![1.0,-1.0]));    
   }
   //----------------------------------------------------------------------------
   #[test]
   fn test_to_i32_token(){
-    assert!(false);
+    let tokens = vec![Token::SquareBracketOpen, 
+        Token::UserInputValue("1".to_string()),Token::Comma, 
+        Token::UserInputValue("-1".to_string()),
+      Token::SquareBracketClose];
+
+    let result = to_i32_token(tokens,0).unwrap();
+    assert_eq!(result, Token::VectorI32(vec![1,-1]));    
   }
   //----------------------------------------------------------------------------
 
@@ -1662,7 +1924,7 @@ magnetic_field = 1.2; // T"),
 
     let tokens = parse_tokens(lexer).unwrap();
     let tokens = find_comments(tokens);
-    let (tokens,line_numbers) = prune_tokens(tokens).unwrap();
+    let (tokens,_line_numbers) = prune_tokens(tokens).unwrap();
 
 
     assert_eq!(tokens.len(), ref_tokens.len());
@@ -2023,7 +2285,7 @@ magnetic_field = 1.2; // T"),
         Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
       Token::SquareBracketClose];
 
-    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
+    let vec64 = contract_numeric_vectors(tokens,true,0).unwrap();
     assert_eq!(vec64, Token::VectorF64(vec![1.0,-1.0]));    
 
 
@@ -2035,7 +2297,7 @@ magnetic_field = 1.2; // T"),
         Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
       Token::SquareBracketClose];
 
-    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
+    let vec64 = contract_numeric_vectors(tokens,true, 0).unwrap();
     assert_eq!(vec64, Token::VectorF64(vec![inv_sqrt2,-inv_sqrt2]));    
 
 
@@ -2047,7 +2309,7 @@ magnetic_field = 1.2; // T"),
       Token::Slash, Token::Float(sqrt2),
     ];
 
-    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
+    let vec64 = contract_numeric_vectors(tokens,true,0).unwrap();
     assert_eq!(vec64, Token::VectorF64(vec![1.0/sqrt2, -1.0/sqrt2]));    
 
 
@@ -2057,7 +2319,7 @@ magnetic_field = 1.2; // T"),
         Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
       Token::SquareBracketClose];
     
-    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
+    let vec64 = contract_numeric_vectors(tokens,true, 0).unwrap();
     assert_eq!(vec64, Token::VectorF64(vec![2.0, 0.0]));    
 
 
@@ -2070,11 +2332,17 @@ magnetic_field = 1.2; // T"),
         Token::Float(1.0), Token::Comma, Token::Float(-1.0) ,
       Token::SquareBracketClose];
     
-    let vec64 = contract_numeric_vectors(tokens,0).unwrap();
+    let vec64 = contract_numeric_vectors(tokens,true, 0).unwrap();
     assert_eq!(vec64, Token::VectorF64(vec![0.0, 0.0]));    
 
+    let tokens = vec![Token::SquareBracketOpen, 
+        Token::Int(1), Token::Comma, Token::Int(-1), 
+      Token::SquareBracketClose];
+    let veci32 = contract_numeric_vectors(tokens,false, 0).unwrap();
+    assert_eq!(veci32, Token::VectorI32(vec![1, -1]));    
   }
   //----------------------------------------------------------------------------
+  #[test]
   fn test_to_string_vector(){
 
     let tokens = vec![Token::UserInputValue("SOL".to_string())]; 
