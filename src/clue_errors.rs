@@ -21,6 +21,7 @@ pub enum CluEError{
   NoCentralSpinCoor,
   NoRelationalOperators(usize),
   NotAnOperator(usize,String),
+  OptionAlreadySet(usize,String),
   UnmatchedBlockComment(usize),
   UnmatchedDelimiter(usize),
   TooManyRelationalOperators(usize),
@@ -89,6 +90,9 @@ impl fmt::Display for CluEError{
 
       CluEError::NotAnOperator(line_number, token) => write!(f,
           "{}: cannot interpret \"{}\" as an operator", line_number,token),
+
+      CluEError::OptionAlreadySet(line_number,err_token) => write!(f,
+          "{}: \"{}\" has already been set",line_number, err_token),
 
       CluEError::UnmatchedBlockComment(line_number) => write!(f,
           "{}: unmatched \"*/\"", line_number),

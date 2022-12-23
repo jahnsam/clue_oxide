@@ -1,5 +1,7 @@
 use strum::IntoEnumIterator;
 
+use crate::clue_errors::*;
+use crate::lexer::*;
 use super::particle_config::*;
 use super::particle_specifier::SpecifiedParticle;
 use super::physical_constants::*;
@@ -9,12 +11,12 @@ use super::vector3::*;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone)]
 pub struct Config{
-  pub radius: f64,
-  pub inner_radius: f64,
+  pub radius: Option<f64>,
+  pub inner_radius: Option<f64>,
   //max_number_of_cells: usize,
   //pbc_style: PBCStyle,
   //error_tolerance: f64,
-  pub magnetic_field: Vector3,
+  pub magnetic_field: Option<Vector3>,
   pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
   pub particles: Vec::<ParticleConfig>,
@@ -39,9 +41,9 @@ impl Default for Config{
     }
 
     Config{
-      radius: f64::INFINITY,
-      inner_radius: 0.0,
-      magnetic_field: Vector3::from([0.0, 0.0, 1.2]),
+      radius: None,
+      inner_radius: None,
+      magnetic_field: None,
       central_spin_coordinates: None,
       particles,
     }
@@ -88,3 +90,63 @@ pub enum PBCSyle{
   CRYST1,
   TIGHT,
 }
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+impl Config{
+  fn read_file(filename: &str) -> Result<Self,CluEError>{
+  
+    let mut config = Config::new();
+
+    let token_stream = get_tokens_from_file(filename)?;
+
+    let mut mode = ModeAttribute::new();
+
+
+    for expression in token_stream.iter(){
+      if expression.lhs.is_empty(){ continue; }
+
+      if let Token::Mode(new_mode) = &expression.lhs[0]{
+        mode = new_mode.clone();
+        continue;
+      }
+
+      match mode.mode{
+        ConfigMode::Clusters => (),
+        ConfigMode::Config =>  config.parse_config_line(expression)?,
+        ConfigMode::Filter => (),
+        ConfigMode::Spins => (),
+        ConfigMode::Structures => (),
+        ConfigMode::Tensors => (),
+      }
+
+    }
+
+
+    Ok(config)
+  }
+  //----------------------------------------------------------------------------
+  fn parse_config_line(&mut self, expression: &TokenExpression) 
+    -> Result<(),CluEError>
+  {
+  
+    let line_number = expression.line_number;
+    let already_set = ||{
+      CluEError::OptionAlreadySet(line_number,expression.lhs[0].to_string()) };
+
+    //let some_f64 = ||{line_number,expression.rhs[0].to_f64_token()}
+
+    match expression.lhs[0]{
+      Token::Radius => {
+        if let Some(r) = self.radius{
+          return Err(already_set())
+        }
+        //self.radius = some_f64()?;
+      },
+      _ => return Err(CluEError::InvalidToken(line_number,
+            expression.lhs[0].to_string())),
+    }
+    Ok(())
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+

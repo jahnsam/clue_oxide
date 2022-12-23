@@ -2,31 +2,27 @@ use crate::clue_errors::*;
 use substring::Substring;
 use std::ops::{Add,Sub,Mul,Div};
 
-pub struct TokenStream{
-  pub statements: Vec::<TokenExpression>,
-  pub line_numbers: Vec::<usize>,
-}
 
 
-pub fn get_tokens_from_file(filename: &str) -> Result<TokenStream,CluEError>{
+pub fn get_tokens_from_file(filename: &str) 
+  -> Result<Vec::<TokenExpression>,CluEError>
+{
 
     let lexer = Lexer::new(filename)?;
     let tokens = parse_tokens(lexer)?;
     let tokens = find_comments(tokens);
     let (tokens,line_numbers) = prune_tokens(tokens)?;
-    let statements = get_token_statements(tokens, &line_numbers)?;
+    let expressions = get_token_statements(tokens, &line_numbers)?;
 
-    Ok(TokenStream{
-        statements,
-        line_numbers,
-        })
+    Ok(expressions)
 }
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct TokenExpression{
   pub lhs: Vec::<Token>,
   pub rhs: Option<Vec::<Token>>,
-  pub relationship: Option<Token>
+  pub relationship: Option<Token>,
+  pub line_number: usize,
 }
 
 impl TokenExpression{
@@ -36,7 +32,7 @@ impl TokenExpression{
       let mode = ModeAttribute::from(tokens)?;
       let mut lhs = Vec::<Token>::with_capacity(1);
       lhs.push(Token::Mode(mode));
-      return Ok(TokenExpression{lhs, rhs: None, relationship: None});
+      return Ok(TokenExpression{lhs, rhs: None, relationship: None,line_number});
     }
 
     let idx: usize; 
@@ -61,12 +57,12 @@ impl TokenExpression{
     }
 
     if rhs.is_empty(){
-      return Ok(TokenExpression{lhs, rhs: None,relationship: None})
+      return Ok(TokenExpression{lhs, rhs: None,relationship: None,line_number})
     }
 
     let rhs = Some(rhs);
     let relationship = Some(tokens[idx].clone());
-    Ok(TokenExpression{lhs, rhs, relationship})
+    Ok(TokenExpression{lhs, rhs, relationship, line_number})
 
   }
 }
@@ -76,12 +72,26 @@ impl TokenExpression{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(PartialEq, Debug, Clone)]
 pub struct ModeAttribute{
-  mode:  ConfigMode,
-  label: Option<String>,
-  path: Option<String>,
+  pub mode:  ConfigMode,
+  pub label: Option<String>,
+  pub path: Option<String>,
+}
+
+impl Default for ModeAttribute{
+  fn default() -> Self{
+    ModeAttribute{
+      mode:  ConfigMode::Config,
+      label: None,
+      path: None,
+    }
+  }
 }
 
 impl ModeAttribute{
+
+  pub fn new() -> Self{
+    ModeAttribute::default()
+  }
 
   pub fn from(tokens: Vec::<Token>) -> Result<Self,CluEError>
   {
@@ -514,6 +524,7 @@ pub enum Token{
  ParenthesisClose,
  ParenthesisOpen,
  Plus,
+ Radius,
  Residue,
  Semicolon,
  Sharp,
@@ -566,6 +577,7 @@ impl Token{
       Token::ParenthesisClose => ")".to_string(),
       Token::ParenthesisOpen => "(".to_string(),
       Token::Plus => "+".to_string(),
+      Token::Radius => "radius".to_string(),
       Token::Residue => "residue".to_string(),
       Token::Semicolon => ";".to_string(),
       Token::Sharp => "#".to_string(),
@@ -618,6 +630,7 @@ fn identify_token(word: &str) -> Option<Token>{
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
     "+" => Some(Token::Plus),
+    "radius" => Some(Token::Radius),
     "residue" => Some(Token::Residue),
     ";" => Some(Token::Semicolon),
     "#" => Some(Token::Sharp),
@@ -1771,6 +1784,7 @@ mod tests{
     assert_eq!(identify_token(")").unwrap(), Token::ParenthesisClose);
     assert_eq!(identify_token("(").unwrap(), Token::ParenthesisOpen);
     assert_eq!(identify_token("+").unwrap(), Token::Plus);
+    assert_eq!(identify_token("radius").unwrap(), Token::Radius);
     assert_eq!(identify_token("residue").unwrap(), Token::Residue);
     assert_eq!(identify_token(";").unwrap(), Token::Semicolon);
     assert_eq!(identify_token("#").unwrap(), Token::Sharp);
