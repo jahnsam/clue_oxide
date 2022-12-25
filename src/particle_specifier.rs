@@ -1,5 +1,5 @@
-use super::physical_constants::*;
-use super::pdb::PDB;
+use crate::physical_constants::*;
+use crate::structure::pdb::PDB;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone,Default)]

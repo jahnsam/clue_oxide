@@ -1,4 +1,4 @@
-use super::vector3::Vector3;
+use crate::vector3::Vector3;
 
 pub trait Translate{ fn translate(&mut self, r: &Vector3); }
 

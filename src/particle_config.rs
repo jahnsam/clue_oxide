@@ -1,3 +1,4 @@
+
 use super::particle_specifier::*;
 use super::physical_constants::*;
 use super::vector3::Vector3;
@@ -138,7 +139,7 @@ pub enum ParticleSelector{
 #[cfg(test)]
 mod tests{
   use super::*;
-  use super::super::pdb::read_pdb;
+  use crate::structure::pdb::read_pdb;
 
   #[test]
   fn test_find_particle_configs(){

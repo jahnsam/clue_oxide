@@ -5,14 +5,15 @@
 //! structure, usually a PDB file.  Simulation details are specified in a config
 //! file.
 pub mod config;
-pub mod exchange_groups;
+//pub mod exchange_groups;
 pub mod clue_errors;
 //pub mod lexer;
-pub mod pdb;
+//pub mod pdb;
 pub mod particle_config;
 pub mod particle_specifier;
 pub mod physical_constants;
-pub mod primary_structure;
+//pub mod primary_structure;/
+pub mod structure;
 pub mod vector3;
 
 pub mod spin_operators;

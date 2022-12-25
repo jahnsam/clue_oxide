@@ -1,7 +1,7 @@
-use super::config::*;
-use super::clue_errors::*;
-use super::pdb::PDB;
-use super::vector3::Vector3;
+use crate::config::*;
+use crate::clue_errors::*;
+use crate::structure::pdb::PDB;
+use crate::vector3::Vector3;
 
 #[derive(Debug,Clone)]
 pub struct PrimaryStructure{
@@ -132,8 +132,8 @@ fn get_electron_coordinates(pdb: &PDB, config: &Config)
 #[cfg(test)]
 mod tests{
   use super::*;
-  use super::super::pdb::*;
-  use super::super::physical_constants::*;
+  use crate::structure::pdb::*;
+  use crate::physical_constants::*;
 
   #[test]
   #[allow(non_snake_case)]

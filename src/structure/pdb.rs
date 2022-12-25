@@ -3,9 +3,9 @@ use std::fs;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use super::vector3::Vector3;
-use super::exchange_groups::*;
-use super::physical_constants::*;
+use crate::vector3::Vector3;
+use crate::structure::exchange_groups::*;
+use crate::physical_constants::*;
 
 #[derive(Debug, Clone)]
 pub struct PDB{
