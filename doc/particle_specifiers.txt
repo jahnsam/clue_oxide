@@ -1,10 +1,14 @@
 #[primary_filter(label=water_h)]
   element in [H];
   residue in [WAT,SOL]
+  
+#[primary_filter(label=glycerol_h)]
+  element in [H];
+  residue in [GLYOL]  
 
-#[secondary_filter(label=water_o)]
+#[secondary_filter(label=sol_oh)]
   element in [O];
-  residue in [WAT,SOL]
+  residue in [WAT,SOL,GLYOL]
   
 
 #[primary_filter(label=methyl_h)]
@@ -12,9 +16,21 @@
   exchange_group in [methyl]
 
 
+#[secondary_filter(label=TEMPO_N)]
+  element iin [N];
+  
+#[secondary_filter(label=TEMPO_axis)]
+pdb_indices in [17,18];
+
 
 #[config]
 
-hf_z_axis(water_h) = connected(water_o);  
+hf_z_axis(water_h) = connected(sol_o);  
+hf_xy_axis(water_h) = same_molecule(water_h);  
 
 tunnel_splitting(methyl_h) = 80e3; // Hz
+
+
+hf__axis(TEMPO_N) = vector(TEMPO_axis); 
+
+nq_z_axis(glycerol_h) = connected(sol_o);  

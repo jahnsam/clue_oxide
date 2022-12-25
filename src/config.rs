@@ -1,12 +1,21 @@
+
+
 use strum::IntoEnumIterator;
 
 use crate::clue_errors::*;
-use crate::lexer::*;
+use crate::config::lexer::*;
+use crate::config::token::*;
+//use crate::config::token_algebra::*;
 use super::particle_config::*;
 use super::particle_specifier::SpecifiedParticle;
 use super::physical_constants::*;
 use super::vector3::*;
 
+
+pub mod lexer;
+pub mod token;
+pub mod token_algebra;
+pub mod token_stream;
 
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone)]

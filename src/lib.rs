@@ -7,7 +7,7 @@
 pub mod config;
 pub mod exchange_groups;
 pub mod clue_errors;
-pub mod lexer;
+//pub mod lexer;
 pub mod pdb;
 pub mod particle_config;
 pub mod particle_specifier;
