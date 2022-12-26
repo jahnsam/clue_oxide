@@ -1,4 +1,6 @@
 use crate::signal;
+use crate::adjacency;
+
 
 pub struct Cluster{
   vertices: Vec::<usize>,
@@ -24,20 +26,20 @@ pub struct Clusters{
 */
 
 pub fn find_clusters(
-    andjacency_matrix: Matrix, // what data structure?
+    andjacency_list: AdjacencyList, // what data structure?
     max_size: usize) 
   -> Result< Vec::<HashMap::<Cluster>>, CluEError>
 {
 
   let mut clusters = Vec::<HashMap<Cluster>>::with_capacity(max_size);
 
+  let vertices = adjacency_list.get_active_vertices();
   let one_clusters = HashMap::new(); 
   // Identify all 1-clusters, as those with adjacency_matrix[[ii,ii]] == true.
-  for ii in 0 .. adjacency_matrix.n_rows(){
-    if !adjacency_matrix[[ii,ii]] {continue}
+  for vertex in vertices.into_iter(){
 
-    let cluster = Cluster::new(vec![ii]));
-    let key cluster.to_string();
+    let cluster = Cluster::new(vec![vertex]));
+    let key = cluster.to_string();
     one_clusters.entry(key).or_insert(cluster);
   }
 
@@ -56,7 +58,7 @@ pub fn find_clusters(
 //------------------------------------------------------------------------------
 
 fn build_n_clusters(
-    &mut n_minus_1_clusters: &[Cluster], adjacency_matrix: &Matrix)
+    &mut n_minus_1_clusters: &[Cluster], adjacency_list: &MAdjacencyList)
   -> Result<HashMap::<Cluster>,CluEError>
 {
 
