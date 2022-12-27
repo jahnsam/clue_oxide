@@ -25,6 +25,7 @@ pdb_indices in [17,18];
 
 #[config]
 
+// water_h.hf_z_axis = connected(sol_o);  
 hf_z_axis(water_h) = connected(sol_o);  
 hf_xy_axis(water_h) = same_molecule(water_h);  
 

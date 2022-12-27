@@ -1,5 +1,4 @@
 use crate::clue_errors::*;
-use substring::Substring;
 use std::ops::{Add,Sub,Mul,Div};
 //------------------------------------------------------------------------------
 #[derive(PartialEq, Debug, Clone)]

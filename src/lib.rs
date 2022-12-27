@@ -7,10 +7,12 @@
 pub mod config;
 pub mod adjacency;
 pub mod clue_errors;
+pub mod find_clusters;
 pub mod particle_config;
 pub mod particle_specifier;
 pub mod physical_constants;
 pub mod structure;
+pub mod signal;
 pub mod vector3;
 pub mod vec_funcs;
 

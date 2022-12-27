@@ -1,84 +1,399 @@
-use crate::signal;
-use crate::adjacency;
+use crate::clue_errors::CluEError;
+use crate::signal::Signal;
+use crate::adjacency::AdjacencyList;
+use crate::vec_funcs;
 
+use std::collections::HashMap;
 
 pub struct Cluster{
   vertices: Vec::<usize>,
-  //subclusters Option<&Vec::<Cluster> >, // Maybe?
   signal: Option<Signal>,
   auxiliary_signal: Option<Signal>,
 }
-
-impl ToString for cluster{
-  fn to_string(&self) -> String {
-    // "[1,2,3,4]"
-    to_cluster_string(self.vertices)
+impl Cluster{
+  pub fn from(vertices: Vec::<usize>) -> Self{
+    Cluster{
+      vertices,
+      signal: None,
+      auxiliary_signal: None,
+    }
   }
 }
-pub fn to_cluster_string(cluster: &[usize]){
+impl ToString for Cluster{
+  fn to_string(&self) -> String {
+    // "[1,2,3,4]"
+    to_cluster_string(&self.vertices)
+  }
+}
+pub fn to_cluster_string(cluster: &[usize]) -> String{
 
+  if cluster.is_empty(){
+    return "[]".to_string();
+  }
+
+  let mut string = format!("[{}", cluster[0] );
+
+  for ii in 1..cluster.len(){
+    string = format!("{},{}",string,cluster[ii]);
+  } 
+  format!("{}]",string)
 }
-/*
-pub struct Clusters{
-  clusters: Vec::<HashMap::<Cluster>>,
-  //subcluster_info // Maybe?
-}
-*/
 
 pub fn find_clusters(
-    andjacency_list: AdjacencyList, // what data structure?
+    adjacency_list: AdjacencyList, // what data structure?
     max_size: usize) 
-  -> Result< Vec::<HashMap::<Cluster>>, CluEError>
+  -> Result< Vec::<HashMap::<Vec::<usize>,Cluster>>, CluEError>
 {
 
-  let mut clusters = Vec::<HashMap<Cluster>>::with_capacity(max_size);
+  let mut clusters = Vec::<HashMap<Vec::<usize>,Cluster>>::with_capacity(max_size);
 
   let vertices = adjacency_list.get_active_vertices();
-  let one_clusters = HashMap::new(); 
+  let mut one_clusters = HashMap::new(); 
   // Identify all 1-clusters, as those with adjacency_matrix[[ii,ii]] == true.
   for vertex in vertices.into_iter(){
 
-    let cluster = Cluster::new(vec![vertex]));
-    let key = cluster.to_string();
-    one_clusters.entry(key).or_insert(cluster);
+    let key = vec![vertex];
+    let cluster = Cluster::from(key.clone());
+    one_clusters.insert(key, cluster);
   }
 
 
-  clusters.push(one_clusters)
+  clusters.push(one_clusters);
 
-  for isize in 1..=max_size{
+  for isize in 1..max_size{
 
     // Build n-clusters from (n-1)-clusters.
-    let n_clusters = build_n_clusters(&mut clusters[isize -1],adjacency_matrix);
+    if let Ok(n_clusters)
+     = build_n_clusters(&mut clusters[isize -1],&adjacency_list){
+      clusters.push(n_clusters);
+      }
 
 
   }
+
+  Ok(clusters)
 }
 
 //------------------------------------------------------------------------------
-
 fn build_n_clusters(
-    &mut n_minus_1_clusters: &[Cluster], adjacency_list: &MAdjacencyList)
-  -> Result<HashMap::<Cluster>,CluEError>
+    n_minus_1_clusters: &HashMap<Vec::<usize>, Cluster>, 
+    adjacency_list: &AdjacencyList)
+  -> Result<HashMap::<Vec::<usize>,Cluster>,CluEError>
 {
 
   let mut new_clusters = HashMap::new();
 
-  //https://stackoverflow.com/questions/45724517/how-to-iterate-through-a-hashmap-print-the-key-value-and-remove-the-value-in-ru
-  for (key, value) in &*n_minus_1_clusters {
+  for (indices, cluster) in n_minus_1_clusters {
 
-    let neighbors = find_neighbors(value,adjacency_matrix);
+    for idx in indices.iter(){
+      if let Some(neighbors) = adjacency_list.get_neighbors(*idx){
 
-    for vertex in neighbors{
-    
-      let new_cluster = sort(concatenate(value,vertex));
+        for vertex in neighbors.iter(){
+      
+          let mut new_indices: Vec::<usize> = (*indices).clone();
+          new_indices.push(*vertex);
+          new_indices = vec_funcs::unique(new_indices);
 
-      let key new_cluster.to_string();
-      new_clusters.entry(key).or_insert(new_cluster)
-    } 
+          if new_indices.len() == indices.len(){ continue; }
+        
+          new_indices.sort();
 
+          let  new_cluster = Cluster::from(new_indices.clone());
+          new_clusters.insert(new_indices,new_cluster);
+        } 
+      }
+    }
   }
 
   Ok(new_clusters)
 }
 
+
+#[cfg(test)]
+mod tests{
+  use super::*;
+
+  #[test]
+  fn test_find_clusters(){
+    // 0-------1
+    // | \   / |
+    // |  4-5  |
+    // |  | |  |
+    // |  7-6  |
+    // | /   \ |
+    // 3-------2
+    let mut cube = AdjacencyList::with_capacity(8);
+    cube.connect(0,1);
+    cube.connect(1,2);
+    cube.connect(2,3);
+    cube.connect(3,0);
+
+    cube.connect(4,5);
+    cube.connect(5,6);
+    cube.connect(6,7);
+    cube.connect(7,4);
+
+    cube.connect(0,4);
+    cube.connect(1,5);
+    cube.connect(2,6);
+    cube.connect(3,7);
+
+    let clusters = find_clusters(cube,8).unwrap();
+    assert_eq!(clusters.len(),8);
+
+    assert_eq!(clusters[0].len(), 8);
+    for ii in 0..8{
+      let v = Vec::<usize>::from([ii]);
+      assert_eq!(clusters[0][&v].vertices,v);
+    }
+    
+    // 0-------1
+    // | \   / |
+    // |  4-5  |
+    // |  | |  |
+    // |  7-6  |
+    // | /   \ |
+    // 3-------2
+    let two_clusters = vec![
+      vec![0,1],/*vec![0,2],*/vec![0,3],vec![0,4],//vec![0,5],vec![0,6],vec![0,7],
+      vec![1,2],/*vec![1,3],vec![1,4],*/vec![1,5],//vec![1,6],vec![1,7],
+      vec![2,3],/*vec![2,4],vec![2,5],*/vec![2,6],//vec![2,7],
+      /*vec![3,4],vec![3,5],vec![3,6],*/vec![3,7],
+      vec![4,5],/*vec![4,6],*/vec![4,7],
+      vec![5,6],//vec![5,7],
+      vec![6,7],
+    ];
+
+    assert_eq!(clusters[1].len(), two_clusters.len());
+    for v in two_clusters.iter(){
+      assert_eq!(clusters[1][v].vertices,*v);
+    } 
+
+    // 0-------1
+    // | \   / |
+    // |  4-5  |
+    // |  | |  |
+    // |  7-6  |
+    // | /   \ |
+    // 3-------2
+    let three_clusters = vec![
+      vec![0,1,2],vec![0,1,3],vec![0,1,4],vec![0,1,5],//vec![0,1,6],vec![0,1,7],
+      vec![0,2,3],//vec![0,2,4],vec![0,2,5],vec![0,2,6],vec![0,2,7],
+      vec![0,3,4],/*vec![0,3,5],vec![0,3,6],*/vec![0,3,7],
+      vec![0,4,5],/*vec![0,4,6],*/vec![0,4,7],
+      //vec![0,5,6],vec![0,5,7],
+      //vec![0,6,7],
+      vec![1,2,3],/*vec![1,2,4],*/vec![1,2,5],vec![1,2,6],//vec![1,2,7],
+      //vec![1,3,4],vec![1,3,5],vec![1,3,6],vec![1,3,7],
+      vec![1,4,5],//vec![1,4,6],vec![1,4,7],
+      vec![1,5,6],//vec![1,5,7],
+      //vec![1,6,7],
+      /*vec![2,3,4],vec![2,3,5],*/vec![2,3,6],vec![2,3,7],
+      //vec![2,4,5],vec![2,4,6],vec![2,4,7],
+      vec![2,5,6],//vec![2,5,7],
+      vec![2,6,7],
+      /*vec![3,4,5],vec![3,4,6],*/vec![3,4,7],
+      //vec![3,5,6],vec![3,5,7],
+      vec![3,6,7],
+      vec![4,5,6],vec![4,5,7],
+      vec![4,6,7],
+      vec![5,6,7],
+    ];
+
+    let idx = 2;
+    assert_eq!(clusters[idx].len(), three_clusters.len());
+    for v in three_clusters.iter(){
+      assert_eq!(clusters[idx][v].vertices,*v);
+    } 
+
+    // 0-------1
+    // | \   / |
+    // |  4-5  |
+    // |  | |  |
+    // |  7-6  |
+    // | /   \ |
+    // 3-------2
+    let four_clusters = vec![
+      vec![0,1,2,3],vec![0,1,2,4],vec![0,1,2,5],vec![0,1,2,6],//vec![0,1,2,7],
+      vec![0,1,3,4],vec![0,1,3,5],/*vec![0,1,3,6],*/vec![0,1,3,7],
+      vec![0,1,4,5],/*vec![0,1,4,6],*/vec![0,1,4,7],
+      vec![0,1,5,6],//vec![0,1,5,7],
+      //vec![0,1,6,7],
+      vec![0,2,3,4],/*vec![0,2,3,5],*/vec![0,2,3,6],vec![0,2,3,7],
+      //vec![0,2,4,5],vec![0,2,4,6],vec![0,2,4,7],
+      //vec![0,2,5,6],vec![0,2,5,7],
+      //vec![0,2,6,7],
+      vec![0,3,4,5],/*vec![0,3,4,6],*/vec![0,3,4,7],
+      //vec![0,3,5,6],vec![0,3,5,7],
+      vec![0,3,6,7],
+      vec![0,4,5,6],vec![0,4,5,7],
+      vec![0,4,6,7],
+      //vec![0,5,6,7],
+      /*vec![1,2,3,4],*/vec![1,2,3,5],vec![1,2,3,6],vec![1,2,3,7],
+      vec![1,2,4,5],//vec![1,2,4,6],vec![1,2,4,7],
+      vec![1,2,5,6],//vec![1,2,5,7],
+      vec![1,2,6,7],
+      //vec![1,3,4,5],vec![1,3,4,6],vec![1,3,4,7],
+      //vec![1,3,5,6],vec![1,3,5,7],
+      //vec![1,3,6,7],
+      vec![1,4,5,6],vec![1,4,5,7],
+      //vec![1,4,6,7],
+      vec![1,5,6,7],
+      /*vec![2,3,4,5],vec![2,3,4,6],*/vec![2,3,4,7],
+      vec![2,3,5,6],//vec![2,3,5,7],
+      vec![2,3,6,7],
+      vec![2,4,5,6],//vec![2,4,5,7],
+      vec![2,4,6,7],
+      vec![2,5,6,7],
+      /*vec![3,4,5,6],*/vec![3,4,5,7],
+      vec![3,4,6,7],
+      vec![3,5,6,7],
+      vec![4,5,6,7],
+    ];
+
+    let idx = 3;
+    assert_eq!(clusters[idx].len(), four_clusters.len());
+    for v in four_clusters.iter(){
+      assert_eq!(clusters[idx][v].vertices,*v);
+    } 
+
+    // 0-------1
+    // | \   / |
+    // |  4-5  |
+    // |  | |  |
+    // |  7-6  |
+    // | /   \ |
+    // 3-------2
+    // 0,-,2,-,-,5,6,7
+    // -,1,-,3,4,-,6,7
+    // 0,-,2,-,4,5,-,7
+    // 0,1,-,3,-,5,6,-
+    // -,1,2,3,4,-,6,-
+    // 0,-,2,3,-,5,-,7
+    // 0,1,-,3,4,-,6,-
+    // 0,1,2,-,-,5,-,7
+    let five_clusters = vec![
+      vec![0,1,2,3,4],vec![0,1,2,3,5],vec![0,1,2,3,6],vec![0,1,2,3,7],
+      vec![0,1,2,4,5],vec![0,1,2,4,6],vec![0,1,2,4,7],
+      vec![0,1,2,5,6],//vec![0,1,2,5,7],
+      vec![0,1,2,6,7],
+      vec![0,1,3,4,5],/*vec![0,1,3,4,6],*/vec![0,1,3,4,7],
+      vec![0,1,3,5,6],vec![0,1,3,5,7],
+      vec![0,1,3,6,7],
+      vec![0,1,4,5,6],vec![0,1,4,5,7],
+      vec![0,1,4,6,7],
+      vec![0,1,5,6,7],
+      vec![0,2,3,4,5],vec![0,2,3,4,6],vec![0,2,3,4,7],
+      vec![0,2,3,5,6],//vec![0,2,3,5,7],
+      vec![0,2,3,6,7],
+      vec![0,2,4,5,6],//vec![0,2,4,5,7],
+      vec![0,2,4,6,7],
+      //vec![0,2,5,6,7],
+      vec![0,3,4,5,6],vec![0,3,4,5,7],
+      vec![0,3,4,6,7],
+      vec![0,3,5,6,7],
+      vec![0,4,5,6,7],
+      vec![1,2,3,4,5],/*vec![1,2,3,4,6],*/vec![1,2,3,4,7],
+      vec![1,2,3,5,6],vec![1,2,3,5,7],
+      vec![1,2,3,6,7],
+      vec![1,2,4,5,6],vec![1,2,4,5,7],
+      vec![1,2,4,6,7],
+      vec![1,2,5,6,7],
+      /*vec![1,3,4,5,6],*/vec![1,3,4,5,7],
+      //vec![1,3,4,6,7],
+      vec![1,3,5,6,7],
+      vec![1,4,5,6,7],
+      vec![2,3,4,5,6],vec![2,3,4,5,7],
+      vec![2,3,4,6,7],
+      vec![2,3,5,6,7],
+      vec![2,4,5,6,7],
+      vec![3,4,5,6,7],
+    ];
+
+    let idx = 4;
+    assert_eq!(clusters[idx].len(), five_clusters.len());
+    for v in five_clusters.iter(){
+      assert_eq!(clusters[idx][v].vertices,*v);
+    } 
+
+
+    // 0-------1
+    // | \   / |
+    // |  4-5  |
+    // |  | |  |
+    // |  7-6  |
+    // | /   \ |
+    // 3-------2
+    let six_clusters = vec![
+      vec![0,1,2,3,4,5],vec![0,1,2,3,4,6],vec![0,1,2,3,4,7],
+      vec![0,1,2,3,5,6],vec![0,1,2,3,5,7],
+      vec![0,1,2,3,6,7],
+      vec![0,1,2,4,5,6],vec![0,1,2,4,5,7],
+      vec![0,1,2,4,6,7],
+      vec![0,1,2,5,6,7],
+      vec![0,1,3,4,5,6],
+      vec![0,1,3,4,6,7],
+      vec![0,1,3,4,6,7],
+      vec![0,1,3,5,6,7],
+      vec![0,1,4,5,6,7],
+      vec![0,2,3,4,5,6], vec![0,2,3,4,5,7],
+      vec![0,2,3,4,6,7],
+      vec![0,2,3,5,6,7],
+      vec![0,2,4,5,6,7],
+      vec![0,3,4,5,6,7],
+      vec![1,2,3,4,5,6],vec![1,2,3,4,5,7],
+      vec![1,2,3,4,6,7],
+      vec![1,2,3,5,6,7],
+      vec![1,2,4,5,6,7],
+      vec![1,3,4,5,6,7],
+      vec![2,3,4,5,6,7],
+    ];
+
+    let idx = 5;
+    assert_eq!(clusters[idx].len(), six_clusters.len());
+    for v in six_clusters.iter(){
+      assert_eq!(clusters[idx][v].vertices,*v);
+    } 
+    // 0-------1
+    // | \   / |
+    // |  4-5  |
+    // |  | |  |
+    // |  7-6  |
+    // | /   \ |
+    // 3-------2
+    let seven_clusters = vec![
+      vec![0,1,2,3,4,5,6],
+      vec![0,1,2,3,4,5,7],
+      vec![0,1,2,3,4,6,7],
+      vec![0,1,2,3,5,6,7],
+      vec![0,1,2,4,5,6,7],
+      vec![0,1,3,4,5,6,7],
+      vec![0,2,3,4,5,6,7],
+      vec![1,2,3,4,5,6,7],
+    ];
+
+    let idx = 6;
+    assert_eq!(clusters[idx].len(), seven_clusters.len());
+    for v in seven_clusters.iter(){
+      assert_eq!(clusters[idx][v].vertices,*v);
+    } 
+
+    // 0-------1
+    // | \   / |
+    // |  4-5  |
+    // |  | |  |
+    // |  7-6  |
+    // | /   \ |
+    // 3-------2
+    let eight_clusters = vec![
+      vec![0,1,2,3,4,5,6,7],
+    ];
+
+    let idx = 7;
+    assert_eq!(clusters[idx].len(), eight_clusters.len());
+    for v in eight_clusters.iter(){
+      assert_eq!(clusters[idx][v].vertices,*v);
+    } 
+  }
+
+}
