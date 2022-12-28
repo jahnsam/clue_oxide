@@ -19,6 +19,7 @@ pub enum CluEError{
   ModeAttributeWrongOption(String),
   ModeAttributeWrongSharp,
   NoCentralSpinCoor,
+  NoClustersOfSize(usize),
   NoRelationalOperators(usize),
   NotAnOperator(usize,String),
   OptionAlreadySet(usize,String),
@@ -84,6 +85,9 @@ impl fmt::Display for CluEError{
       CluEError::NoCentralSpinCoor => write!(f,
           "coordinates for the detected spin were not defined"),
       
+      CluEError::NoClustersOfSize(size) => write!(f,
+          "cannot find any clusters of size {}", size),
+
       CluEError::NoRelationalOperators(line_number) => write!(f,
           "{}: no relational operators (=, <, >, in, ...), are present", 
           line_number),
