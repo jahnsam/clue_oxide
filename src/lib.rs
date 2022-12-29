@@ -13,6 +13,9 @@ pub mod particle_specifier;
 pub mod physical_constants;
 pub mod structure;
 pub mod signal;
+pub mod space_3d;
+pub mod symmetric_list_2d;
+pub mod tensors;
 pub mod vector3;
 pub mod vec_funcs;
 
