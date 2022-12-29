@@ -5,8 +5,8 @@ pub mod adjacency;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct Cluster{
   vertices: Vec::<usize>,
-  signal: Option<Signal>,
-  auxiliary_signal: Option<Signal>,
+  pub signal: Option<Signal>,
+  pub auxiliary_signal: Option<Signal>,
 }
 impl Cluster{
   pub fn from(vertices: Vec::<usize>) -> Self{
