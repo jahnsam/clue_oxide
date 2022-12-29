@@ -1,5 +1,6 @@
 use crate::physical_constants::*;
 use crate::structure::pdb::PDB;
+use crate::vec_funcs;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone,Default)]
@@ -51,24 +52,24 @@ impl PartialEq<ParticleSpecifier> for ParticleSpecifier {
     fn eq(&self, other: &ParticleSpecifier) -> bool {
 
       // Serials
-      if !are_vecs_equal(&self.serials, &other.serials){
+      if !vec_funcs::are_vecs_equal(&self.serials, &other.serials){
         return false;
       }
 
       // Residues
-      if !are_vecs_equal(&self.residues, &other.residues){
+      if !vec_funcs::are_vecs_equal(&self.residues, &other.residues){
         return false;
       }
 
 
       // Elements
-      if !are_vecs_equal(&self.elements, &other.elements){
+      if !vec_funcs::are_vecs_equal(&self.elements, &other.elements){
         return false;
       }
 
 
       // Residue Sequence Numbers
-      if !are_vecs_equal(&self.residue_sequence_numbers, 
+      if !vec_funcs::are_vecs_equal(&self.residue_sequence_numbers, 
           &other.residue_sequence_numbers){
         return false;
       }
@@ -162,15 +163,7 @@ impl ParticleSpecifier{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-fn are_vecs_equal<T: std::cmp::PartialEq>
-(vec0: &[T], vec1: &[T])-> bool{
-  if vec0.len() != vec1.len() {return false;}
 
-  for ii in 0..vec0.len(){
-    if vec0[ii] != vec1[ii]{ return false;}
-  }
-  true
-}
 //------------------------------------------------------------------------------
 fn does_cover<T: std::cmp::PartialEq>
 (target_value: T, filter_values: &[T] ) -> bool {

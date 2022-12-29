@@ -8,6 +8,7 @@ pub mod config;
 pub mod clue_errors;
 pub mod cluster;
 pub mod cluster_signal;
+pub mod particle;
 pub mod particle_config;
 pub mod particle_specifier;
 pub mod physical_constants;

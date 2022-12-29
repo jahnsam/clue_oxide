@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn find_clusters(
-    adjacency_list: AdjacencyList, // what data structure?
+    adjacency_list: AdjacencyList, 
     max_size: usize) 
   -> Result< Vec::<HashMap::<Vec::<usize>,Cluster>>, CluEError>
 {
