@@ -67,24 +67,24 @@ pub const RAD_PER_S_TO_HZ: f64 = 0.5/PI;
 /// Specifies a particle type, such as a chemical element or an electron spin.
 #[derive(PartialEq, Debug, Clone, Copy, EnumIter)]
 pub enum Element{
-   Electron,                                                              
-   Hydrogen,                                                              
-   Helium,                                                                
-   Lithium,                                                               
-   Beryllium,                                                             
-   Boron,                                                                 
-   Carbon,                                                                
-   Nitrogen,                                                              
-   Oxygen,                                                               
-   Fluorine,                                                             
-   Neon,                                                                 
-   Sodium,                                                               
-   Magnesium,                                                            
-   Aluminium,                                                            
-   Silicon,                                                              
-   Phosphorus,                                                           
-   Sulfur,                                                               
-   Chlorine,                                                             
+   Electron,
+   Hydrogen,
+   Helium,
+   Lithium,
+   Beryllium,
+   Boron,
+   Carbon,
+   Nitrogen,
+   Oxygen,
+   Fluorine,
+   Neon,
+   Sodium,
+   Magnesium,
+   Aluminium,
+   Silicon,
+   Phosphorus,
+   Sulfur,
+   Chlorine,
    Argon,
 }
 
@@ -111,6 +111,33 @@ impl Element{
       "Cl" => Some(Element::Chlorine),
       "Ar" => Some(Element::Argon),
       _ => None,
+    }
+  }
+}
+
+impl ToString for Element{
+
+  fn to_string(&self) -> String{
+    match self{  
+      Element::Electron => "e".to_string(),
+      Element::Hydrogen => "H".to_string(),
+      Element::Helium => "He".to_string(),
+      Element::Lithium => "Li".to_string(),
+      Element::Beryllium => "Be".to_string(),
+      Element::Boron => "B".to_string(),
+      Element::Carbon => "C".to_string(),
+      Element::Nitrogen => "N".to_string(),
+      Element::Oxygen => "O".to_string(),
+      Element::Fluorine => "F".to_string(),
+      Element::Neon => "Ne".to_string(),
+      Element::Sodium => "Na".to_string(),
+      Element::Magnesium => "Mg".to_string(),
+      Element::Aluminium => "Al".to_string(),
+      Element::Silicon => "Si".to_string(),
+      Element::Phosphorus => "P".to_string(),
+      Element::Sulfur => "S".to_string(),
+      Element::Chlorine => "Cl".to_string(),
+      Element::Argon => "Ar".to_string(),
     }
   }
 }

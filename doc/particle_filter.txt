@@ -1,13 +1,46 @@
-#[particle_filter(label = water_h)]
+#[filter(label=water_h)]
   element in [H];
-  residue in [WAT,SOL];
+  residue in [WAT,SOL]
+  
+#[filter(label=glycerol_h)]
+  element in [H];
+  residue in [GLYOL]  
 
-#[particle_filter(label = water_o)]
+#[filter(label=sol_oh)]
   element in [O];
-  residue in [WAT,SOL];
+  residue in [WAT,SOL,GLYOL]
+  
 
-#[particle_properties(filter = 1)]
-  electric_quadrupole_tensor  = [q1,q2,q3];
-  electric_quadrupole_z_axis = connected(self,water_o);
+#[filter(label=methyl_h)]
+  element in [H];
+  exchange_group in [methyl]
 
 
+#[filter(label=TEMPO_N)]
+  element iin [N];
+  
+#[filter(label=TEMPO_axis)]
+pdb_indices in [17,18];
+
+
+#[property(label= water_h)]
+// for diff(a,b), both a and b are filters 
+// and must resovle to a single partilce.
+// 
+// The keyword "particle" refers to same does the property being set.
+//   
+// The rhs of axis properties should resolve to a [f64; 3].
+//  
+hf_z_axis = diff(particle, connected(sol_o) );  
+hf_z_axis = diff(particle, connected(sol_o) );  
+hf_xy_axis = diff(particle, same_molecule(water_h) );  
+
+#[property(label = methyl_h)]
+tunnel_splitting = 80e3; // Hz
+
+#[property(label = TEMPO_N)]
+hf_xy_axis = vector(TEMPO_axis); // TODO: how should this work?
+hf_xy_axis = [1,0, 0.0 ,0.0]; 
+
+#[property(label = glycerol_h)]
+nq_z_axis= diff(particle, onnected(sol_o));  

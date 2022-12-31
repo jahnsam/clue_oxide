@@ -5,10 +5,11 @@ use strum::IntoEnumIterator;
 use crate::clue_errors::*;
 use crate::config::lexer::*;
 use crate::config::token::*;
+use crate::particle_filter::ParticleFilter;
 //use crate::config::token_algebra::*;
-use super::particle_config::*;
-use super::particle_specifier::SpecifiedParticle;
-use super::physical_constants::*;
+use crate::particle_config::{ParticleConfig, ParticleProperties,
+  IsotopeAbundance};
+use crate::physical_constants::*;
 use super::vector3::*;
 
 
@@ -36,15 +37,21 @@ impl Default for Config{
     let mut particles = Vec::<ParticleConfig>::new();
     for element in Element::iter(){
 
-      let mut particle_config = ParticleConfig::new();
-      particle_config.filter.elements.push(element);
+      let mut filter = ParticleFilter::new();
+      filter.elements.push(element);
 
-      particle_config.config.isotopic_distribution.isotope_abundances.push(
+      let name: String = format!("default_{}",element.to_string());
+      let mut particle_config = ParticleConfig::new(name);
+      particle_config.filter = Some(filter);
+
+      let mut properties = ParticleProperties::new();
+      properties.isotopic_distribution.isotope_abundances.push(
           IsotopeAbundance{
             isotope: Isotope::most_common_for(&element),
             abundance: 1.0,
           });
 
+      particle_config.properties = Some(properties);
 
       particles.push(particle_config);
     }
@@ -65,6 +72,7 @@ impl Config{
   }
   //----------------------------------------------------------------------------
 
+  /*
   pub fn get_max_spin_multiplicity_for_any_isotope(&self, element: Element)
     -> usize{
 
@@ -86,6 +94,7 @@ impl Config{
 
       max_spin_multiplicity
     }
+    */
 }
 #[derive(Debug,Clone)]
 pub enum CentralSpinCoordinates{

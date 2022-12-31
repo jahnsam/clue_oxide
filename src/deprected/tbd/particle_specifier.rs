@@ -1,9 +1,24 @@
-use crate::physical_constants::*;
-use crate::structure::pdb::PDB;
-use crate::vec_funcs;
+use super::physical_constants::*;
+use super::pdb::PDB;
 
+// TODO: move this function to find ParticleSpecifier, Property pairs.
+pub fn find_specifiers<'a>(
+    target: &SpecifiedParticle,
+    specifiers: &'a Vec::<ParticleSpecifier>) 
+  -> Vec::<&'a ParticleSpecifier>{
+
+    let mut found_specifiers = Vec::<&ParticleSpecifier>::with_capacity(
+        specifiers.len());
+
+    for ii in 0..specifiers.len(){
+      if specifiers[ii].covers(target){
+        found_specifiers.push(&specifiers[ii]);
+      }
+    }
+
+    found_specifiers
+}
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone,Default)]
 pub struct SpecifiedParticle{
   pub serial: Option<u32>,
   pub residue: Option<String> ,
@@ -13,7 +28,15 @@ pub struct SpecifiedParticle{
 }
 //------------------------------------------------------------------------------
 impl SpecifiedParticle{
-  pub fn new() -> Self {Default::default()}
+  pub fn new() -> Self{
+      SpecifiedParticle{
+        serial: None,
+        residue: None,
+        element: None,
+        residue_sequence_number: None,
+        distance: None,
+      }
+  }
   //----------------------------------------------------------------------------
   pub fn specify(pdb_idx: usize, pdb: &PDB) -> Self{
       SpecifiedParticle{
@@ -21,7 +44,7 @@ impl SpecifiedParticle{
         residue: Some(pdb.residue(pdb_idx)) ,
         element: Some(pdb.element(pdb_idx)),
         residue_sequence_number: Some(pdb.residue_sequence_number(pdb_idx)) ,
-        distance: Some(pdb.coordinates(pdb_idx).magnitude()),
+        distance: Some(pdb.pos(pdb_idx).magnitude()),
       }
   }
 }
@@ -29,7 +52,6 @@ impl SpecifiedParticle{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone)]
 pub struct ParticleSpecifier{
   pub serials: Vec::<u32>,
   pub not_serials: Vec::<u32>,
@@ -52,24 +74,24 @@ impl PartialEq<ParticleSpecifier> for ParticleSpecifier {
     fn eq(&self, other: &ParticleSpecifier) -> bool {
 
       // Serials
-      if !vec_funcs::are_vecs_equal(&self.serials, &other.serials){
+      if !are_vecs_equal(&self.serials, &other.serials){
         return false;
       }
 
       // Residues
-      if !vec_funcs::are_vecs_equal(&self.residues, &other.residues){
+      if !are_vecs_equal(&self.residues, &other.residues){
         return false;
       }
 
 
       // Elements
-      if !vec_funcs::are_vecs_equal(&self.elements, &other.elements){
+      if !are_vecs_equal(&self.elements, &other.elements){
         return false;
       }
 
 
       // Residue Sequence Numbers
-      if !vec_funcs::are_vecs_equal(&self.residue_sequence_numbers, 
+      if !are_vecs_equal(&self.residue_sequence_numbers, 
           &other.residue_sequence_numbers){
         return false;
       }
@@ -111,7 +133,7 @@ impl Default for ParticleSpecifier{
 //------------------------------------------------------------------------------
 impl ParticleSpecifier{
 
-  pub fn new() -> Self {Default::default()}
+  pub fn new() -> Self {ParticleSpecifier::default()}
   //----------------------------------------------------------------------------
   pub fn covers(&self, target: &SpecifiedParticle) -> bool {
     
@@ -163,11 +185,19 @@ impl ParticleSpecifier{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+fn are_vecs_equal<T: std::cmp::PartialEq>
+(vec0: &Vec::<T>, vec1: &Vec::<T>)-> bool{
+  if vec0.len() != vec1.len() {return false;}
 
+  for ii in 0..vec0.len(){
+    if vec0[ii] != vec1[ii]{ return false;}
+  }
+  true
+}
 //------------------------------------------------------------------------------
 fn does_cover<T: std::cmp::PartialEq>
-(target_value: T, filter_values: &[T] ) -> bool {
-  let mut doescover = filter_values.is_empty();
+(target_value: T, filter_values: &Vec::<T> ) -> bool {
+  let mut doescover = filter_values.len()==0;
   for filter_value in filter_values {
     doescover |= *filter_value == target_value;
      if doescover { break; }
@@ -176,7 +206,7 @@ fn does_cover<T: std::cmp::PartialEq>
 }
 //------------------------------------------------------------------------------
 fn is_excluded<T: std::cmp::PartialEq>
-(target_value: T, excluded_values: &[T]) -> bool
+(target_value: T, excluded_values: &Vec::<T>) -> bool
 {
   for exclude_value in excluded_values{
     if target_value == *exclude_value { return true;}
@@ -191,7 +221,7 @@ fn is_excluded<T: std::cmp::PartialEq>
 #[cfg(test)]
 mod tests{
   use super::*;
-
+  use super::super::pdb::read_pdb;
   #[test]
   fn test_covers(){
     let mut specifier = ParticleSpecifier::new();
@@ -261,5 +291,36 @@ mod tests{
 
   }
 
+  #[test]
+  fn test_find_specifier(){
+    let filename = "./assets/TEMPO.pdb";
+    let mut pdb = read_pdb(filename).expect("Could not read pdb file.");  
+
+    assert_eq!(Element::Nitrogen,pdb.element(27));
+    let target = SpecifiedParticle::specify(27, &pdb);
+
+
+    let number = 3;
+    let mut specifiers = Vec::<ParticleSpecifier>::with_capacity(number);
+    for ii in 0..number{
+      specifiers.push(ParticleSpecifier::new());
+    }
+
+    specifiers[1].elements.push(Element::Hydrogen);
+    specifiers[2].elements.push(Element::Nitrogen);
+
+    let found_specifiers = find_specifiers(&target, &specifiers);
+    assert_eq!(2,found_specifiers.len());
+
+    for ii in 0..found_specifiers.len() {
+      assert!(found_specifiers[ii].covers(&target));
+    }
+  }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+
+
+
+

@@ -1,10 +1,12 @@
 
-use super::particle_specifier::*;
+use crate::particle_filter::{ParticleFilter,VectorSpecifier};
+//use super::particle_specifier::*;
 use super::physical_constants::*;
 use super::vector3::Vector3;
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/*
 pub fn find_particle_configs<'a>(
     target: &SpecifiedParticle,
     particle_configs: &'a [ParticleConfig]) 
@@ -21,26 +23,24 @@ pub fn find_particle_configs<'a>(
 
     found_configs
 }
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
 pub struct ParticleConfig{
-  pub filter: ParticleSpecifier,
-  pub config: ParticleProperties,
-}
-impl Default for ParticleConfig{
-  fn default() -> Self{
-    ParticleConfig{
-      filter: ParticleSpecifier::new(),
-      config: ParticleProperties::default(),
-    }
-  }
+  pub label: String,
+  pub filter: Option<ParticleFilter>,
+  pub properties: Option<ParticleProperties>,
 }
 impl ParticleConfig{
-  pub fn new() -> Self{
-    Default::default()
+  pub fn new(label: String) -> Self{
+    ParticleConfig{
+      label,
+      filter: None,
+      properties: None,
+    }
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -63,6 +63,11 @@ impl Default for ParticleProperties{
       electric_quadrupole_coupling: None,
 
     }
+  }
+}
+impl ParticleProperties{
+  pub fn new() -> Self{
+    Default::default()
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -98,9 +103,9 @@ pub struct IsotopeAbundance{
 #[derive(Debug,Clone)]
 pub struct TensorSpecifier{
   pub values: [f64; 3],
-  pub x_axis: Option<AxisSpecifier>,
-  pub y_axis: Option<AxisSpecifier>,
-  pub z_axis: Option<AxisSpecifier>,
+  pub x_axis: Option<VectorSpecifier>,
+  pub y_axis: Option<VectorSpecifier>,
+  pub z_axis: Option<VectorSpecifier>,
 }
 
 impl Default for TensorSpecifier{
@@ -118,6 +123,8 @@ impl Default for TensorSpecifier{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/*
+// TODO: deprected
 #[derive(Debug,Clone)]
 pub enum AxisSpecifier{
   Connected(ParticleSelector, ParticleSelector),
@@ -132,6 +139,7 @@ pub enum ParticleSelector{
   This,
   Other(Box<ParticleSpecifier>),
 }
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -141,6 +149,7 @@ mod tests{
   use super::*;
   use crate::structure::pdb::read_pdb;
 
+  /*
   #[test]
   fn test_find_particle_configs(){
     let filename = "./assets/TEMPO.pdb";
@@ -166,6 +175,7 @@ mod tests{
       assert!(found_configs[ii].filter.covers(&target));
     }
   }
+  */
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
