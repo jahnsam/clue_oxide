@@ -116,6 +116,7 @@ name = "clue_oxide"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "lebedev_laikov",
  "ndarray",
  "ndarray-linalg",
  "ndarray-rand",
@@ -324,6 +325,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "gcc"
+version = "0.3.55"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f5f3913fa0bfe7ee1fd8248b6b9f42a5af4b9d65ec2dd2c3c26132b950ecfc2"
+
+[[package]]
 name = "getrandom"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -465,6 +472,15 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+
+[[package]]
+name = "lebedev_laikov"
+version = "0.1.0"
+source = "git+https://github.com/Rufflewind/lebedev_laikov#b1854a3f2b8e01f07bb05d986ea6aa8cad0fe41b"
+dependencies = [
+ "gcc",
+ "libc",
+]
 
 [[package]]
 name = "libc"
