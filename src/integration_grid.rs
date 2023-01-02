@@ -2,6 +2,7 @@ use crate::space_3d::Vector3D;
 
 use lebedev_laikov;
 
+#[derive(Debug, Clone)]
 pub struct IntegrationGrid{
   dim: usize,
   points: Vec::<f64>,
@@ -11,6 +12,15 @@ pub struct IntegrationGrid{
 impl IntegrationGrid{
 
   pub fn lebedev(n: usize) -> Self{
+
+    const LEBEDEVGRIDSIZES: [usize;32] = [
+               6,   14,   26,   38,   50,   74,   86,  110,  146,  170, 
+             194,  230,  266,  302,  350,  434,  590,  770,  974, 1202, 
+            1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 
+            5294, 5810];
+
+    assert!(LEBEDEVGRIDSIZES.contains(&n));
+
     let (x, y, z, weights) = lebedev_laikov::ld_vecs(n);
 
     let dim = 3;
@@ -30,6 +40,23 @@ impl IntegrationGrid{
   }
 
   //----------------------------------------------------------------------------
+  pub fn new(dim: usize) -> Self {
+    let points = Vec::<f64>::new();
+    let weights = Vec::<f64>::new();
+
+    IntegrationGrid{dim,points,weights}
+  }
+  //----------------------------------------------------------------------------
+  pub fn push(&mut self, points: Vec::<f64>,weight: f64){
+    assert_eq!(points.len(), self.dim);
+
+    for x in points.into_iter(){
+      self.points.push(x);
+    }
+
+    self.weights.push(weight);
+  }
+  //----------------------------------------------------------------------------
   pub fn len(&self) -> usize { self.weights.len() }
   //----------------------------------------------------------------------------
   pub fn weight(&self, index: usize) -> f64{ 
@@ -42,21 +69,25 @@ impl IntegrationGrid{
   }
   //----------------------------------------------------------------------------
   pub fn y(&self, index: usize) -> f64{ 
+    assert!(self.dim >= 2);
     let idx = self.dim*index;
     self.points[idx+1]
   }
   //----------------------------------------------------------------------------
   pub fn z(&self, index: usize) -> f64{ 
+    assert!(self.dim >= 3);
     let idx = self.dim*index;
     self.points[idx+2]
   }
   //----------------------------------------------------------------------------
   pub fn xyz(&self, index: usize) -> Vector3D{
+    assert_eq!(self.dim,3);
     Vector3D::from( [ self.x(index), self.y(index), self.z(index) ] )
   }
   //----------------------------------------------------------------------------
 
   pub fn remove_3d_hemisphere(self) -> IntegrationGrid{
+    assert_eq!(self.dim,3);
 
     let mut points = Vec::<f64>::with_capacity(self.points.len()/2);
     let mut weights = Vec::<f64>::with_capacity(self.len()/2);
@@ -80,9 +111,9 @@ impl IntegrationGrid{
     let norm: f64 = weights.iter().sum();
 
     IntegrationGrid{
-    dim: self.dim,
-    points,
-    weights: weights.iter().map(|x| x/norm).collect()
+      dim: self.dim,
+      points,
+      weights: weights.iter().map(|x| x/norm).collect()
     }
   
   }

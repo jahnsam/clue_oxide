@@ -2,7 +2,7 @@ use strum_macros::EnumIter;
 //extern crate matrix_oxide;
 //use matrix_oxide as mox;
 use num_complex::Complex;
-
+use crate::clue_errors::CluEError;
 
 // Numbers
 pub const I: Complex<f64> = Complex::<f64>{re: 0.0, im: 1.0};
@@ -89,28 +89,28 @@ pub enum Element{
 }
 
 impl Element{
-  pub fn from(element: &str) -> Option<Element> {
+  pub fn from(element: &str) -> Result<Element,CluEError> {
 
     match element {
-       "e" => Some(Element::Electron),
-       "H" | "D" | "T" => Some(Element::Hydrogen),
-      "He" => Some(Element::Helium),
-      "Li" => Some(Element::Lithium),
-      "Be" => Some(Element::Beryllium),
-       "B" => Some(Element::Boron),
-       "C" => Some(Element::Carbon),
-       "N" => Some(Element::Nitrogen),
-       "O" => Some(Element::Oxygen),
-       "F" => Some(Element::Fluorine),
-      "Ne" => Some(Element::Neon),
-      "Na" => Some(Element::Sodium),
-      "Al" => Some(Element::Aluminium),
-      "Si" => Some(Element::Silicon),
-       "P" => Some(Element::Phosphorus),
-       "S" => Some(Element::Sulfur),
-      "Cl" => Some(Element::Chlorine),
-      "Ar" => Some(Element::Argon),
-      _ => None,
+       "e" => Ok(Element::Electron),
+       "H" | "D" | "T" => Ok(Element::Hydrogen),
+      "He" => Ok(Element::Helium),
+      "Li" => Ok(Element::Lithium),
+      "Be" => Ok(Element::Beryllium),
+       "B" => Ok(Element::Boron),
+       "C" => Ok(Element::Carbon),
+       "N" => Ok(Element::Nitrogen),
+       "O" => Ok(Element::Oxygen),
+       "F" => Ok(Element::Fluorine),
+      "Ne" => Ok(Element::Neon),
+      "Na" => Ok(Element::Sodium),
+      "Al" => Ok(Element::Aluminium),
+      "Si" => Ok(Element::Silicon),
+       "P" => Ok(Element::Phosphorus),
+       "S" => Ok(Element::Sulfur),
+      "Cl" => Ok(Element::Chlorine),
+      "Ar" => Ok(Element::Argon),
+      _ => Err(CluEError::CannotParseElement(element.to_string())),
     }
   }
 }

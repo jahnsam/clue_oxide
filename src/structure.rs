@@ -1,6 +1,7 @@
 pub mod pdb;
 //pub mod primary_structure;
 pub mod exchange_groups;
+use crate::integration_grid::IntegrationGrid;
 use crate::particle::Particle;
 use crate::particle_filter::ParticleFilter;
 use crate::space_3d::Vector3D;
@@ -11,23 +12,51 @@ use crate::physical_constants::{Element,Isotope};
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct DetectedSpin{
   isotope: Isotope,
-  //weighted_coordinates: IntegrationGrid,
-  weighted_coordinates: Vec::<(Vector3D,f64)>,
+  weighted_coordinates: IntegrationGrid,
   transition: [usize;2],
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+struct ExchangeGroupManager{
+  exchange_groups: Vec::<ExchangeGroup>,
+  exchange_group_ids: Vec::<usize>,
+  exchange_coupling: Vec::<f64>,
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct Structure{
-  pub detected_particle: DetectedSpin,
+  detected_particle: Option<DetectedSpin>,
   pub bath_particles: Vec::<Particle>,
   pub connections: AdjacencyList,
-  pub coexchange: AdjacencyList,
   pub cell_offsets: Vec::<Vector3D>,
+  molecules: Option<AdjacencyList>,
+  cosubstitute: Option<AdjacencyList>,
+  exchange_groups: Option<ExchangeGroupManager>
 }
 
 impl Structure{
+  pub fn new(
+      bath_particles: Vec::<Particle>,
+      connections: AdjacencyList,
+      cell_offsets: Vec::<Vector3D>
+      ) -> Self
+  {
+    Structure{
+      detected_particle: None,
+      bath_particles,
+      connections,
+      cell_offsets,
+      molecules: None,
+      cosubstitute: None,
+      exchange_groups: None,
+    }
+
+  }
+  //----------------------------------------------------------------------------
   pub fn find<'a>(&'a self, particle_filter: &ParticleFilter)
     -> Vec::<&'a Particle>
   {

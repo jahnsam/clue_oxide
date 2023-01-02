@@ -33,15 +33,15 @@ use crate::physical_constants::{Element,Isotope};
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct Particle{
   pub element: Element,
+  pub isotope: Option<Isotope>,
   pub coordinates: Vector3D,
 
   pub serial: Option<u32>,
   pub residue: Option<String>,
   pub residue_sequence_number: Option<u32>,
-  pub exchange_group: Option<ExchangeGroup>,
-  pub exchange_group_id: Option<usize>,  
+  //pub exchange_group: Option<ExchangeGroup>,
+  //pub exchange_group_id: Option<usize>,  
 
-  pub isotope: Option<Isotope>,
   //pub isotope_distribution: Option<IsotopeDistribution>,
 
   //pub cell_id: usize,

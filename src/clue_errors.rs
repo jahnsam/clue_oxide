@@ -10,6 +10,8 @@ pub enum CluEError{
   CannotSubTokens,
   CannotConvertToFloat(usize,String),
   CannotConvertToVector(usize),
+  CannotParseElement(String),
+  CannotParseLine(String),
   ConfigModeNotRecognized(String),
   EmptyVector(usize),
   IndexOutOfBounds(usize,usize,usize),
@@ -44,6 +46,12 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotMulTokens => write!(f,
           "cannot multiply tokens meaningfully"),
+
+      CluEError::CannotParseElement(element) => write!(f,
+          "cannot parse \"{}\" as an element", element),
+
+      CluEError::CannotParseLine(line) => write!(f,
+          "cannot parse line \"{}\"", line),
 
       CluEError::CannotSubTokens => write!(f,
           "cannot subtract tokens meaningfully"),
