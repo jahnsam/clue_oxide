@@ -1,6 +1,12 @@
-pub fn get_subclusters(cluster: &[usize]) -> Vec::<Vec::<usize>>{
+pub fn build_subclusters(cluster: &[usize]) -> Vec::<Vec::<usize>>{
 
   let cluster_size = cluster.len();
+  
+  if cluster_size <= 1 {
+    // There are no proper subclusters.
+    return Vec::<Vec::<usize>>::new();
+  }
+  
   let n_subclusters = 2_usize.pow( cluster_size as u32);
   
   let mut subclusters = Vec::<Vec::<usize>>::with_capacity(n_subclusters-2);
@@ -68,6 +74,12 @@ mod tests{
     let subclusters = build_subclusters(&[1,2,3]);
     assert_eq!(subclusters,vec![
         vec![2, 3], vec![1, 3], vec![3], vec![1, 2], vec![2], vec![1]] );
+
+    let subclusters = build_subclusters(&[1]);
+    assert!(subclusters.is_empty());
+
+    let subclusters = build_subclusters(&[]);
+    assert!(subclusters.is_empty());
   }
 }
 
