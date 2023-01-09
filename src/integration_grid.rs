@@ -2,6 +2,8 @@ use crate::space_3d::Vector3D;
 
 use lebedev_laikov;
 
+/// `IntegrationGrid` is a struct for use in 
+/// [quadrature](https://en.wikipedia.org/wiki/Quadrature_(mathematics)).
 #[derive(Debug, Clone)]
 pub struct IntegrationGrid{
   dim: usize,
@@ -11,6 +13,26 @@ pub struct IntegrationGrid{
 
 impl IntegrationGrid{
 
+  /// This function generates a 
+  /// [Lebedev](https://en.wikipedia.org/wiki/Lebedev_quadrature)
+  /// quadrature grid as an `IntegrationGrid`.
+  /// It uses the
+  /// [lebedev_laikov crate](https://github.com/Rufflewind/lebedev_laikov)
+  /// by [Rufflewind](https://github.com/Rufflewind).
+  /// # Example
+  /// ```
+  ///# use clue_oxide::integration_grid::IntegrationGrid; 
+  /// let n = 26;
+  /// let grid = IntegrationGrid::lebedev(n);
+  /// ```
+  ///
+  /// # Panic
+  /// `lebedev()` will paninc if
+  /// `n` ∉  \{6,   14,   26,   38,   50,   74,   86,  110,  146,  170,
+  ///        194,  230,  266,  302,  350,  434,  590,  770,  974, 1202,
+  ///       1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802,
+  ///       5294, 5810\}.
+  ///
   pub fn lebedev(n: usize) -> Self{
 
     const LEBEDEVGRIDSIZES: [usize;32] = [
