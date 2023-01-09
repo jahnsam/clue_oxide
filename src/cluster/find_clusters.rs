@@ -53,7 +53,7 @@ fn build_n_clusters(
 
   let mut new_clusters = HashMap::new();
 
-  for (indices, cluster) in n_minus_1_clusters {
+  for (indices, _cluster) in n_minus_1_clusters {
 
     for idx in indices.iter(){
       if let Some(neighbors) = adjacency_list.get_neighbors(*idx){

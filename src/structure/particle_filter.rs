@@ -1,7 +1,6 @@
 use crate::structure::Structure;
 use crate::space_3d::Vector3D;
-use crate::cluster::adjacency::AdjacencyList;
-use crate::structure::exchange_groups::ExchangeGroup;
+//use crate::structure::exchange_groups::ExchangeGroup;
 use crate::physical_constants::{Element,Isotope};
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Filters are used to specify a set of bath particles.
@@ -96,11 +95,11 @@ impl ParticleFilter{
       }}
 
       // Isotope
-      if let Some(isotope) = &particle.isotope{ 
-        if (self.isotopes.is_empty() && !self.isotopes.contains(&isotope))
-         || self.not_isotopes.contains(&isotope){
-          return None;
-      }}
+      let isotope = &particle.isotope; 
+      if (self.isotopes.is_empty() && !self.isotopes.contains(&isotope))
+       || self.not_isotopes.contains(&isotope){
+        return None;
+      }
 
 
       // Bonded To

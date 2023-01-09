@@ -10,7 +10,7 @@ use crate::physical_constants::*;
 use crate::clue_errors::CluEError;
 use crate::structure::Structure;
 use crate::cluster::adjacency::AdjacencyList;
-use crate::particle::Particle;
+use crate::structure::particle::Particle;
 use crate::vec_funcs;
 use crate::space_3d::Vector3D;
 use substring::Substring;
@@ -57,13 +57,13 @@ pub fn parse_pdb(file: &str) -> Result< Vec::<Structure>, CluEError>
   Ok(structures)
 }
 //------------------------------------------------------------------------------
-pub fn parse_pdb_atoms(file: &str) -> Result< Vec::<Particle>, CluEError> {
+fn parse_pdb_atoms(file: &str) -> Result< Vec::<Particle>, CluEError> {
 
 
   let mut atom_indices: Vec::<usize> 
-    = file.match_indices("\nATOM").map(|(idx,_substr)| idx).collect();
+    = file.match_indices("ATOM").map(|(idx,_substr)| idx).collect();
   let mut hetatm_indices: Vec::<usize> 
-    = file.match_indices("\nHETATM").map(|(idx,_substr)| idx).collect();
+    = file.match_indices("HETATM").map(|(idx,_substr)| idx).collect();
   atom_indices.append(&mut hetatm_indices);
   atom_indices = vec_funcs::unique(atom_indices);
   atom_indices.sort();
@@ -83,7 +83,7 @@ pub fn parse_pdb_atoms(file: &str) -> Result< Vec::<Particle>, CluEError> {
   Ok(bath_particles)
 }
 //------------------------------------------------------------------------------
-pub fn parse_pdb_connections(file: &str,bath_particles: &[Particle]) 
+fn parse_pdb_connections(file: &str,bath_particles: &[Particle]) 
   -> Result< AdjacencyList, CluEError> 
 {
 
@@ -95,15 +95,15 @@ pub fn parse_pdb_connections(file: &str,bath_particles: &[Particle])
     = file.match_indices("CONECT").map(|(idx,_substr)| idx).collect();
 
   let mut connections = AdjacencyList::with_capacity(n_atoms);
-  for idx0 in conect_indices.iter() {
-    let line = get_line(file.substring(*idx0,file.len()));
+  for line_idx in conect_indices.iter() {
+    let line = get_line(file.substring(*line_idx,file.len()));
     match parse_connections(line){
    
       Ok(serials) => {
         let indices = serials_to_indices(serials,&bath_particles);
 
-        for idx1 in indices.iter(){
-          connections.connect(*idx0,*idx1);
+        for idx in indices.iter(){
+          connections.connect(indices[0],*idx);
         }
       },
 
@@ -114,15 +114,15 @@ pub fn parse_pdb_connections(file: &str,bath_particles: &[Particle])
   Ok(connections)
 }
 //------------------------------------------------------------------------------
-pub fn parse_pdb_crystal(file: &str)
+fn parse_pdb_crystal(file: &str)
   -> Result< Vec::<Vector3D>, CluEError> 
 {
   let mut cryst1_indices: Vec::<usize> 
-    = file.match_indices("\nCRYST1").map(|(idx,_substr)| idx).collect();
+    = file.match_indices("CRYST1").map(|(idx,_substr)| idx).collect();
   
   let cell_offsets: Vec::<Vector3D>;
 
-  if cryst1_indices.is_empty() {
+  if !cryst1_indices.is_empty() {
     let line = get_line(file.substring(cryst1_indices[0],file.len()));
     return parse_crystal_line(line);
   }
@@ -130,14 +130,14 @@ pub fn parse_pdb_crystal(file: &str)
   
 }
 //------------------------------------------------------------------------------
-pub fn parse_pdb_models(file: &str)
+fn parse_pdb_models(file: &str)
   -> Result< (Vec::<usize>,Vec::<usize>), CluEError> 
 {
   let mut model_indices: Vec::<usize> 
-    = file.match_indices("\nMODEL").map(|(idx,_substr)| idx).collect();
+    = file.match_indices("MODEL").map(|(idx,_substr)| idx).collect();
 
   let mut endmdl_indices: Vec::<usize> 
-    = file.match_indices("\nENDMDL").map(|(idx,_substr)| idx).collect();
+    = file.match_indices("ENDMDL").map(|(idx,_substr)| idx).collect();
 
   assert_eq!(model_indices.len(), endmdl_indices.len());
   if model_indices.is_empty(){
@@ -207,7 +207,7 @@ fn parse_atom(line: &str) -> Result<Particle,CluEError>{
 
   Ok(Particle{
       element,
-      isotope: None,
+      isotope: Isotope::most_common_for(&element),
       coordinates,
       serial: Some(serial),
       residue,
@@ -218,17 +218,14 @@ fn parse_atom(line: &str) -> Result<Particle,CluEError>{
 }
 //------------------------------------------------------------------------------
 /*
-COLUMNS       DATA  TYPE    FIELD          DEFINITION
--------------------------------------------------------------
- 1 -  6       Record name   "CRYST1"
- 7 - 15       Real(9.3)     a              a (Angstroms).
-16 - 24       Real(9.3)     b              b (Angstroms).
-25 - 33       Real(9.3)     c              c (Angstroms).
-34 - 40       Real(7.2)     alpha          alpha (degrees).
-41 - 47       Real(7.2)     beta           beta (degrees).
-48 - 54       Real(7.2)     gamma          gamma (degrees).
-56 - 66       LString       sGroup         Space  group.
-67 - 70       Integer       z              Z value.
+COLUMNS       DATA  TYPE      FIELD        DEFINITION
+-------------------------------------------------------------------------
+ 1 -  6        Record name    "CONECT"
+ 7 - 11        Integer        serial       Atom  serial number
+12 - 16        Integer        serial       Serial number of bonded atom
+17 - 21        Integer        serial       Serial  number of bonded atom
+22 - 26        Integer        serial       Serial number of bonded atom
+27 - 31        Integer        serial       Serial number of bonded atom
 */
 fn parse_connections(conect_line: &str) -> Result<Vec::<u32>,CluEError>{
   let line = conect_line[6..].trim_end();
@@ -308,7 +305,7 @@ fn parse_crystal_line(line: &str)
 
 // TODO: delete.
 #[derive(Debug, Clone)]
-pub struct PDB{
+struct PDB{
   number: usize,
   crystal: CrystalInfo,
   serials: Vec<u32>,
@@ -326,7 +323,7 @@ pub struct PDB{
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // TODO: delete.
-pub fn read_pdb(filename: &str) -> Result<PDB, Box<dyn Error> >{
+fn read_pdb(filename: &str) -> Result<PDB, Box<dyn Error> >{
 
     let n_atoms = count_pdb_atoms(filename)?;
     let mut pdb = PDB::new(n_atoms as usize);
@@ -383,7 +380,7 @@ pub fn read_pdb(filename: &str) -> Result<PDB, Box<dyn Error> >{
 impl PDB{
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn new(n_atoms: usize) -> PDB {
+  fn new(n_atoms: usize) -> PDB {
   
     PDB {
       number: n_atoms,
@@ -409,7 +406,7 @@ impl PDB{
     
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn print(&self) {
+  fn print(&self) {
   
     println!("PDB {{");
     println!("  number: {}\n", self.number);
@@ -432,38 +429,38 @@ impl PDB{
   
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn number(&self) -> usize{
+  fn number(&self) -> usize{
     self.serials.len()
   }
   
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn coordinates(&self,n: usize) -> Vector3{
+  fn coordinates(&self,n: usize) -> Vector3{
     self.coordinates[n].clone()
   }
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn serial(&self, n: usize) -> u32{
+  fn serial(&self, n: usize) -> u32{
     self.serials[n]
   }
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn residue(&self, n: usize) -> String{
+  fn residue(&self, n: usize) -> String{
     self.residues[n].clone()
   }
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn element(&self, n: usize) -> Element {
+  fn element(&self, n: usize) -> Element {
     self.elements[n]
   }
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn residue_sequence_number(&self, n: usize) -> u32{
+  fn residue_sequence_number(&self, n: usize) -> u32{
     self.residue_sequence_numbers[n]
   }
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn exchange_group(&self, n: usize) -> Option<&ExchangeGroup>{
+  fn exchange_group(&self, n: usize) -> Option<&ExchangeGroup>{
     if let Some(idx) = self.exchange_group_ids[n]{
       return Some(&self.exchange_groups[idx]);
     }
@@ -471,15 +468,15 @@ impl PDB{
   }
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn crystal_a(&self) -> f64 {self.crystal.a}
-  pub fn crystal_b(&self) -> f64 {self.crystal.b}
-  pub fn crystal_c(&self) -> f64 {self.crystal.c}
-  pub fn crystal_alpha(&self) -> f64 {self.crystal.alpha}
-  pub fn crystal_beta(&self) -> f64 {self.crystal.beta}
-  pub fn crystal_gamma(&self) -> f64 {self.crystal.gamma}
+  fn crystal_a(&self) -> f64 {self.crystal.a}
+  fn crystal_b(&self) -> f64 {self.crystal.b}
+  fn crystal_c(&self) -> f64 {self.crystal.c}
+  fn crystal_alpha(&self) -> f64 {self.crystal.alpha}
+  fn crystal_beta(&self) -> f64 {self.crystal.beta}
+  fn crystal_gamma(&self) -> f64 {self.crystal.gamma}
   //----------------------------------------------------------------------------
 // TODO: delete.
-  pub fn find_index(&self, serial: u32) -> Option<usize> {
+  fn find_index(&self, serial: u32) -> Option<usize> {
   
     for (index, value) in self.serials.iter().enumerate(){
       if serial == *value {
@@ -491,7 +488,7 @@ impl PDB{
   }
   //----------------------------------------------------------------------------
   // TODO: move to build_primary_structure().
-  pub fn find_exchange_groups(&self) -> Vec::<ExchangeGroup> {
+  fn find_exchange_groups(&self) -> Vec::<ExchangeGroup> {
   
     let n_max: usize = self.number/5;
 
@@ -522,7 +519,7 @@ impl PDB{
   }
   //----------------------------------------------------------------------------
   // TODO: move to build_primary_structure().
-  pub fn get_centroid(&self, serials: &[u32]) -> Vector3 {
+  fn get_centroid(&self, serials: &[u32]) -> Vector3 {
   
     let mut centroid = Vector3::new();
     for id in serials {
@@ -535,7 +532,7 @@ impl PDB{
   //----------------------------------------------------------------------------
   
   // TODO: delete.
-  pub fn translate(&mut self, r: &Vector3){
+  fn translate(&mut self, r: &Vector3){
     for ii in 0..self.number{
       self.coordinates[ii] = &self.coordinates[ii] + r;
     }
@@ -546,7 +543,7 @@ impl PDB{
   
   //----------------------------------------------------------------------------
   // TODO: delete.
-  pub fn set_origin(&mut self, r: &Vector3){
+  fn set_origin(&mut self, r: &Vector3){
     self.translate(&r.scale(-1.0));
   }
   //----------------------------------------------------------------------------
@@ -622,7 +619,7 @@ impl PDB{
   }
  //----------------------------------------------------------------------------- 
  // TODO: move or delete?
- pub fn reconnect_bonds(&mut self){
+ fn reconnect_bonds(&mut self){
 
     const MAXBOND: f64 = 3.0; 
     for connections in self.connections.iter() {
@@ -890,6 +887,30 @@ pub fn minimize_absolute_difference_for_step( x: f64, x0: f64, step: f64 )
 #[cfg(test)]
 mod tests {
   use super::*;
+  #[test]
+  fn test_parse_pdb(){
+    let filename = "./assets/TEMPO.pdb";
+    let file = std::fs::read_to_string(filename).unwrap();
+    let structures = parse_pdb(&file).unwrap();
+
+    assert_eq!(structures.len(),1);
+    assert_eq!(structures[0].bath_particles.len(),29);
+    assert_eq!(structures[0].bath_particles[27].element,Element::Nitrogen);
+    assert_eq!(structures[0].bath_particles[28].element,Element::Oxygen);
+    assert!(structures[0].connections.are_connected(27,28));
+
+    assert_eq!(structures[0].bath_particles[27].serial, Some(28));
+    assert_eq!(structures[0].bath_particles[27].residue,
+        Some("TEM".to_string()));
+    assert_eq!(structures[0].bath_particles[27].residue_sequence_number, 
+        Some(1));
+    assert_eq!(structures[0].bath_particles[27].coordinates.x(), 36.440);
+    assert_eq!(structures[0].bath_particles[27].coordinates.y(), 36.900);
+    assert_eq!(structures[0].bath_particles[27].coordinates.z(), 37.100);
+
+
+  }
+  //----------------------------------------------------------------------------
   #[test]
   fn test_read_pdb(){
     let filename = "./assets/TEMPO.pdb";

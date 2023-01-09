@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 num-complex = "0.4"
-strum = "0.24"
-strum_macros = "0.24"
+#strum = "0.24"
+#strum_macros = "0.24"
 substring = "1.4"
 rayon = "1.6.1"
 

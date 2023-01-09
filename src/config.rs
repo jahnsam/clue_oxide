@@ -1,39 +1,40 @@
 
 
-use strum::IntoEnumIterator;
+//use strum::IntoEnumIterator;
 
 use crate::clue_errors::*;
 use crate::config::lexer::*;
 use crate::config::token::*;
-use crate::particle_filter::ParticleFilter;
-//use crate::config::token_algebra::*;
-use crate::particle_config::{ParticleConfig, ParticleProperties,
-  IsotopeAbundance};
-use crate::physical_constants::*;
-use super::vector3::*;
-
+//use crate::structure::particle_filter::ParticleFilter;
+use crate::config::token_algebra::*;
+//use crate::config::token_stream;
+use crate::config::particle_config::ParticleConfig;//, ParticleProperties,  IsotopeAbundance};
+//use crate::physical_constants::*;
+use crate::space_3d::Vector3D;
 
 pub mod lexer;
 pub mod token;
 pub mod token_algebra;
 pub mod token_stream;
+pub mod particle_config;
 
 /// Config contains all the setting for CluE.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Default)]
 pub struct Config{
   pub radius: Option<f64>,
-  pub inner_radius: Option<f64>,
+  //pub inner_radius: Option<f64>,
   //max_number_of_cells: usize,
   //pbc_style: PBCStyle,
   //error_tolerance: f64,
-  pub magnetic_field: Option<Vector3>,
-  pub central_spin_coordinates: Option<CentralSpinCoordinates>,
+  pub magnetic_field: Option<Vector3D>,
+  //pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
-  pub particles: Vec::<ParticleConfig>,
+  pub particles: Option<Vec::<ParticleConfig>>,
 }
-
+/*
 impl Default for Config{
   fn default() -> Self {
+    /*
     let mut particles = Vec::<ParticleConfig>::new();
     for element in Element::iter(){
 
@@ -55,17 +56,18 @@ impl Default for Config{
 
       particles.push(particle_config);
     }
+    */
 
     Config{
       radius: None,
-      inner_radius: None,
+      //inner_radius: None,
       magnetic_field: None,
       central_spin_coordinates: None,
-      particles,
+      particles: None,
     }
   }
 }
-
+*/
 impl Config{
   pub fn new() -> Self{
     Default::default()
@@ -96,6 +98,7 @@ impl Config{
     }
     */
 }
+/*
 #[derive(Debug,Clone)]
 pub enum CentralSpinCoordinates{
   Atoms (Vec::<u32>),
@@ -108,7 +111,7 @@ pub enum PBCSyle{
   CRYST1,
   TIGHT,
 }
-
+*/
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Config{
   fn read_file(filename: &str) -> Result<Self,CluEError>{
@@ -146,25 +149,98 @@ impl Config{
   fn parse_config_line(&mut self, expression: &TokenExpression) 
     -> Result<(),CluEError>
   {
-  
-    let line_number = expression.line_number;
-    let already_set = ||{
-      CluEError::OptionAlreadySet(line_number,expression.lhs[0].to_string()) };
 
-    //let some_f64 = ||{line_number,expression.rhs[0].to_f64_token()}
+    if expression.relationship != Some(Token::Equals){
+      return Err(CluEError::ExpectedEquality(expression.line_number));
+    }
+
+  let already_set = ||{
+    CluEError::OptionAlreadySet(
+        expression.line_number, expression.lhs[0].to_string()) };
 
     match expression.lhs[0]{
-      Token::Radius => {
-        if let Some(r) = self.radius{
-          return Err(already_set())
+      Token::MagneticField => {
+  
+        if let Some(_value) = &self.magnetic_field{
+          return Err(already_set());
         }
-        //self.radius = some_f64()?;
+        let mut mf_opt: Option<f64> = None;
+        set_to_some_f64(&mut mf_opt, expression)?;
+
+        if let Some(bz) = mf_opt{
+          self.magnetic_field = Some( Vector3D::from([0.0,0.0,bz]) );
+        }else{
+          return Err(CluEError::InvalidToken(expression.line_number,
+            expression.lhs[0].to_string()))
+        }
+
       },
-      _ => return Err(CluEError::InvalidToken(line_number,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::Radius => set_to_some_f64(&mut self.radius,expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      _ => return Err(CluEError::InvalidToken(expression.line_number,
             expression.lhs[0].to_string())),
     }
     Ok(())
   }
+}
+//------------------------------------------------------------------------------
+fn check_target<T>(target: &Option<T>, expression: &TokenExpression)
+  -> Result<(),CluEError>
+{ 
+  let already_set = ||{
+    CluEError::OptionAlreadySet(
+        expression.line_number, expression.lhs[0].to_string()) };
+
+  if let Some(_value) = target{
+    return Err(already_set());
+  }
+
+  Ok(())
+}
+
+//------------------------------------------------------------------------------
+fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression) 
+  -> Result<(),CluEError>
+{ 
+
+  check_target(target,expression)?;
+
+  let tokens = token_stream::extract_rhs(expression)?;
+
+  let value_token = to_f64_token(tokens, expression.line_number)?;
+  if let Token::VectorF64(vec) = value_token {
+    if vec.len() != 1{
+      return Err(CluEError::ExpectedFloatRHS(expression.line_number));
+    } 
+    *target = Some(vec[0]);
+  }else{
+    return Err(CluEError::NoRHS(expression.line_number));
+  }
+
+  Ok(())
+}
+//------------------------------------------------------------------------------
+fn set_to_some_Vector3D(
+    target: &mut Option<Vector3D>, expression: &TokenExpression) 
+  -> Result<(),CluEError>
+{ 
+
+  check_target(target,expression)?;
+
+  let tokens = token_stream::extract_rhs(expression)?;
+
+  let value_token = to_f64_token(tokens, expression.line_number)?;
+  if let Token::VectorF64(vec) = value_token {
+    if vec.len() != 3{
+      return Err(CluEError::ExpectedVecOfNFloatsRHS(expression.line_number,3));
+    } 
+    *target = Some(Vector3D::from([vec[0],vec[1],vec[2]]));
+  }else{
+    return Err(CluEError::NoRHS(expression.line_number));
+  }
+
+  Ok(())
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

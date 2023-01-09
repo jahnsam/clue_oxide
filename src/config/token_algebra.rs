@@ -4,7 +4,8 @@ use crate::config::token_stream::*;
 //use std::ops::{Add,Sub,Mul,Div};
 
 //------------------------------------------------------------------------------
-
+// The function answers the question 
+// "does this token represent a number/set of numbers?".
 fn is_numeric(token: &Token) -> bool{
   match token{
     Token::Float(_x) => true,
@@ -16,6 +17,9 @@ fn is_numeric(token: &Token) -> bool{
   }
 }
 //------------------------------------------------------------------------------
+// This function takes three tokens, two numeric tokens separated by a basic
+// operator token and returns the numeric token that results from the 
+// operation.
 pub fn basic_token_algebraic_operations(tokens: [Token;3],line_number: usize) 
  ->Result<Token,CluEError>{
 
@@ -34,6 +38,10 @@ pub fn basic_token_algebraic_operations(tokens: [Token;3],line_number: usize)
 
 }
 //------------------------------------------------------------------------------
+// This function takes a vector of tokens and two tokens with the same
+// order of operations, such as + and - or * and /.
+// The return vector of tokens is the same as the input, except the operations
+// are evaluated.
 pub fn contract_operator_inverse_operator_tokens(
     tokens: Vec::<Token>,line_number: usize,
     op: Token, inv_op: Token)
@@ -79,6 +87,8 @@ pub fn contract_operator_inverse_operator_tokens(
   Ok(out)
 }
 //------------------------------------------------------------------------------
+// This function return the input vector of tokens, but with all 
+// exponentiations evaluated.
 pub fn contract_exponentiation_tokens(tokens: Vec::<Token>,line_number: usize)
  -> Result<Vec::<Token>, CluEError>{
 
@@ -86,6 +96,8 @@ pub fn contract_exponentiation_tokens(tokens: Vec::<Token>,line_number: usize)
        Token::Hat, Token::Hat)
  }
 //------------------------------------------------------------------------------
+// This function return the input vector of tokens, but with all 
+// multiplications and divisions evaluated.
 pub fn contract_multiply_divide_tokens(tokens: Vec::<Token>,line_number: usize)
  -> Result<Vec::<Token>, CluEError>{
 
@@ -93,6 +105,8 @@ pub fn contract_multiply_divide_tokens(tokens: Vec::<Token>,line_number: usize)
        Token::Times, Token::Slash)
  }
 //------------------------------------------------------------------------------
+// This function return the input vector of tokens, but with all 
+// additions and subtractions evaluated.
 pub fn contract_add_subtract_tokens(tokens: Vec::<Token>,line_number: usize)
  -> Result<Vec::<Token>, CluEError>{
 
@@ -101,6 +115,8 @@ pub fn contract_add_subtract_tokens(tokens: Vec::<Token>,line_number: usize)
  }
  
 //------------------------------------------------------------------------------
+// This function takes a vector of tokens representing and algebreic sequence
+// that does not contain any parentheses, and returns the evaluations.
 fn contract_emdas(tokens: Vec::<Token>, line_number: usize) 
  -> Result<Token, CluEError>
 {
@@ -157,6 +173,8 @@ fn contract_emdas(tokens: Vec::<Token>, line_number: usize)
 }  
 
 //------------------------------------------------------------------------------
+// This function takes a vector of tokens representing and algebreic sequence
+// and returns the evaluations.
 fn contract_pemdas(mut tokens: Vec::<Token>, line_number: usize) 
  -> Result<Token, CluEError>
 {
@@ -216,6 +234,8 @@ fn contract_pemdas(mut tokens: Vec::<Token>, line_number: usize)
 }
 
 //------------------------------------------------------------------------------
+// This function takes a sequence of tokens and combines them to a single
+// token representing a vector of floats.
 fn to_float_vector(tokens: Vec::<Token>, line_number: usize) 
  -> Result<Token, CluEError>
 {
@@ -243,6 +263,8 @@ fn to_float_vector(tokens: Vec::<Token>, line_number: usize)
 
 }
 //------------------------------------------------------------------------------
+// This function takes a sequence of tokens and combines them to a single
+// token representing a vector of ints.
 fn to_integer_vector(tokens: Vec::<Token>, line_number: usize) 
  -> Result<Token, CluEError>
 {
@@ -269,6 +291,9 @@ fn to_integer_vector(tokens: Vec::<Token>, line_number: usize)
 
 }
 //------------------------------------------------------------------------------
+// This function takes a sequence of tokens and combines them to a single
+// token representing a vector of either floats or ints dependending on the
+// input bool.
 fn contract_numeric_vectors(tokens: Vec::<Token>, as_f64: bool,
     line_number: usize)
 -> Result<Token, CluEError>
@@ -327,6 +352,8 @@ fn contract_numeric_vectors(tokens: Vec::<Token>, as_f64: bool,
 }
 
 //------------------------------------------------------------------------------
+// This function reads the input vector of tokens and tries to interpret all
+// unidentified floats and returns a Token::VectorF64.
 pub fn to_f64_token(tokens: Vec::<Token>, line_number: usize)
 -> Result<Token, CluEError>
 {
@@ -334,12 +361,17 @@ pub fn to_f64_token(tokens: Vec::<Token>, line_number: usize)
   contract_numeric_vectors(tokens, true, line_number)
 }
 //------------------------------------------------------------------------------
+// This function reads the input vector of tokens and tries to interpret all
+// unidentified floats and returns a Token::VectorI32.
 pub fn to_i32_token(tokens: Vec::<Token>, line_number: usize)
 -> Result<Token, CluEError>
 {
   let tokens = read_strings_as_integers(tokens, line_number)?; 
   contract_numeric_vectors(tokens, false, line_number)
 }
+//------------------------------------------------------------------------------
+
+
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[cfg(test)]
 mod tests{

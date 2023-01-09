@@ -1,6 +1,4 @@
 use crate::space_3d::Vector3D;
-use crate::cluster::adjacency::AdjacencyList;
-use crate::structure::exchange_groups::ExchangeGroup;
 use crate::physical_constants::{Element,Isotope};
 
 /* Pseudocode Overview   
@@ -33,7 +31,7 @@ use crate::physical_constants::{Element,Isotope};
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct Particle{
   pub element: Element,
-  pub isotope: Option<Isotope>,
+  pub isotope: Isotope,
   pub coordinates: Vector3D,
 
   pub serial: Option<u32>,

@@ -4,7 +4,9 @@ use crate::config::token_stream::*;
 use substring::Substring;
 
 
-
+//------------------------------------------------------------------------------
+// This function reads in a file and returns a Vec::<TokenExpression>; 
+// each element contains a line of input.
 pub fn get_tokens_from_file(filename: &str) 
   -> Result<Vec::<TokenExpression>,CluEError>
 {
@@ -19,6 +21,7 @@ pub fn get_tokens_from_file(filename: &str)
 }
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// TokenExpression holds a line of input, organized for easy parsing.
 pub struct TokenExpression{
   pub lhs: Vec::<Token>,
   pub rhs: Option<Vec::<Token>>,
@@ -27,6 +30,8 @@ pub struct TokenExpression{
 }
 
 impl TokenExpression{
+  //----------------------------------------------------------------------------
+  // This function processes a vector of tokens into a TokenExpression.
   fn from(tokens: Vec::<Token>, line_number:usize) -> Result<Self,CluEError>{
 
     if tokens[0]==Token::Sharp{
@@ -73,6 +78,7 @@ impl TokenExpression{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// Lexer holds the string data the current reading position and line number.
 struct Lexer{
   input: String,
   position: usize,
@@ -80,6 +86,8 @@ struct Lexer{
 }
 
 impl Lexer{
+  //----------------------------------------------------------------------------
+  // This function instantiates a ner lexer from a file.
   fn new(filename: &str) -> Result<Self,CluEError>{
     if let Ok(input) = std::fs::read_to_string(filename){
       return Ok(Lexer{input, position: 0, line_number: 1});
@@ -87,6 +95,8 @@ impl Lexer{
     Err(CluEError::InvalidConfigFile(filename.to_string()))
   }
   //----------------------------------------------------------------------------
+  // This function read the next several characters and returns the next
+  // token.
   fn next_token(&mut self) -> Token {
 
     let idx = self.position;
@@ -124,6 +134,7 @@ impl Lexer{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// This function reports on whether the inpur character ends a token.
 fn is_token_over(word: &str) -> bool{
   match word{
     "\n" | " " | "," |"[" | "]" | "{" | "}" |"(" | ")" | "<" | ">" | ";" 
@@ -132,6 +143,7 @@ fn is_token_over(word: &str) -> bool{
   }
 }
 //------------------------------------------------------------------------------
+// This function consumes a lexer and retutns a vector of raw tokens.
 fn parse_tokens(mut lexer: Lexer) -> Result<Vec::<Token>, CluEError>{
 
   //let mut lexer = Lexer::new(filename)?;
@@ -153,6 +165,8 @@ fn parse_tokens(mut lexer: Lexer) -> Result<Vec::<Token>, CluEError>{
 }
 
 //------------------------------------------------------------------------------
+// This function replaces the two token comments codes with a single
+// token comment token.
 fn find_comments(in_tokens: Vec::<Token>) -> Vec::<Token> {
 
   let mut out_tokens = Vec::<Token>::with_capacity(in_tokens.len());
@@ -205,6 +219,7 @@ fn find_comments(in_tokens: Vec::<Token>) -> Vec::<Token> {
   out_tokens
 }
 //------------------------------------------------------------------------------
+// This function strips the comments from the input.
 fn prune_tokens(in_tokens: Vec::<Token>) 
   -> Result<( Vec::<Token>, Vec::<usize>),CluEError> {
 
@@ -265,6 +280,9 @@ fn prune_tokens(in_tokens: Vec::<Token>)
   Ok((out_tokens,line_numbers))
 }
 //------------------------------------------------------------------------------
+// This function calls build_composit_tokens() to replace pre-defined
+// token sequences with single tokens.  It repeats this until all composit
+// tokens are found.
 fn simplify_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
 {
   let mut n = tokens.len();
@@ -277,6 +295,10 @@ fn simplify_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
   }  
 }
 //------------------------------------------------------------------------------
+// This function takes a vector of tokens and identifies token sequences
+// that form a new token.  The function returns the vector of tokens
+// with the multi-token sequences replaced by a single token representing the
+// composit token.
 fn build_composit_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
 {
   if tokens.len() < 2{

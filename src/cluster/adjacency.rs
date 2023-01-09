@@ -13,7 +13,7 @@ impl AdjacencyList{
 
   pub fn with_capacity(n: usize) -> Self{
     let mut list = Vec::< Option<Vec::<usize>> >::with_capacity(n);
-    for ii in 0..n{
+    for _ii in 0..n{
       list.push(None);
     }
 

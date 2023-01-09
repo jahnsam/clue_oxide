@@ -129,7 +129,6 @@ mod tests{
 
   #[test]
   fn test_lebedev(){
-    let n = 6;
     let grid = IntegrationGrid::lebedev(6);
     let norm: f64 = grid.weights.iter().sum();
     assert!( (norm- 1.0).abs() <1e12);
@@ -146,7 +145,6 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_remove_3d_hemisphere(){
-    let n = 6;
     let grid = IntegrationGrid::lebedev(6).remove_3d_hemisphere();
     let norm: f64 = grid.weights.iter().sum();
     assert!( (norm- 1.0).abs() <1e12);

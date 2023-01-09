@@ -1,4 +1,4 @@
-use strum_macros::EnumIter;
+//use strum_macros::EnumIter;
 //extern crate matrix_oxide;
 //use matrix_oxide as mox;
 use num_complex::Complex;
@@ -65,7 +65,7 @@ pub const RAD_PER_S_TO_HZ: f64 = 0.5/PI;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /// Specifies a particle type, such as a chemical element or an electron spin.
-#[derive(PartialEq, Debug, Clone, Copy, EnumIter)]
+#[derive(PartialEq, Debug, Clone, Copy /*, EnumIter */)]
 pub enum Element{
    Electron,
    Hydrogen,

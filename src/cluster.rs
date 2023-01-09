@@ -1,7 +1,8 @@
 use crate::signal::Signal;
 
-pub mod find_clusters;
 pub mod adjacency;
+pub mod find_clusters;
+pub mod get_subclusters;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct Cluster{
   vertices: Vec::<usize>,

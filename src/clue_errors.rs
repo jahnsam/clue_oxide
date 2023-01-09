@@ -14,6 +14,9 @@ pub enum CluEError{
   CannotParseLine(String),
   ConfigModeNotRecognized(String),
   EmptyVector(usize),
+  ExpectedEquality(usize),
+  ExpectedFloatRHS(usize),
+  ExpectedVecOfNFloatsRHS(usize,usize),
   IndexOutOfBounds(usize,usize,usize),
   InvalidConfigFile(String),
   InvalidToken(usize,String),
@@ -23,6 +26,7 @@ pub enum CluEError{
   NoCentralSpinCoor,
   NoClustersOfSize(usize),
   NoRelationalOperators(usize),
+  NoRHS(usize),
   NotAnOperator(usize,String),
   OptionAlreadySet(usize,String),
   UnmatchedBlockComment(usize),
@@ -71,6 +75,16 @@ impl fmt::Display for CluEError{
       CluEError::EmptyVector(line_number) => write!(f,
           "{}: supplied vector is emptry", line_number),
 
+      CluEError::ExpectedEquality(line_number) => write!(f,
+          "{}: expected an equaliy",line_number),
+
+      CluEError::ExpectedFloatRHS(line_number) => write!(f,
+          "{}: expected a float on the right hand side",line_number),
+
+      CluEError::ExpectedVecOfNFloatsRHS(line_number,n) => write!(f,
+          "{}: expected a vector of {} floats on the right hand side",
+          line_number,n),
+
       CluEError::IndexOutOfBounds(line_number,idx, len) => write!(f,
           "{}: cannot access element {} from array of length {}", 
           line_number, idx, len),
@@ -102,6 +116,9 @@ impl fmt::Display for CluEError{
 
       CluEError::NotAnOperator(line_number, token) => write!(f,
           "{}: cannot interpret \"{}\" as an operator", line_number,token),
+
+      CluEError::NoRHS(line_number) => write!(f,
+          "{}: cannot read right hand side",line_number),
 
       CluEError::OptionAlreadySet(line_number,err_token) => write!(f,
           "{}: \"{}\" has already been set",line_number, err_token),

@@ -1,8 +1,7 @@
 
-use crate::particle_filter::{ParticleFilter,VectorSpecifier};
+use crate::structure::particle_filter::{ParticleFilter,VectorSpecifier};
 //use super::particle_specifier::*;
-use super::physical_constants::*;
-use super::vector3::Vector3;
+use crate::physical_constants::*;
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -144,12 +143,12 @@ pub enum ParticleSelector{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  /*
 #[cfg(test)]
 mod tests{
   use super::*;
   use crate::structure::pdb::read_pdb;
 
-  /*
   #[test]
   fn test_find_particle_configs(){
     let filename = "./assets/TEMPO.pdb";
@@ -175,7 +174,7 @@ mod tests{
       assert!(found_configs[ii].filter.covers(&target));
     }
   }
-  */
 }
+  */
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
