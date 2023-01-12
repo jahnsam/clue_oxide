@@ -4,63 +4,27 @@
 //! CluE implements Yang an Liu's cluster correlation expansion for an input
 //! structure, usually a PDB file.  Simulation details are specified in a config
 //! file.
-pub mod command_line_input;
 pub mod config;
 pub mod clue_errors;
 pub mod cluster;
-pub mod cluster_signal;
 pub mod info;
 pub mod integration_grid;
-//pub mod particle;
-//pub mod particle_filter;
-//pub mod particle_config;
-//pub mod particle_specifier;
 pub mod physical_constants;
+pub mod quantum;
 pub mod structure;
 pub mod signal;
 pub mod space_3d;
 pub mod symmetric_list_2d;
-pub mod tensors;
-pub mod vector3;
+pub mod vector3; // TODO: remove, replaced by space_3d::Vector3D
 pub mod vec_funcs;
 
-pub mod spin_operators;
 
 use crate::config::Config;
 use crate::clue_errors::CluEError;
 
-/// This is the function called when using CluE through the command line.
+/// This function follows the config instruction to central simulate spin 
+/// decoherence.
 pub fn run(config: Config) -> Result<(),CluEError>{
+
   Ok(())
 }
-/*
-fn print_splash() {  
-println!("\n\n
-##############################################################################\n\
-#                                                                            #\n\
-#                      ______    _             ________                      #\n\
-#                     /  ____|  | |           | _______|                     #\n\
-#                    |  |       | |   _   _   | |_____                       #\n\
-#                    |  |       | |  | | | |  |  _____|                      #\n\
-#                    |  |____   | |  | |_| |  | |______                      #\n\
-#                     \\______|  |_|  \\_____/  |________|                     #\n\
-#                                                                            #\n\
-#                 ___               ______               ___                 #\n\
-#                    \\             /      \\             /                    #\n\
-#                     \\           /        \\           /                     #\n\
-#                      \\    O    /          \\    O    /                      #\n\
-#                       \\       /            \\       /                       #\n\
-#                        \\     /              \\     /                        #\n\
-#                ()       \\   /       ()       \\   /       ()                #\n\
-#                          \\ /                  \\ /                          #\n\
-#                           V                    V                           #\n\
-#                                                                            #\n\
-##############################################################################\n");
-    println!("CLuE Copyright (C) 2022 Samuel M. Jahn");
-    println!("This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.");
-    println!("This is free software, and you are welcome to redistribute it");
-    println!("under certain conditions; type `show c' for details.\n");
-
-
-}
-*/

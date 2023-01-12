@@ -6,6 +6,7 @@
 */
 
 // section header for general configurations
+// optional when it is the first/only section.
 #[config]
 magnetic_field = 1.2; // T
 
@@ -22,10 +23,17 @@ pulse_sequence = hahn;
 // or the pdb can be copy-pasted here
 
 // section header for convergence search
-#[converge]
-system_radius
-neighbor_
-orientations 
+#[explore(delta_hyperfine), type = neighbor_cutoff]
+value = 3e6; // Hz
+range = [0,3e6]; // Hz
+update = divide_by(10^0.2);
+convergence_metric = rmsd;
+threshold = 1e-3;
+filter = water_h; // How does this work for neighbor cutoffs?
+//filter_style = both;
+//filter_style = neither;
+filter_style = either; 
+
 
 // section header for detected spin
 #[detect]
@@ -38,71 +46,52 @@ spin = 1/2;
 transition = [-1/2, +1/2];
 
 
-// Define particle specific properties
-// Each particle is covered covered exactly one header.
-// In the case that a particle could fall under multiple headers,
-// the ambiguity is resolved by assining it to the last header defined.
-//
-// CluE pre-defines a catch-all category that all particles default to
-// unless a user defined category applies.
-//
-// Examples:
-//
-#[particle]
-// Specifiers are preceded with the keyword "with".
-// Specifiers can require the presence of some properties.
-with element = N;
-// Specifiers can also require the absence of some properties.
-with residue != TEMPO;
+#[filter(label=water_h)]
+  element in [H];
+  residue in [WAT,SOL]
+  
+#[filter(label=glycerol_h)]
+  element in [H];
+  residue in [GLYOL]  
 
-// Specifiers can require that one ove several properties apply.
-with pdb_ids in [1,2,3];
+#[filter(label=sol_oh)]
+  element in [O];
+  residue in [WAT,SOL,GLYOL]
+  
 
-// Property setters are preceded with the keyword "set".
-set isotope = 15N
+#[filter(label=methyl_h)]
+  element in [H];
+  exchange_group in [methyl]
 
-set hyperfine_tensor = [Ax,Ay,Az];
-set hyperfine_x_axis = vector_between_pdb_indices(1,19);
-set hyperfine_y_axis = vector_between_pdb_indices(28,29);
 
-set electric_quadrupole_tensor = [q1,q2,q3];
-set hyperfine_x_axis = pdb_indices(1,19);
+#[filter(label=TEMPO_N)]
+  element iin [N];
+  
+#[filter(label=TEMPO_axis)]
+pdb_indices in [17,18];
 
-// This should err since the nitrogen in TEMPO is bonded to two carbons,/ 
-// set electric_quadrupole_x_axis = connected(carbon, carbon);
 
-// The nitrogen is only bonded to a single oxygen, so this should work.
-set electric_quadrupole_y_axis = connected(self, oxygen);
+#[property(label= water_h)]
+// for diff(a,b), both a and b are filters 
+// and must resovle to a single partilce.
+// 
+// The keyword "particle" refers to same does the property being set.
+//   
+// The rhs of axis properties should resolve to a [f64; 3].
+//  
+hf_z_axis = diff(particle, connected(sol_o) );  
+hf_z_axis = diff(particle, connected(sol_o) );  
+hf_xy_axis = diff(particle, same_molecule(water_h) );  
 
-#[particle]
-with exchange_group in [methyl];
-with connected_element in [C];
-with residue in [TEMPO]
-set tunnel_splitting = 80e3; // Hz
+#[property(label = methyl_h)]
+tunnel_splitting = 80e3; // Hz
 
-#[particle]
-with exchange_group in [methyl];
-with connected_element in [C];
-with residue not in [TEMPO]
-set tunnel_splitting = 100e3; // Hz
+#[property(label = TEMPO_N)]
+hf_xy_axis = vector(TEMPO_axis); // TODO: how should this work?
+hf_xy_axis = [1,0, 0.0 ,0.0]; 
 
-#[particle]
-with residue in [WAT];
-with element in [H];
-set electric_quadrupole_tensor = [q1,q2,q3];
-set electric_quadrupole_z_axis = connected(self, oxygen);
-
-// This works because although water has two hydrogens,
-// one of the hydrogens is the one for which the tensor applies 
-// (specified by "self"), leaving only one other hydrogen in the molecule.
-set electric_quadrupole_x_axis = same_molecule(self,hydrogen);
-
-#[particle]
-with residue in [GLY];
-with element in [H];
-set electric_quadrupole_tensor = [q1,q2,q3];
-set electric_quadrupole_x_axis = random;
-set electric_quadrupole_z_axis = connected(self, oxygen);
+#[property(label = glycerol_h)]
+nq_z_axis= diff(particle, connected(sol_o));  
 
 
 #[define spins]

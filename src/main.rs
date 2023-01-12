@@ -13,7 +13,7 @@
 ///
 ///    You should have received a copy of the GNU General Public License
 ///    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-use clue_oxide::command_line_input::CommandLineInput;
+use clue_oxide::config::command_line_input::CommandLineInput;
 use clue_oxide::config::Config;
 use clue_oxide::info;
 

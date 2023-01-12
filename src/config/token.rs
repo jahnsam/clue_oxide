@@ -47,6 +47,7 @@ pub enum Token{
  Tensors,
  Times,
  TunnelSplitting,
+ Type,
  UserInputValue(String),
  VectorF64(Vec::<f64>),
  VectorI32(Vec::<i32>),
@@ -100,6 +101,7 @@ impl Token{
       Token::Tensors => "tensors".to_string(),
       Token::Times => "*".to_string(),
       Token::TunnelSplitting => "tunnel_splitting".to_string(),
+      Token::Type => "type".to_string(),
       Token::UserInputValue(string) => (*string).clone(),
       Token::VectorF64(v) => format!("{:?}",v), 
       Token::VectorI32(v) => format!("{:?}",v), 
@@ -153,6 +155,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "tensors" => Some(Token::Tensors),
     "*" => Some(Token::Times),
     "tunnel_splitting" => Some(Token::TunnelSplitting),
+    "type" => Some(Token::Type),
     " " => Some(Token::Whitespace),
     _ => None
   }
@@ -555,6 +558,7 @@ pub struct ModeAttribute{
   pub mode:  ConfigMode,
   pub label: Option<String>,
   pub path: Option<String>,
+  //pub mode_type: Option<String>,
 }
 
 impl Default for ModeAttribute{
@@ -563,6 +567,7 @@ impl Default for ModeAttribute{
       mode:  ConfigMode::Config,
       label: None,
       path: None,
+      //mode_type: None,
     }
   }
 }
@@ -735,6 +740,7 @@ mod tests{
     assert_eq!(identify_token("*").unwrap(), Token::Times);
     assert_eq!(identify_token("tunnel_splitting").unwrap(), 
         Token::TunnelSplitting);
+    assert_eq!(identify_token("type").unwrap(), Token::Type);
     assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
 
   }

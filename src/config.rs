@@ -5,7 +5,7 @@
 use crate::clue_errors::*;
 use crate::config::lexer::*;
 use crate::config::token::*;
-use crate::command_line_input::CommandLineInput;
+use crate::config::command_line_input::CommandLineInput;
 //use crate::structure::particle_filter::ParticleFilter;
 use crate::config::token_algebra::*;
 //use crate::config::token_stream;
@@ -18,6 +18,7 @@ pub mod token;
 pub mod token_algebra;
 pub mod token_stream;
 pub mod particle_config;
+pub mod command_line_input;
 
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]

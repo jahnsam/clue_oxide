@@ -1,4 +1,4 @@
-use super::physical_constants::*;
+use crate::physical_constants::*;
 
 use ndarray::Array2;
 use ndarray_linalg;
