@@ -5,6 +5,7 @@
 use crate::clue_errors::*;
 use crate::config::lexer::*;
 use crate::config::token::*;
+use crate::command_line_input::CommandLineInput;
 //use crate::structure::particle_filter::ParticleFilter;
 use crate::config::token_algebra::*;
 //use crate::config::token_stream;
@@ -114,7 +115,8 @@ pub enum PBCSyle{
 */
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Config{
-  fn read_file(filename: &str) -> Result<Self,CluEError>{
+  pub fn read_input(input: CommandLineInput) -> Result<Self,CluEError>{
+    let filename = &input.config_file.unwrap();
   
     let mut config = Config::new();
 
@@ -221,7 +223,7 @@ fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression)
   Ok(())
 }
 //------------------------------------------------------------------------------
-fn set_to_some_Vector3D(
+fn set_to_some_vector3d(
     target: &mut Option<Vector3D>, expression: &TokenExpression) 
   -> Result<(),CluEError>
 { 

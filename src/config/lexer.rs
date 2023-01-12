@@ -15,6 +15,7 @@ pub fn get_tokens_from_file(filename: &str)
     let tokens = parse_tokens(lexer)?;
     let tokens = find_comments(tokens);
     let (tokens,line_numbers) = prune_tokens(tokens)?;
+    let tokens =  simplify_tokens(tokens);
     let expressions = get_token_statements(tokens, &line_numbers)?;
 
     Ok(expressions)
@@ -406,7 +407,9 @@ fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize)
 
 
 //------------------------------------------------------------------------------
-fn combine_staements(statements: Vec::<Vec::<Token>>) -> Vec::<Token>{
+// TODO: use or delete
+/*
+fn combine_statements(statements: Vec::<Vec::<Token>>) -> Vec::<Token>{
 
   let mut n_tokens = 0;
   for tokens in statements.iter(){
@@ -424,8 +427,7 @@ fn combine_staements(statements: Vec::<Vec::<Token>>) -> Vec::<Token>{
 
   out
 }
-
-
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

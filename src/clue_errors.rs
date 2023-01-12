@@ -32,6 +32,7 @@ pub enum CluEError{
   UnmatchedBlockComment(usize),
   UnmatchedDelimiter(usize),
   TooManyRelationalOperators(usize),
+  UnrecognizedOption(String),
   WrongVectorLength(usize,usize,usize)
 }
 
@@ -132,6 +133,9 @@ impl fmt::Display for CluEError{
       CluEError::TooManyRelationalOperators(line_number) => write!(f,
           "{}: too many relational operators (=, <, >, in, ...), are present", 
           line_number),
+
+      CluEError::UnrecognizedOption(option) => write!(f,
+          "unrecognized option \"{}\"",option),
 
       CluEError::WrongVectorLength(line_number, expected, actual) => write!(f,
           "{}: expected vector of length {}, but recieved a length of {}", 

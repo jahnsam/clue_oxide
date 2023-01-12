@@ -1,41 +1,7 @@
-//! CluE (Cluster Evolution) is a spin dynamics simulation program for
-//! electron spin decoherence.
-//!
-//! CluE implements Yang an Liu's cluster correlation expansion for an input
-//! structure, usually a PDB file.  Simulation details are specified in a config
-//! file.
-pub mod command_line_input;
-pub mod config;
-pub mod clue_errors;
-pub mod cluster;
-pub mod cluster_signal;
-pub mod info;
-pub mod integration_grid;
-//pub mod particle;
-//pub mod particle_filter;
-//pub mod particle_config;
-//pub mod particle_specifier;
-pub mod physical_constants;
-pub mod structure;
-pub mod signal;
-pub mod space_3d;
-pub mod symmetric_list_2d;
-pub mod tensors;
-pub mod vector3;
-pub mod vec_funcs;
+use crate::info::version;
 
-pub mod spin_operators;
-
-use crate::config::Config;
-use crate::clue_errors::CluEError;
-
-/// This is the function called when using CluE through the command line.
-pub fn run(config: Config) -> Result<(),CluEError>{
-  Ok(())
-}
-/*
-fn print_splash() {  
-println!("\n\n
+pub fn print_title() {  
+println!("\
 ##############################################################################\n\
 #                                                                            #\n\
 #                      ______    _             ________                      #\n\
@@ -56,11 +22,13 @@ println!("\n\n
 #                           V                    V                           #\n\
 #                                                                            #\n\
 ##############################################################################\n");
-    println!("CLuE Copyright (C) 2022 Samuel M. Jahn");
-    println!("This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.");
-    println!("This is free software, and you are welcome to redistribute it");
-    println!("under certain conditions; type `show c' for details.\n");
+  println!("CLuE Copyright (C) 2022 Samuel M. Jahn");
+  version::print_version();
+  println!("\nThis program comes with ABSOLUTELY NO WARRANTY; for details run \
+\"clue --warrenty\".");
+  println!("This is free software, and you are welcome to redistribute it");
+  println!("under certain conditions; run \"clue --license\" for details.\n");
+  println!("For usage information; run \"clue --help\" for more details.\n");
 
 
 }
-*/
