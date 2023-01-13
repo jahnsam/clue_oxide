@@ -7,6 +7,7 @@ use crate::config::lexer::*;
 use crate::config::token::*;
 use crate::config::command_line_input::CommandLineInput;
 //use crate::structure::particle_filter::ParticleFilter;
+use crate::structure::particle::Particle;
 use crate::config::token_algebra::*;
 //use crate::config::token_stream;
 use crate::config::particle_config::ParticleConfig;//, ParticleProperties,  IsotopeAbundance};
@@ -73,6 +74,18 @@ impl Default for Config{
 impl Config{
   pub fn new() -> Self{
     Default::default()
+  }
+  //----------------------------------------------------------------------------
+  pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) -> usize{
+  
+   let particles: &Vec::<ParticleConfig>;
+   if let Some(ps) = &self.particles{
+     particles = ps;
+   }else{ return 0; } 
+
+   if id >= particles.len() {return 0;}
+
+   particles[id].max_possible_spin_multiplicity()
   }
   //----------------------------------------------------------------------------
 

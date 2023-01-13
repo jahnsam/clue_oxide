@@ -41,6 +41,26 @@ impl ParticleConfig{
       properties: None,
     }
   }
+  //----------------------------------------------------------------------------
+  pub fn max_possible_spin_multiplicity(&self) -> usize {
+    
+    let mut max_spin_mult = 0;
+    let properties: &ParticleProperties;
+    if let Some(prop) = &self.properties{
+      properties = prop;
+    }else{
+      return max_spin_mult;
+    }
+
+    for isotope_abundance in properties.isotopic_distribution
+      .isotope_abundances.iter()
+    {
+      max_spin_mult = usize::max(max_spin_mult,
+          isotope_abundance.isotope.spin_multiplicity());
+    }
+    max_spin_mult
+  }
+  //----------------------------------------------------------------------------
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

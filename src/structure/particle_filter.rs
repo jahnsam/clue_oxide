@@ -58,7 +58,7 @@ impl ParticleFilter{
   pub fn new() -> Self{
     Default::default()
   }
-
+  //----------------------------------------------------------------------------
   pub fn filter(&self, structure: &Structure) -> Vec::<usize>{
     
     let particles = &structure.bath_particles;
