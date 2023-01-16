@@ -66,6 +66,10 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
+  pub fn number(&self) -> usize{
+    self.bath_particles.len()
+  }
+  //----------------------------------------------------------------------------
   pub fn find<'a>(&'a self, particle_filter: &ParticleFilter)
     -> Vec::<&'a Particle>
   {

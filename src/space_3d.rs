@@ -104,6 +104,40 @@ impl Vector3D{
   
   }
   //----------------------------------------------------------------------------
+  pub fn scale(&self,scale: f64) -> Vector3D {                                   
+    let mut out = self.clone();
+    for el in out.elements.iter_mut(){
+      *el *= scale;
+    }
+    out
+  }                                               
+  //----------------------------------------------------------------------------
+  pub fn normalize(&self) -> Vector3D {                                        
+    let r = self.norm();                                                        
+    self.scale(1.0/r)                                                            
+  }  
+  //----------------------------------------------------------------------------
+  pub fn dot(&self, other: &Vector3D) -> f64 {                                     
+    assert_eq!(self.elements.len(),other.elements.len());
+    let mut out = 0.0;
+    for ii in 0..self.elements.len(){
+      out += self.elements[ii]*other.elements[ii];
+    }
+
+    out
+  } 
+  //----------------------------------------------------------------------------
+  pub fn cross(&self, other: &Vector3D) -> Self{
+    assert_eq!(self.elements.len(),3);
+    assert_eq!(other.elements.len(),3);
+    let mut out = self.clone();
+    
+    out.set_x(self.y()*other.z() - self.z()*other.y() );
+    out.set_y(self.z()*other.x() - self.x()*other.z() );
+    out.set_z(self.x()*other.y() - self.y()*other.x() );
+    out
+  }
+  //----------------------------------------------------------------------------
 }
 
 impl std::ops::Add<&Vector3D> for &Vector3D{

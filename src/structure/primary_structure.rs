@@ -1,6 +1,7 @@
-use crate::structure::Structure; 
+use crate::structure::{Structure, exchange_groups::*}; 
 use crate::config::Config;
 use crate::space_3d;
+use crate::physical_constants::Element;
 
 impl Structure{
   /// This method uses an input `Config` to set the structure's
@@ -109,6 +110,79 @@ impl Structure{
 
     }
  }
+ //-----------------------------------------------------------------------------
+ fn find_exchange_groups(&self) -> Vec::<ExchangeGroup> {
+ 
+   // Five atoms are required to form a methyl group.
+   let n_max: usize = self.number()/5;
+
+   let mut exchange_groups = Vec::<ExchangeGroup>::with_capacity(n_max);
+
+   for ii in 0..self.number(){
+
+     let hydrogens = self.get_methyl_hydrogen_indices(ii);
+      if let Some([h0,h1,h2]) = hydrogens {
+        let r_carbon = self.bath_particles[ii].coordinates.clone();
+        let r_h0 = self.bath_particles[h0].coordinates.clone();
+        let r_h1 = self.bath_particles[h2].coordinates.clone();
+        let r_h2 = self.bath_particles[h2].coordinates.clone();
+
+        
+        if self.bath_particles[ii].element == Element::Carbon{
+          exchange_groups.push(ExchangeGroup::Methyl(
+                C3Rotor::from(r_carbon, r_h0, r_h1, r_h2, [h0,h1,h2]) ));
+
+        }else if self.bath_particles[ii].element == Element::Nitrogen{
+          exchange_groups.push(ExchangeGroup::PrimaryAmonium(
+                C3Rotor::from(r_carbon, r_h0, r_h1, r_h2, [h0,h1,h2]) ));
+        }
+      } 
+   }
+
+   exchange_groups
+ }  
+ //-----------------------------------------------------------------------------
+ fn get_methyl_hydrogen_indices(&self, index: usize) ->Option<[usize;3] >{
+   
+   let particle = &self.bath_particles[index];
+
+   if particle.element != Element::Carbon 
+    && particle.element != Element::Nitrogen {
+     return None;
+   }
+
+   // Get the list of bonded indices, if there are any.
+   let connections: &Vec::<usize>;
+   if let Some(cnc)= self.connections.get_neighbors(index){
+     connections = cnc;
+   }else{
+     return None;
+   }
+   
+   // Methyls and primary amoniums have four atoms bonded to the central
+   // carbon and nitrogen respectively.
+   if self.connections.len() != 4 { 
+     return None;
+   }
+
+   let mut hydrons = Vec::<usize>::with_capacity(3);
+
+   for idx in connections.iter() {
+
+     if self.bath_particles[*idx].element == Element::Hydrogen{
+       
+       // Skip methane and amonium, which are not implemented. 
+       if hydrons.len()==3{ return None;}
+
+       hydrons.push(*idx);
+     }
+   }
+
+
+   if hydrons.len()!=3{ return None;}
+
+   Some([hydrons[0], hydrons[1], hydrons[2] ])
+ }  
  //-----------------------------------------------------------------------------
 
 }

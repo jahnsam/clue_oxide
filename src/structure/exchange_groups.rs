@@ -1,6 +1,6 @@
-use crate::vector3::Vector3;
+use crate::space_3d::Vector3D;
 
-pub trait Translate{ fn translate(&mut self, r: &Vector3); }
+pub trait Translate{ fn translate(&mut self, r: &Vector3D); }
 
 pub trait GetIndices{fn indices(&self) -> Vec::<usize>; }
 
@@ -23,7 +23,7 @@ impl GetIndices for ExchangeGroup{
 }
 
 impl Translate for ExchangeGroup{
-  fn translate(&mut self, r: &Vector3){
+  fn translate(&mut self, r: &Vector3D){
     match self{
       ExchangeGroup::Methyl(rotor) => rotor.translate(r),
       ExchangeGroup::PrimaryAmonium(rotor) => rotor.translate(r),
@@ -34,8 +34,8 @@ impl Translate for ExchangeGroup{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 
 #[derive(Debug, Clone)]
 pub struct C3Rotor{
-  center: Vector3,
-  normal: Vector3,
+  center: Vector3D,
+  normal: Vector3D,
   indices: [usize;3],
 }
 
@@ -43,10 +43,10 @@ pub struct C3Rotor{
 
 impl C3Rotor{                                                                     
                                                                                  
-pub fn from(r_carbon: Vector3,                                                   
-    h0: Vector3,                                                                 
-    h1: Vector3,                                                                 
-    h2: Vector3,
+pub fn from(r_carbon: Vector3D,                                                   
+    h0: Vector3D,                                                                 
+    h1: Vector3D,                                                                 
+    h2: Vector3D,
     indices: [usize;3],    
     ) -> Self{                                                                 
                                                                                  
@@ -69,11 +69,11 @@ pub fn from(r_carbon: Vector3,
                                                                                  
 }                                                                                
                                                                                  
-pub fn center(&self) -> &Vector3 {                                                
+pub fn center(&self) -> &Vector3D {                                                
   &self.center                                                           
 }
 
-pub fn normal(&self) -> &Vector3 {                                                
+pub fn normal(&self) -> &Vector3D {                                                
   &self.normal                                                      
 }
 }
@@ -91,7 +91,7 @@ impl GetIndices for C3Rotor{
 }
 
 impl Translate for C3Rotor{
-  fn translate(&mut self, r: &Vector3){
+  fn translate(&mut self, r: &Vector3D){
    self.center = &self.center + r;
   }
 }
