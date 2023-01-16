@@ -1,14 +1,15 @@
 use crate::structure::Structure; 
 use crate::config::Config;
+use crate::space_3d;
 
 impl Structure{
   /// This method uses an input `Config` to set the structure's
   /// spins and exchange groups.  The number of bath particle is unchanged.
-  pub fn build_primary_structure(&mut self, config: &Config){
+  fn build_primary_structure(&mut self, config: &Config){
 
     // TODO: one PBC on each side should be used to ensure reconect_bonds()
     // does not take a spin out of range.
-    // self.reconect_bonds();
+    self.reconnect_bonds();
 
     self.set_spins(config);
 
@@ -59,72 +60,56 @@ impl Structure{
   //----------------------------------------------------------------------------
   
   //----------------------------------------------------------------------------
-  /*
   // The method uses the PBCs to move atoms near atoms they are bonded to.
   fn reconnect_bonds(&mut self){
 
-    const MAXBOND: f64 = 3.0;
-    for connections in self.connections.iter() {
+    // TODO: Decide on better error handeling here.
+    match self.cell_offsets.len(){
+      0 => return,
+      3 => (),
+      _ => panic!("There should be 3 cell offsets."),  
+    }
 
-      let mut it = connections.indices.iter();
-      let idx0: &usize = it.next().unwrap();
+    const MAXBOND: f64 = 3.0; // Angstroms.
 
-      let r0 = self.bath_particles[*idx0].coordinates.clone();
+    //for connections in self.connections.iter() {
+    for idx0 in 0..self.bath_particles.len() {
 
-      for idx in it{
 
-        let r = self.bath_particles[*idx].coordinates.clone();
-
-        if (&r-&r0).magnitude() < MAXBOND { continue; }
-
-        self.bath_particles[*idx].coordinates.x()
-         = minimize_absolute_difference_for_step(r.x, r0.x, self.crystal.a);
-
-        self.bath_particles[*idx].coordinates.y()
-         = minimize_absolute_difference_for_step(r.y, r0.y, self.crystal.b);
-
-        self.bath_particles[*idx].coordinates.z()
-         = minimize_absolute_difference_for_step(r.z, r0.z, self.crystal.c);
+      // Get the list of bonded indices, if there are any.
+      let connections: &Vec::<usize>;
+      if let Some(cnc)= self.connections.get_neighbors(idx0){
+        connections = cnc;
+      }else{
+        continue;
       }
 
+      // Get the coordinates of the atom of interest.
+      let r0 = self.bath_particles[idx0].coordinates.clone();
 
+      for idx in connections.iter(){
 
+        // Get the coordinates of the bonded atom.
+        let r = self.bath_particles[*idx].coordinates.clone();
 
+        // Check if the atoms are near each other.
+        let delta_r = &r -&r0;
+        if delta_r.norm() < MAXBOND { continue; }
+
+        // Loop through all 3 spatial dimensions.
+        for ix in 0..3 {
+
+          // Find the PBC copy of the neghbor that is closest.
+          let r1 = space_3d::minimize_absolute_difference_for_vector3d_step(
+            &r,&r0,&self.cell_offsets[ix]);
+
+          self.bath_particles[*idx].coordinates = r1;
+        }
+      }
 
     }
  }
-  */
  //-----------------------------------------------------------------------------
 
 }
 
-//------------------------------------------------------------------------------
-// TODO: find better module for this function.
-// Let n be an integer and x,x0,x1, and step be real numbers, 
-// This function returns the x1 := x + n*step founds by
-//
-//   x1 = argmin(|x0-x1|) = argmin( |x0 - (x + n*step)| ).
-//
-fn minimize_absolute_difference_for_step( x: f64, x0: f64, step: f64 )
- -> f64 {
-
-   assert!(step > 0.0);
-
-   let mut x1 = x;
-
-   loop{
-
-     if (x1 - x0).abs() <= (x1 + step - x0).abs()
-       && (x1 - x0).abs() <= (x1 - step - x0).abs(){
-         break;
-       }
-     else if (x1 - x0).abs() > (x1 + step - x0).abs(){
-      x1 += step;
-     }
-     else if (x1 - x0).abs() > (x1 - step - x0).abs(){
-      x1 -= step;
-     }
-   }
-
-  x1
-}

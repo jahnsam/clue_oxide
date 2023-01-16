@@ -93,12 +93,105 @@ impl Vector3D{
     phi
   }
   //----------------------------------------------------------------------------
+  pub fn norm(&self) -> f64 {
+
+    let mut l2 = 0.0;
+    for el in self.elements.iter(){
+      l2 += (*el)*(*el);
+    }
+
+    l2.sqrt()
+  
+  }
+  //----------------------------------------------------------------------------
 }
 
+impl std::ops::Add<&Vector3D> for &Vector3D{
+  type Output = Vector3D;
+  fn add(self, rhs: &Vector3D ) -> Vector3D{
+    let n = self.elements.len();
+    assert_eq!(n, rhs.elements.len());
+    let mut out = self.clone();
+
+    for ii in 0..n{
+      out.elements[ii] += rhs.elements[ii];  
+    }
+    out
+  }
+}
+//------------------------------------------------------------------------------
+impl std::ops::Sub<&Vector3D> for &Vector3D{
+  type Output = Vector3D;
+  fn sub(self, rhs: &Vector3D ) -> Vector3D{
+    let n = self.elements.len();
+    assert_eq!(n, rhs.elements.len());
+    let mut out = self.clone();
+
+    for ii in 0..n{
+      out.elements[ii] -= rhs.elements[ii];  
+    }
+    out
+  }
+}
+//------------------------------------------------------------------------------
+impl std::ops::Neg for Vector3D {
+
+  type Output = Vector3D;
+  fn neg(self) -> Vector3D{
+    let mut out = self;
+    let n = out.elements.len();
+    for ii in 0..n{
+      out.elements[ii] = -out.elements[ii];  
+    }
+
+    out
+  }
+}
+//------------------------------------------------------------------------------
 impl ToString for Vector3D{
   fn to_string(&self) -> String{
     format!("[{}, {}, {}]", self.elements[0], self.elements[1],
         self.elements[2])
   }
+}
+//------------------------------------------------------------------------------
+//
+// Let n be an integer and v,v0,v1, and step be real-valued vectors,
+// This function returns the v1 := v + n*step founds by
+//
+//     v1 = argmin(|v0-v1|) = argmin( |v0 - (v + n*step)| ).
+//
+pub fn minimize_absolute_difference_for_vector3d_step(
+    v: &Vector3D, v0: &Vector3D, step: &Vector3D,) -> Vector3D    
+{
+
+
+  let mut v1 = v.clone();
+
+  let mut err0 = (&v1-v0).norm();
+  let mut err = (&v1-&(v0 + step)).norm();
+
+  let  delta_v: Vector3D;
+  if err < err0{
+    delta_v = step.clone()
+  }else{
+    delta_v = -step.clone()
+  }
+
+  
+  loop{
+  
+    let v2 = &v1 + &delta_v;
+    err0 = err;
+    err =  (&v2-&v0).norm();
+    if err <= err0{
+      v1 = v2;
+    }else{
+      break;
+    }
+  
+  }
+
+  v1
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
