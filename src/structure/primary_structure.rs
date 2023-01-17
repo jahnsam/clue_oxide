@@ -14,10 +14,11 @@ impl Structure{
 
     self.set_spins(config);
 
-    // Set methyls.
+    // Set methyl and primary amonium groups..
+    self.set_exchange_groups();
   }  
   //----------------------------------------------------------------------------
-  // This method self.bath_spins_indices so that each element corresponds
+  // This method sets self.bath_spins_indices so that each element corresponds
   // to an element of self_bath_particles that has the potential to have a spin.
   fn set_spins(&mut self,config: &Config){
     self.pair_particle_configs(config);
@@ -110,6 +111,31 @@ impl Structure{
 
     }
  }
+ //-----------------------------------------------------------------------------
+ fn set_exchange_groups(&mut self){
+
+   let exchange_groups = self.find_exchange_groups();
+   
+   let mut exchange_group_ids 
+     = Vec::<Option<usize>>::with_capacity(self.number());
+   for ii in 0..self.number(){
+     exchange_group_ids.push(None);
+   }
+
+   let mut exchange_coupling = Vec::<f64>::with_capacity(exchange_groups.len());
+   for ii in 0..exchange_groups.len(){
+     exchange_coupling.push(0.0);
+     for h in exchange_groups[ii].indices(){
+       exchange_group_ids[h] = Some(ii);
+     }
+   }
+
+   self.exchange_groups = Some( ExchangeGroupManager{
+     exchange_groups,
+     exchange_group_ids,
+     exchange_coupling,
+   });
+ }  
  //-----------------------------------------------------------------------------
  fn find_exchange_groups(&self) -> Vec::<ExchangeGroup> {
  

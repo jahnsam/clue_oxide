@@ -182,6 +182,25 @@ impl std::ops::Neg for Vector3D {
   }
 }
 //------------------------------------------------------------------------------
+impl std::cmp::Ord for Vector3D{
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    ( (self.norm()*1e12) as u64).cmp(&((other.norm()*1e12) as u64))
+  }
+}
+//------------------------------------------------------------------------------
+impl PartialOrd for Vector3D{
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+//------------------------------------------------------------------------------
+impl PartialEq for Vector3D{
+  fn eq(&self, other: &Self) -> bool {
+    (self - other).norm() < 1e-12
+  }
+}
+impl Eq for Vector3D {}
+//------------------------------------------------------------------------------
 impl ToString for Vector3D{
   fn to_string(&self) -> String{
     format!("[{}, {}, {}]", self.elements[0], self.elements[1],
@@ -229,3 +248,36 @@ pub fn minimize_absolute_difference_for_vector3d_step(
   v1
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+#[cfg(test)]
+mod tests{
+  use super::*;
+
+  #[test]
+  fn test_vector3d_ord(){
+
+    let x = Vector3D::from([1.0, 0.0, 0.0]);
+    let y = Vector3D::from([0.0, 1.0, 0.0]);
+
+    let mut vecs = Vec::<Vector3D>::with_capacity(9);
+    for ix in -1..=1{
+      for iy in -1..=1{
+        let v = &x.scale(ix as f64) + &y.scale(iy as f64);
+        vecs.push(v);
+    }}
+
+    vecs.sort();
+    assert_eq!(vecs[0],Vector3D::from([0.0, 0.0, 0.0]));
+
+    let sqrt2 = f64::sqrt(2.0);
+    let radii = vec![
+      0.0, 
+      1.0, 1.0, 1.0, 1.0, 
+      sqrt2, sqrt2, sqrt2, sqrt2];
+    for ii in 0..9{
+      assert_eq!(vecs[ii].norm(),radii[ii]);
+    }
+  }
+
+}

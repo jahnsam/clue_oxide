@@ -15,7 +15,6 @@ pub mod structure;
 pub mod signal;
 pub mod space_3d;
 pub mod symmetric_list_2d;
-pub mod vector3; // TODO: remove, replaced by space_3d::Vector3D
 pub mod vec_funcs;
 
 

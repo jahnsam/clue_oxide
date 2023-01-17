@@ -1,4 +1,5 @@
 pub mod pdb;
+pub mod extended_structure;
 pub mod primary_structure;
 pub mod exchange_groups;
 pub mod particle;
@@ -11,7 +12,7 @@ use crate::structure::particle::Particle;
 use crate::structure::particle_filter::ParticleFilter;
 use crate::space_3d::Vector3D;
 use crate::cluster::adjacency::AdjacencyList;
-use crate::structure::exchange_groups::ExchangeGroup;
+use crate::structure::exchange_groups::ExchangeGroupManager;
 use crate::physical_constants::Isotope;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -24,11 +25,13 @@ pub struct DetectedSpin{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/*
 struct ExchangeGroupManager{
   exchange_groups: Vec::<ExchangeGroup>,
-  exchange_group_ids: Vec::<usize>,
-  exchange_coupling: Vec::<f64>,
+  exchange_group_ids: Vec::<Option<usize>>,
+  exchange_coupling: Vec::<f64>, // one entry per exchange_group
 }
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

@@ -25,6 +25,7 @@ pub enum CluEError{
   ModeAttributeWrongSharp,
   NoCentralSpinCoor,
   NoClustersOfSize(usize),
+  NoRadius,
   NoRelationalOperators(usize),
   NoRHS(usize),
   NotAnOperator(usize,String),
@@ -110,6 +111,9 @@ impl fmt::Display for CluEError{
       
       CluEError::NoClustersOfSize(size) => write!(f,
           "cannot find any clusters of size {}", size),
+
+      CluEError::NoRadius => write!(f,
+          "system radius not set"),
 
       CluEError::NoRelationalOperators(line_number) => write!(f,
           "{}: no relational operators (=, <, >, in, ...), are present", 
