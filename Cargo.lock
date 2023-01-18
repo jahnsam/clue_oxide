@@ -121,6 +121,8 @@ dependencies = [
  "ndarray-linalg",
  "ndarray-rand",
  "num-complex",
+ "rand",
+ "rand_distr",
  "rayon",
  "substring",
 ]

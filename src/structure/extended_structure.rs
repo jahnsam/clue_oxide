@@ -1,7 +1,13 @@
 use crate::clue_errors::CluEError;
-use crate::structure::Structure;
-use crate::config::Config;
+use crate::structure::{Structure,particle::Particle,
+  particle_filter::ParticleFilter};
+use crate::config::{Config,
+  particle_config::{ParticleConfig,ParticleProperties}};
 use crate::space_3d::Vector3D;
+
+use rand_distr::{Binomial, Distribution};
+use rand::seq::index::sample;
+
 
 impl Structure{
   fn build_extended_structure(&mut self, config: &Config) 
@@ -9,16 +15,100 @@ impl Structure{
   {
 
     // Construct offset vectors for each pbc application.
-    self.set_cell_shifts(config);
+    self.set_cell_shifts(config)?;
 
-    // Copy most particles over to each pbc. 
+    // Copy non-voidable particles over to each PBC. 
+    self.extend_structure(config)?;
 
     // For particles that are to either be kept or dropped entirely,
     // determine which particles to keep.
+    self.add_voidable_particles(config)?;
 
-    // Make pbc copies of the remaining particles.
+    // Set isotpic identities after adding voidable particles since the
+    // non-void particles can potentially have multiple isotopic options. 
+    self.set_isotopologue(config)?;
 
-    // Set isotpic identities
+
+    Ok(())
+  }
+  //----------------------------------------------------------------------------
+  // TODO: implement.
+  fn add_voidable_particles(&mut self, config: &Config) -> Result<(),CluEError>{
+
+    // TODO: TEST CODE, DOES NOT DO ANYTHING YET.
+    let n: usize = 20;
+    let bin = Binomial::new(n as u64, 0.3).unwrap();
+    let v = bin.sample(&mut rand::thread_rng());
+    println!("Choosing {} out of {} from a binomial distribution", v,n);
+
+    let mut rng = rand::thread_rng();
+    let x = sample(&mut rng,n, v as usize);
+    println!("{:?}",x);
+
+    Ok(())
+
+  }
+  //----------------------------------------------------------------------------
+  fn set_isotopologue(&mut self, config: &Config) -> Result<(),CluEError>{
+    
+    let particle_configs: &Vec::<ParticleConfig>;
+    match &config.particles{
+      Some(part_confs) => particle_configs = part_confs,
+      None => return Ok(()),
+    }
+
+    for particle_config in particle_configs.iter(){
+    
+      let properties: &ParticleProperties;
+      match &particle_config.properties{
+        Some(props) => properties = props,
+        None => continue,
+      }
+
+
+      if properties.isotopic_distribution.isotope_abundances.is_empty(){
+        continue;
+      }
+
+      let filter: &ParticleFilter;
+      match &particle_config.filter {
+        Some(fltr) => filter = fltr,
+        None => continue,
+      }
+
+      let indices = filter.filter(self);
+
+
+      for idx in indices.iter(){
+        //let mut random_number = rng.gen_range(0.0..1.0);
+        // TODO: use random_number to select isotope from list.
+       
+      }
+    }
+    Ok(())
+
+  }
+  //----------------------------------------------------------------------------
+  fn extend_structure(&mut self, config: &Config) -> Result<(),CluEError>{
+
+    let mut extra_particles = Vec::<Particle>::with_capacity(
+        self.number()*self.cell_offsets.len());
+
+
+    for offset in self.cell_offsets.iter(){
+
+      for particle in self.bath_particles.iter(){
+
+        // TODO: implement force_no_pbc?
+        // if properties.force_no_pbc{}
+
+        // TODO: check void probability.
+        // if properties.extracell_void_probability{}
+        let mut new_particle = (*particle).clone();
+        new_particle.coordinates = &new_particle.coordinates + offset;
+        extra_particles.push(new_particle);
+      }
+    }
 
     Ok(())
   }
@@ -73,7 +163,7 @@ impl Structure{
 
 }
 
-// TODO: move to different module.
+// TODO: move ceil() to a different module.
 pub fn ceil(x: f64) -> f64{
 
   let mut a = x as i32;

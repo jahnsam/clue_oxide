@@ -29,6 +29,7 @@ use crate::physical_constants::{Element,Isotope};
    }
 */
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone)]
 pub struct Particle{
   pub element: Element,
   pub isotope: Isotope,

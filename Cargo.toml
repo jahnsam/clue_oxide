@@ -6,16 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ndarray = '0.15.0'
+ndarray-rand = "0.14.0"
 num-complex = "0.4"
+
+lebedev_laikov = {git = "https://github.com/Rufflewind/lebedev_laikov"}
+
+rand_distr = "0.4"
+rand = "0.8"
+
+rayon = "1.6.1"
+
 #strum = "0.24"
 #strum_macros = "0.24"
 substring = "1.4"
-rayon = "1.6.1"
 
-ndarray = '0.15.0'
-ndarray-rand = "0.14.0"
-
-lebedev_laikov = {git = "https://github.com/Rufflewind/lebedev_laikov"}
 
 [target.'cfg(unix)'.dependencies]
 ndarray-linalg = { version = "0.15", features = ["openblas-static"] }

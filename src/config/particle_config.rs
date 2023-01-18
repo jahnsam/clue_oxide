@@ -93,19 +93,20 @@ impl ParticleProperties{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// TODO: Is force_no_pbc=true the same as extracell_void_probability=Some(0.0)?
 #[derive(Debug,Clone)]
 pub struct IsotopeDistribution{
   pub isotope_abundances: Vec::<IsotopeAbundance>,
-  pub force_no_pbc: bool,
-  pub extracell_void_probability: f64,
+  //pub force_no_pbc: bool,  
+  pub extracell_void_probability: Option<f64>,
 }
 
 impl Default for IsotopeDistribution{
   fn default() -> Self{
     IsotopeDistribution{
       isotope_abundances: Vec::<IsotopeAbundance>::new(),
-      force_no_pbc: false,
-      extracell_void_probability: 0.0,
+      //force_no_pbc: false,
+      extracell_void_probability: None,
     }
   }
 }
