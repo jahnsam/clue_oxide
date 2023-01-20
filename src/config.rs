@@ -25,6 +25,7 @@ pub mod command_line_input;
 #[derive(Debug,Clone,Default)]
 pub struct Config{
   pub radius: Option<f64>,
+  pub rng_seed: Option<u64>,
   //pub inner_radius: Option<f64>,
   //max_number_of_cells: usize,
   //pbc_style: PBCStyle,

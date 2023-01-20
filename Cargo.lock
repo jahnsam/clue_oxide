@@ -122,6 +122,7 @@ dependencies = [
  "ndarray-rand",
  "num-complex",
  "rand",
+ "rand_chacha",
  "rand_distr",
  "rayon",
  "substring",

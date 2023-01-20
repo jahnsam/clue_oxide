@@ -1,16 +1,17 @@
 use crate::clue_errors::CluEError;
-use crate::structure::{Structure,particle::Particle,
-  particle_filter::ParticleFilter};
 use crate::config::{Config,
   particle_config::{ParticleConfig,ParticleProperties}};
 use crate::space_3d::Vector3D;
+use crate::structure::{Structure,particle::Particle,
+  particle_filter::ParticleFilter};
 
-use rand_distr::{Binomial, Distribution};
 use rand::seq::index::sample;
+use rand_chacha::ChaCha20Rng;
+use rand_distr::{Binomial, Distribution, Uniform};
 
 
 impl Structure{
-  fn build_extended_structure(&mut self, config: &Config) 
+  fn build_extended_structure(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
   {
 
@@ -22,18 +23,21 @@ impl Structure{
 
     // For particles that are to either be kept or dropped entirely,
     // determine which particles to keep.
-    self.add_voidable_particles(config)?;
+    self.add_voidable_particles(rng, config)?;
 
     // Set isotpic identities after adding voidable particles since the
     // non-void particles can potentially have multiple isotopic options. 
-    self.set_isotopologue(config)?;
+    self.set_isotopologue(rng, config)?;
 
 
     Ok(())
   }
   //----------------------------------------------------------------------------
   // TODO: implement.
-  fn add_voidable_particles(&mut self, config: &Config) -> Result<(),CluEError>{
+  fn add_voidable_particles(&mut self, 
+      rng: &mut ChaCha20Rng, config: &Config) 
+    -> Result<(),CluEError>
+  {
 
     // TODO: TEST CODE, DOES NOT DO ANYTHING YET.
     let n: usize = 20;
@@ -41,50 +45,50 @@ impl Structure{
     let v = bin.sample(&mut rand::thread_rng());
     println!("Choosing {} out of {} from a binomial distribution", v,n);
 
-    let mut rng = rand::thread_rng();
-    let x = sample(&mut rng,n, v as usize);
+    let x = sample(rng,n, v as usize);
     println!("{:?}",x);
 
     Ok(())
 
   }
   //----------------------------------------------------------------------------
-  fn set_isotopologue(&mut self, config: &Config) -> Result<(),CluEError>{
+  fn set_isotopologue(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
+    -> Result<(),CluEError>
+  {
     
+    let range = Uniform::new(0.0f64, 1.0);
     let particle_configs: &Vec::<ParticleConfig>;
     match &config.particles{
       Some(part_confs) => particle_configs = part_confs,
       None => return Ok(()),
     }
 
-    for particle_config in particle_configs.iter(){
-    
+    for (particle_idx,particle) in self.bath_particles.iter_mut().enumerate(){
+      
+      let config_id: usize;
+      match self.particle_config_ids[particle_idx]{
+        Some(id) => config_id = id,
+        None => continue,
+      }
+
       let properties: &ParticleProperties;
-      match &particle_config.properties{
+      match &particle_configs[config_id].properties{
         Some(props) => properties = props,
         None => continue,
       }
 
 
-      if properties.isotopic_distribution.isotope_abundances.is_empty(){
-        continue;
+      let random_number = range.sample(rng);
+      let mut cdf = 0.0;
+      for iso in properties.isotopic_distribution.isotope_abundances.iter(){
+        cdf += iso.abundance;
+        if cdf >= random_number{
+          particle.isotope = iso.isotope;
+        } 
       }
 
-      let filter: &ParticleFilter;
-      match &particle_config.filter {
-        Some(fltr) => filter = fltr,
-        None => continue,
-      }
-
-      let indices = filter.filter(self);
-
-
-      for idx in indices.iter(){
-        //let mut random_number = rng.gen_range(0.0..1.0);
-        // TODO: use random_number to select isotope from list.
-       
-      }
     }
+
     Ok(())
 
   }
@@ -109,6 +113,8 @@ impl Structure{
         extra_particles.push(new_particle);
       }
     }
+
+    self.pair_particle_configs(config);
 
     Ok(())
   }

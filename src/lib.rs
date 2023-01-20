@@ -21,9 +21,17 @@ pub mod vec_funcs;
 use crate::config::Config;
 use crate::clue_errors::CluEError;
 
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+
 /// This function follows the config instruction to central simulate spin 
 /// decoherence.
 pub fn run(config: Config) -> Result<(),CluEError>{
+
+  let mut rng: ChaCha20Rng;
+  match config.rng_seed{
+    Some(seed) => rng = ChaCha20Rng::seed_from_u64(seed),
+    None => rng = ChaCha20Rng::from_entropy(),
+  }
 
   Ok(())
 }
