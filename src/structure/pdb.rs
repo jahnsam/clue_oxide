@@ -106,10 +106,16 @@ fn parse_pdb_connections(file: &str,bath_particles: &[Particle])
     match parse_connections(line){
    
       Ok(serials) => {
+
+        let serial0 = vec![serials[0]];
+        let index0 = serials_to_indices(serial0,&bath_particles);
+        let index0 = index0[0];
+
         let indices = serials_to_indices(serials,&bath_particles);
 
+
         for idx in indices.iter(){
-          connections.connect(indices[0],*idx);
+          connections.connect(index0,*idx);
         }
       },
 
@@ -336,7 +342,6 @@ mod tests {
     assert_eq!(structures[0].bath_particles[27].coordinates.y(), 36.900);
     assert_eq!(structures[0].bath_particles[27].coordinates.z(), 37.100);
 
-    println!("{:?}",structures[0].cell_offsets);
     assert_eq!(structures[0].cell_offsets[0].x(),72.5676);
     assert_eq!(structures[0].cell_offsets[0].y(),0.0);
     assert_eq!(structures[0].cell_offsets[0].z(),0.0);
@@ -349,6 +354,44 @@ mod tests {
     assert!((structures[0].cell_offsets[2].y()-0.0).abs() < 1e12);
     assert_eq!(structures[0].cell_offsets[2].z(),72.5676);
 
+
+    //         O
+    //   3HC   N  CH3
+    //  3HC-C    C-CH3
+    //    2HC    CH2 
+    //        CH2
+
+    assert!(structures[0].connections.are_connected(0,1)); 
+    assert!(structures[0].connections.are_connected(0,5));
+    assert!(structures[0].connections.are_connected(0,9));
+    assert!(structures[0].connections.are_connected(0,27));
+    assert!(structures[0].connections.are_connected(1,2));
+    assert!(structures[0].connections.are_connected(1,3));
+    assert!(structures[0].connections.are_connected(1,4));
+    assert!(structures[0].connections.are_connected(5,6));
+    assert!(structures[0].connections.are_connected(5,7));
+    assert!(structures[0].connections.are_connected(5,8));
+    assert!(structures[0].connections.are_connected(9,10));
+    assert!(structures[0].connections.are_connected(9,11));
+    assert!(structures[0].connections.are_connected(9,12));
+    assert!(structures[0].connections.are_connected(12,13));
+    assert!(structures[0].connections.are_connected(12,14));
+    assert!(structures[0].connections.are_connected(12,15));
+    assert!(structures[0].connections.are_connected(15,16));
+    assert!(structures[0].connections.are_connected(15,17));
+    assert!(structures[0].connections.are_connected(15,18));
+    assert!(structures[0].connections.are_connected(18,19));
+    assert!(structures[0].connections.are_connected(18,23));
+    assert!(structures[0].connections.are_connected(18,27));
+    assert!(structures[0].connections.are_connected(19,20));
+    assert!(structures[0].connections.are_connected(19,21));
+    assert!(structures[0].connections.are_connected(19,22));
+    assert!(structures[0].connections.are_connected(23,24));
+    assert!(structures[0].connections.are_connected(23,25));
+    assert!(structures[0].connections.are_connected(23,26));
+    assert!(structures[0].connections.are_connected(27,28));
+
+    assert!(!structures[0].connections.are_connected(0,28));
   }
 
 }

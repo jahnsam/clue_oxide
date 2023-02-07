@@ -187,7 +187,7 @@ impl Structure{
    
    // Methyls and primary amoniums have four atoms bonded to the central
    // carbon and nitrogen respectively.
-   if self.connections.len() != 4 { 
+   if connections.len() != 4 { 
      return None;
    }
 
@@ -212,4 +212,54 @@ impl Structure{
  //-----------------------------------------------------------------------------
 
 }
+
+
+
+#[cfg(test)]
+mod tests{
+  use super::*;
+  use crate::structure::pdb;
+  use crate::config::Config;
+
+  #[test]
+  fn test_build_primary_structure_TEMPO(){
+    let filename = "./assets/TEMPO.pdb";
+    let file = std::fs::read_to_string(filename).unwrap();
+    let mut structures = pdb::parse_pdb(&file).unwrap();
+
+    let config = Config::new();
+
+    structures[0].build_primary_structure(&config);
+
+    assert_eq!(structures[0].bath_spins_indices.len(), 19);
+    let exchange_group_manager = structures[0].exchange_groups
+                                 .as_ref().unwrap();
+    assert_eq!(exchange_group_manager.exchange_groups.len(), 4);
+
+    let mut ids = vec![None; 29];
+    ids[2] = Some(0);
+    ids[3] = Some(0);
+    ids[4] = Some(0);
+
+    ids[6] = Some(1);
+    ids[7] = Some(1);
+    ids[8] = Some(1);
+
+    ids[20] = Some(2);
+    ids[21] = Some(2);
+    ids[22] = Some(2);
+
+    ids[24] = Some(3);
+    ids[25] = Some(3);
+    ids[26] = Some(3);
+
+    for (idx, id) in exchange_group_manager.exchange_group_ids.iter()
+      .enumerate(){
+      assert_eq!(*id,ids[idx]);
+    }
+
+  }
+}
+
+
 
