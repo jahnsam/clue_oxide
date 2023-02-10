@@ -1,4 +1,4 @@
-use crate::vec_funcs;
+use crate::math;
 
 
 #[derive(Debug,Clone)]
@@ -60,7 +60,7 @@ impl AdjacencyList{
 
     if let Some(neighbors) = &mut self.list[m]{
       neighbors.push(n);
-      *neighbors = vec_funcs::unique((*neighbors).clone());
+      *neighbors = math::unique((*neighbors).clone());
       neighbors.sort();
     }else{
       self.list[m] = Some(Vec::from([n]));

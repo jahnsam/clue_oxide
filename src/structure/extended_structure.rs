@@ -4,6 +4,7 @@ use crate::config::{Config,
 use crate::space_3d::Vector3D;
 use crate::structure::{Structure,particle::Particle,
   particle_filter::ParticleFilter};
+use crate::math;  
 
 use rand::seq::index::sample;
 use rand_chacha::ChaCha20Rng;
@@ -145,7 +146,7 @@ impl Structure{
     let mut n_cells = 1;
     for ix in 0..3{
       n_cells_per_dim[ix] = std::cmp::max(1,
-       ceil(radius/cell_edges[ix].norm()) as i32
+       math::ceil(radius/cell_edges[ix].norm()) as i32
           );
 
       n_cells *= 1 + 2*(n_cells_per_dim[ix] as usize);
@@ -169,28 +170,11 @@ impl Structure{
 
 }
 
-// TODO: move ceil() to a different module.
-pub fn ceil(x: f64) -> f64{
 
-  let mut a = x as i32;
-
-  let err = (x-a as f64).abs();
-  if err > 1e-12 && x >= 0.0{
-    a += 1;
-  }
-
-  a as f64
-}
 
 #[cfg(test)]
 mod tests{
   use super::*;
 
-  #[test]
-  fn test_ceil(){
-    assert_eq!(ceil(2.0),2.0);
-    assert_eq!(ceil(2.1),3.0);
-    assert_eq!(ceil(-2.1),-2.0);
-    assert_eq!(ceil(-2.0),-2.0);
-  }
+
 }

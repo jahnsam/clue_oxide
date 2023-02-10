@@ -1,6 +1,6 @@
 use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
-use crate::vec_funcs;
+use crate::math;
 
 use crate::cluster::Cluster;
 
@@ -62,7 +62,7 @@ fn build_n_clusters(
       
           let mut new_indices: Vec::<usize> = (*indices).clone();
           new_indices.push(*vertex);
-          new_indices = vec_funcs::unique(new_indices);
+          new_indices = math::unique(new_indices);
 
           if new_indices.len() == indices.len(){ continue; }
         

@@ -4,7 +4,7 @@ use crate::physical_constants::{PI,Element,Isotope};
 use crate::space_3d::Vector3D;
 use crate::structure::particle::Particle;
 use crate::structure::Structure;
-use crate::vec_funcs;
+use crate::math;
 
 use substring::Substring;
 
@@ -71,7 +71,7 @@ fn parse_pdb_atoms(file: &str) -> Result< Vec::<Particle>, CluEError> {
   let mut hetatm_indices: Vec::<usize> 
     = file.match_indices("HETATM").map(|(idx,_substr)| idx).collect();
   atom_indices.append(&mut hetatm_indices);
-  atom_indices = vec_funcs::unique(atom_indices);
+  atom_indices = math::unique(atom_indices);
   atom_indices.sort();
 
 

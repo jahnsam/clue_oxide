@@ -15,7 +15,7 @@ pub mod structure;
 pub mod signal;
 pub mod space_3d;
 pub mod symmetric_list_2d;
-pub mod vec_funcs;
+pub mod math;
 
 
 use crate::config::Config;
