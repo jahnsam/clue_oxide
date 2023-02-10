@@ -1,12 +1,14 @@
 use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
-use crate::physical_constants::{PI,Element,Isotope};
+use crate::physical_constants::{ANGSTROM,PI,Element,Isotope};
 use crate::space_3d::Vector3D;
 use crate::structure::particle::Particle;
 use crate::structure::Structure;
 use crate::math;
 
 use substring::Substring;
+
+// TODO: SLOW FOR LARGE FILES!
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /// This function reads the contents of a PDB file into a Vec<Structure>.
@@ -203,7 +205,7 @@ fn parse_atom(line: &str) -> Result<Particle,CluEError>{
 
   let coordinates: Vector3D;
   if let (Ok(x),Ok(y), Ok(z)) = (x_coor, y_coor, z_coor) {
-    coordinates = Vector3D::from([x,y,z]);
+    coordinates = Vector3D::from([x*ANGSTROM,y*ANGSTROM,z*ANGSTROM]);
   }else{
     return Err(CluEError::CannotParseLine(line.to_string()));
   }
@@ -302,6 +304,10 @@ fn parse_crystal_line(line: &str)
     beta *= PI/180.0;
     gamma *= PI/180.0;
 
+    let a = a*ANGSTROM;
+    let b = b*ANGSTROM;
+    let c = c*ANGSTROM;
+
     let a_vec = Vector3D::from([a, 0.0, 0.0]);
     let b_vec = Vector3D::from([b*f64::cos(gamma), b*f64::sin(gamma), 0.0]);
     let cx = c * f64::cos(beta);
@@ -338,21 +344,24 @@ mod tests {
         Some("TEM".to_string()));
     assert_eq!(structures[0].bath_particles[27].residue_sequence_number, 
         Some(1));
-    assert_eq!(structures[0].bath_particles[27].coordinates.x(), 36.440);
-    assert_eq!(structures[0].bath_particles[27].coordinates.y(), 36.900);
-    assert_eq!(structures[0].bath_particles[27].coordinates.z(), 37.100);
+    assert_eq!(structures[0].bath_particles[27].coordinates.x(), 
+        36.440*ANGSTROM);
+    assert_eq!(structures[0].bath_particles[27].coordinates.y(), 
+        36.900*ANGSTROM);
+    assert_eq!(structures[0].bath_particles[27].coordinates.z(), 
+        37.100*ANGSTROM);
 
-    assert_eq!(structures[0].cell_offsets[0].x(),72.5676);
+    assert_eq!(structures[0].cell_offsets[0].x(),72.5676*ANGSTROM);
     assert_eq!(structures[0].cell_offsets[0].y(),0.0);
     assert_eq!(structures[0].cell_offsets[0].z(),0.0);
 
     assert!((structures[0].cell_offsets[1].x()-0.0).abs() < 1e12);
-    assert_eq!(structures[0].cell_offsets[1].y(),72.5676);
+    assert_eq!(structures[0].cell_offsets[1].y(),72.5676*ANGSTROM);
     assert!((structures[0].cell_offsets[1].z()-0.0).abs() < 1e12);
 
     assert!((structures[0].cell_offsets[2].x()-0.0).abs() < 1e12);
     assert!((structures[0].cell_offsets[2].y()-0.0).abs() < 1e12);
-    assert_eq!(structures[0].cell_offsets[2].z(),72.5676);
+    assert_eq!(structures[0].cell_offsets[2].z(),72.5676*ANGSTROM);
 
 
     //         O

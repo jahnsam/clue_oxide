@@ -175,6 +175,25 @@ impl Structure{
 #[cfg(test)]
 mod tests{
   use super::*;
+  use crate::structure::{pdb, primary_structure};
+  use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
+  #[test]
+  fn test_build_extended_structure(){
+    let filename = "./assets/TEMPO.pdb";
+    let file = std::fs::read_to_string(filename).unwrap();
+    let mut structures = pdb::parse_pdb(&file).unwrap();
+    let mut config = Config::new();
+    config.radius = Some(73.5676e-10);
+    structures[0].build_primary_structure(&config);
+
+    let mut rng =  ChaCha20Rng::from_entropy();
+
+    let mut structure = structures[0].clone();
+    structure.build_extended_structure(&mut rng, &config);
+
+    assert_eq!(structure.cell_offsets.len(),125);
+    
+  }
 
 }

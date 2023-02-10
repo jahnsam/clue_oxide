@@ -6,6 +6,7 @@ pub trait GetIndices{fn indices(&self) -> Vec::<usize>; }
 
 pub trait GetExchangeCoupling{fn exchange_coupling(&self) -> f64; }
 
+#[derive(Debug,Clone)]
 pub struct ExchangeGroupManager{
   pub exchange_groups: Vec::<ExchangeGroup>,
   pub exchange_group_ids: Vec::<Option<usize>>,

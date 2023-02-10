@@ -16,6 +16,7 @@ use crate::structure::exchange_groups::ExchangeGroupManager;
 use crate::physical_constants::Isotope;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone)]
 pub struct DetectedSpin{
   isotope: Isotope,
   weighted_coordinates: IntegrationGrid,
@@ -36,6 +37,7 @@ struct ExchangeGroupManager{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone)]
 pub struct Structure{
   detected_particle: Option<DetectedSpin>,
   pub bath_particles: Vec::<Particle>,

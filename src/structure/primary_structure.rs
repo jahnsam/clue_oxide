@@ -6,7 +6,7 @@ use crate::physical_constants::Element;
 impl Structure{
   /// This method uses an input `Config` to set the structure's
   /// spins and exchange groups.  The number of bath particle is unchanged.
-  fn build_primary_structure(&mut self, config: &Config){
+  pub fn build_primary_structure(&mut self, config: &Config){
 
     // TODO: one PBC on each side should be used to ensure reconect_bonds()
     // does not take a spin out of range.
