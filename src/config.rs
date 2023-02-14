@@ -33,7 +33,7 @@ pub struct Config{
   pub magnetic_field: Option<Vector3D>,
   //pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
-  pub particles: Option<Vec::<ParticleConfig>>,
+  pub particles: Option<Vec::<ParticleConfig>>, // TODO: why in Option?
 }
 /*
 impl Default for Config{

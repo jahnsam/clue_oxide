@@ -66,7 +66,7 @@ impl ParticleFilter{
     particles.iter().enumerate().filter_map(|(idx,particle)| {
 
       // Element
-      if (self.elements.is_empty() 
+      if (!self.elements.is_empty() 
           && !self.elements.contains(&particle.element))
        || self.not_elements.contains(&particle.element){
        return None;
@@ -74,21 +74,21 @@ impl ParticleFilter{
 
       // Serial
       if let Some(serial) = particle.serial{ 
-        if (self.serials.is_empty() && !self.serials.contains(&serial))
+        if (!self.serials.is_empty() && !self.serials.contains(&serial))
          || self.not_serials.contains(&serial){
           return None;
       }}
 
       // Residue
       if let Some(res) = &particle.residue{ 
-        if (self.residues.is_empty() && !self.residues.contains(&res))
+        if (!self.residues.is_empty() && !self.residues.contains(&res))
          || self.not_residues.contains(&res){
           return None;
       }}
 
       // Residue Sequence ID
       if let Some(res_seq) = particle.residue_sequence_number{ 
-        if (self.residue_sequence_numbers.is_empty() 
+        if (!self.residue_sequence_numbers.is_empty() 
             && !self.residue_sequence_numbers.contains(&res_seq))
          || self.not_residue_sequence_numbers.contains(&res_seq){
           return None;
@@ -96,7 +96,7 @@ impl ParticleFilter{
 
       // Isotope
       let isotope = &particle.isotope; 
-      if (self.isotopes.is_empty() && !self.isotopes.contains(&isotope))
+      if (!self.isotopes.is_empty() && !self.isotopes.contains(&isotope))
        || self.not_isotopes.contains(&isotope){
         return None;
       }

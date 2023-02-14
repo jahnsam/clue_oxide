@@ -82,9 +82,9 @@ fn parse_pdb_atoms(file: &str) -> Result< Vec::<Particle>, CluEError> {
   let mut bath_particles = Vec::<Particle>::with_capacity(n_atoms);
 
   for idx in atom_indices.iter() {
-    let line = get_line(file.substring(*idx,file.len()));
+    let line = get_line(file.substring(*idx,*idx+80));
     let particle = parse_atom(line)?;
-    bath_particles.push(particle)
+    bath_particles.push(particle);
   }
 
 
@@ -104,7 +104,7 @@ fn parse_pdb_connections(file: &str,bath_particles: &[Particle])
 
   let mut connections = AdjacencyList::with_capacity(n_atoms);
   for line_idx in conect_indices.iter() {
-    let line = get_line(file.substring(*line_idx,file.len()));
+    let line = get_line(file.substring(*line_idx,*line_idx + 31));
     match parse_connections(line){
    
       Ok(serials) => {
@@ -135,7 +135,7 @@ fn parse_pdb_crystal(file: &str)
     = file.match_indices("CRYST1").map(|(idx,_substr)| idx).collect();
   
   if !cryst1_indices.is_empty() {
-    let line = get_line(file.substring(cryst1_indices[0],file.len()));
+    let line = get_line(file.substring(cryst1_indices[0],cryst1_indices[0]+70));
     return parse_crystal_line(line);
   }
     Ok(Vec::<Vector3D>::new())

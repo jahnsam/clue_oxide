@@ -12,7 +12,7 @@ use rand_distr::{Binomial, Distribution, Uniform};
 
 
 impl Structure{
-  fn build_extended_structure(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
+  pub fn build_extended_structure(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
   {
 
@@ -57,21 +57,27 @@ impl Structure{
     -> Result<(),CluEError>
   {
     
+    // Initialize rng range.
     let range = Uniform::new(0.0f64, 1.0);
+
+    // Check if there are any configurations.
     let particle_configs: &Vec::<ParticleConfig>;
     match &config.particles{
       Some(part_confs) => particle_configs = part_confs,
       None => return Ok(()),
     }
 
+    // Loop over bath particle.
     for (particle_idx,particle) in self.bath_particles.iter_mut().enumerate(){
       
+      // Check if this particle has a custom config.
       let config_id: usize;
       match self.particle_config_ids[particle_idx]{
         Some(id) => config_id = id,
         None => continue,
       }
 
+      // Check if this particle has any custom properties.
       let properties: &ParticleProperties;
       match &particle_configs[config_id].properties{
         Some(props) => properties = props,
@@ -79,12 +85,16 @@ impl Structure{
       }
 
 
+      // Generate a random number.
       let random_number = range.sample(rng);
       let mut cdf = 0.0;
+     
+      // Select a isotope for this particle.
       for iso in properties.isotopic_distribution.isotope_abundances.iter(){
         cdf += iso.abundance;
         if cdf >= random_number{
           particle.isotope = iso.isotope;
+          break;
         } 
       }
 
@@ -102,19 +112,34 @@ impl Structure{
 
     for offset in self.cell_offsets.iter(){
 
-      for particle in self.bath_particles.iter(){
+      for (particle_idx,particle) in self.bath_particles.iter().enumerate(){
 
         // TODO: implement force_no_pbc?
+        // No because properties.extracell_void_probability = Some(0.0)
+        // does the same thing
         // if properties.force_no_pbc{}
 
+      /*  
+      // Check if this particle has a custom config.
+      if let Some(config_id) = self.particle_config_ids[particle_idx]{
+
+      // Check if this particle has any custom properties.
+      if let Some(properties) = &config.particles[config_id].properties{
         // TODO: check void probability.
-        // if properties.extracell_void_probability{}
+        if let Some(_) = properties.isotopic_distribution
+          .extracell_void_probability{
+          continue;
+        }
+      }
+      }
+      */
         let mut new_particle = (*particle).clone();
         new_particle.coordinates = &new_particle.coordinates + offset;
         extra_particles.push(new_particle);
       }
     }
 
+    self.bath_particles = extra_particles;
     self.pair_particle_configs(config);
 
     Ok(())
@@ -175,24 +200,67 @@ impl Structure{
 #[cfg(test)]
 mod tests{
   use super::*;
-  use crate::structure::{pdb, primary_structure};
+  use crate::structure::{pdb, primary_structure,particle_filter::ParticleFilter};
   use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+
+  use crate::config::particle_config::{ParticleConfig,
+    ParticleProperties,IsotopeDistribution,IsotopeAbundance};
+  use crate::physical_constants::{Element,Isotope};
 
   #[test]
   fn test_build_extended_structure(){
     let filename = "./assets/TEMPO.pdb";
     let file = std::fs::read_to_string(filename).unwrap();
     let mut structures = pdb::parse_pdb(&file).unwrap();
+
+    let mut particle_configs =vec![ParticleConfig::new("hydrogen".to_string())];
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Hydrogen];
+    particle_configs[0].filter = Some(filter);
+    
+    let mut properties = ParticleProperties::new();
+    properties.isotopic_distribution.isotope_abundances.push(
+        IsotopeAbundance{isotope: Isotope::Hydrogen1, abundance: 0.5});
+    properties.isotopic_distribution.isotope_abundances.push(
+        IsotopeAbundance{isotope: Isotope::Hydrogen2, abundance: 0.5});
+
+    particle_configs[0].properties = Some(properties);
+    
     let mut config = Config::new();
+    config.particles = Some(particle_configs);
     config.radius = Some(73.5676e-10);
+
+
     structures[0].build_primary_structure(&config);
+    let num_particles = structures[0].bath_particles.len();
 
     let mut rng =  ChaCha20Rng::from_entropy();
 
     let mut structure = structures[0].clone();
     structure.build_extended_structure(&mut rng, &config);
 
+    // Test: set_cell_shifts().
     assert_eq!(structure.cell_offsets.len(),125);
+
+    // Test: extend_structure().
+    assert_eq!(structure.bath_particles.len(),125*num_particles);
+
+    // Test: set_isotopologue().
+    let mut n_h1 = 0;
+    let mut n_h2 = 0;
+    for particle in structure.bath_particles.iter(){
+      if (*particle).isotope == Isotope::Hydrogen1{
+        n_h1 += 1;
+      }else if (*particle).isotope == Isotope::Hydrogen2{
+        n_h2 += 1; 
+      }
+    }
+    assert!(n_h1 >= 1000);
+    assert!(n_h1 <= 1200);
+    assert!(n_h2 >= 1000);
+    assert!(n_h2 <= 1200);
+    assert_eq!(n_h1+n_h2,125*18);
     
   }
 

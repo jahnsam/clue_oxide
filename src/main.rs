@@ -19,6 +19,7 @@ use clue_oxide::info;
 
 use std::time::Instant;
 fn main() {
+
   // Record start time
   let now = Instant::now();
 
