@@ -61,28 +61,20 @@ impl Structure{
     let range = Uniform::new(0.0f64, 1.0);
 
     // Check if there are any configurations.
-    let particle_configs: &Vec::<ParticleConfig>;
-    match &config.particles{
-      Some(part_confs) => particle_configs = part_confs,
-      None => return Ok(()),
-    }
+    let particle_configs = &config.particles;
 
     // Loop over bath particle.
     for (particle_idx,particle) in self.bath_particles.iter_mut().enumerate(){
       
       // Check if this particle has a custom config.
-      let config_id: usize;
-      match self.particle_config_ids[particle_idx]{
-        Some(id) => config_id = id,
-        None => continue,
-      }
+      let Some(config_id) = self.particle_config_ids[particle_idx] else {
+        continue;
+      };
 
       // Check if this particle has any custom properties.
-      let properties: &ParticleProperties;
-      match &particle_configs[config_id].properties{
-        Some(props) => properties = props,
-        None => continue,
-      }
+      let Some(properties) = &particle_configs[config_id].properties else{
+        continue;
+      };
 
 
       // Generate a random number.
@@ -161,11 +153,9 @@ impl Structure{
     
     let mut n_cells_per_dim = [1,1,1];
 
-    let radius: f64;
-    match config.radius{
-      Some(r) => radius = r,
-      None => return Err(CluEError::NoRadius),
-    }
+    let Some(radius) = config.radius else {
+      return Err(CluEError::NoRadius);
+    };
 
 
     let mut n_cells = 1;
@@ -228,7 +218,7 @@ mod tests{
     particle_configs[0].properties = Some(properties);
     
     let mut config = Config::new();
-    config.particles = Some(particle_configs);
+    config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
 
 

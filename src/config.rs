@@ -33,7 +33,8 @@ pub struct Config{
   pub magnetic_field: Option<Vector3D>,
   //pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
-  pub particles: Option<Vec::<ParticleConfig>>, // TODO: why in Option?
+  //pub particles: Option<Vec::<ParticleConfig>>, // TODO: why in Option?
+  pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
 }
 /*
 impl Default for Config{
@@ -78,15 +79,10 @@ impl Config{
   }
   //----------------------------------------------------------------------------
   pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) -> usize{
-  
-   let particles: &Vec::<ParticleConfig>;
-   if let Some(ps) = &self.particles{
-     particles = ps;
-   }else{ return 0; } 
 
-   if id >= particles.len() {return 0;}
+   if id >= self.particles.len() {return 0;}
 
-   particles[id].max_possible_spin_multiplicity()
+   self.particles[id].max_possible_spin_multiplicity()
   }
   //----------------------------------------------------------------------------
 

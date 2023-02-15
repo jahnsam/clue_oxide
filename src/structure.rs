@@ -88,6 +88,11 @@ impl Structure{
     out
   }
   //----------------------------------------------------------------------------
+  // This function searches the user specified particle configuration (if any),
+  // and determines which one each particle goes with.
+  // Since multiple filters may cover the same particle, 
+  // the last filter defined that covers the particle is the one paired with
+  // said particle.
   fn pair_particle_configs(&mut self, config: &Config){
   
     // Initialize pairings.
@@ -99,12 +104,7 @@ impl Structure{
     }
 
     // Get particle configs.
-    let particle_configs: &Vec::<ParticleConfig>;
-    if let Some(pc) = &config.particles{
-      particle_configs = pc;
-    }else{
-      return;
-    }
+    let particle_configs = &config.particles;
 
     // Pair particles with configs.
     for (id,particle_config) in particle_configs.iter().enumerate(){
@@ -118,6 +118,26 @@ impl Structure{
       } 
     }
     
+  }
+  //----------------------------------------------------------------------------
+  //TODO: finish apply_secondary_filters()
+  // This function goes through each particle, applies secondary filters,
+  // and records the results.
+  fn apply_secondary_filters(&mut self, config: &Config){
+  
+    for (idx,particle) in self.bath_particles.iter().enumerate(){
+
+      let Some(id) = self.particle_config_ids[idx] else{continue;};
+
+      let Some(properties) = &config.particles[id].properties else{continue;}; 
+    
+      // cosubstitutions: update AdjacencyList
+
+      // hyperfine tensors: Vec::<Option<Tensor3D>> or spare format?
+
+      // electric quadrupole tensors: Vec::<Option<Tenso3D>> or spare format?
+
+    }
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
