@@ -6,7 +6,9 @@ pub mod particle;
 pub mod particle_filter;
 
 //use crate::config::particle_config;
-use crate::config::{Config, particle_config::ParticleConfig};
+use crate::config::{Config, 
+  particle_config::{ParticleConfig,ParticleProperties}};
+use crate::clue_errors::CluEError;
 use crate::integration_grid::IntegrationGrid;
 use crate::structure::particle::Particle;
 use crate::structure::particle_filter::ParticleFilter;
@@ -45,7 +47,8 @@ pub struct Structure{
   pub connections: AdjacencyList,
   pub cell_offsets: Vec::<Vector3D>,
   molecules: Option<AdjacencyList>,
-  cosubstitute: Option<AdjacencyList>,
+  //cosubstitute: Option<AdjacencyList>,
+  cosubstitution_groups: Vec::< Vec::<usize> >,
   exchange_groups: Option<ExchangeGroupManager>,
   particle_config_ids: Vec::<Option<usize>>,
 }
@@ -64,7 +67,8 @@ impl Structure{
       connections,
       cell_offsets,
       molecules: None,
-      cosubstitute: None,
+      //cosubstitute: None,
+      cosubstitution_groups: Vec::<Vec::<usize>>::new(),
       exchange_groups: None,
       particle_config_ids: Vec::<Option<usize>>::new(),
     }
@@ -120,26 +124,84 @@ impl Structure{
     
   }
   //----------------------------------------------------------------------------
-  //TODO: finish apply_secondary_filters()
+  //TODO: test find_cosubstitution_groups()
   // This function goes through each particle, applies secondary filters,
-  // and records the results.
-  fn apply_secondary_filters(&mut self, config: &Config){
+  // and records the cosubstitution_groups.
+  fn find_cosubstitution_groups(&mut self, config: &Config) 
+    -> Result<(),CluEError>
+  {
   
+    let mut cosubstitution_group_ids 
+      = Vec::<Option<usize>>::with_capacity(self.bath_particles.len());
+    for ii in 0..self.bath_particles.len(){
+      cosubstitution_group_ids.push(None);
+    }
+    
+    let mut current_cosub_id = 0;
+
+
     for (idx,particle) in self.bath_particles.iter().enumerate(){
 
       let Some(id) = self.particle_config_ids[idx] else{continue;};
 
       let Some(properties) = &config.particles[id].properties else{continue;}; 
     
-      // cosubstitutions: update AdjacencyList
+      let mut filter: ParticleFilter;
+      if let Some(fltr) = &config.particles[id].filter{
+        filter= fltr.clone();
+      }else{
+        filter = ParticleFilter::new();
+      }
 
-      // hyperfine tensors: Vec::<Option<Tensor3D>> or spare format?
-
-      // electric quadrupole tensors: Vec::<Option<Tenso3D>> or spare format?
+      // cosubstitutions
+      update_cosubstitution_ids(&mut cosubstitution_group_ids, 
+        idx, current_cosub_id, filter.clone(),properties,self)?;
+      current_cosub_id += 1;
 
     }
+
+    // cosubstitutions
+    let mut cosubstitution_groups 
+      = Vec::<Vec::<usize>>::with_capacity(current_cosub_id);
+    for ii in 0..current_cosub_id{
+      let vec_indices = cosubstitution_group_ids.iter().enumerate()
+        .filter(|(_, &r)| r == Some(ii))
+        .map(|(index, _)| index).collect();
+
+      cosubstitution_groups.push(vec_indices);
+
+    }
+    self.cosubstitution_groups = cosubstitution_groups;
+
+    Ok(())
   }
 }
+//------------------------------------------------------------------------------
+// This function finds all the particles that cosubstitute with particle idx,
+// and records them in cosubstitution_group_ids.
+fn update_cosubstitution_ids(
+    cosubstitution_group_ids: &mut Vec::<Option<usize>>,
+    idx: usize,
+    current_cosub_id: usize,
+    mut filter: ParticleFilter,
+    properties: &ParticleProperties,
+    structure: &Structure)
+    -> Result<(),CluEError>
+  {
+      if let Some(cosubstitute) = &properties.cosubstitute{
+        filter.augment_filter(idx,&cosubstitute,structure)?;
+        let indices = filter.filter(structure);
+        for index in indices.iter(){
+          if cosubstitution_group_ids[*index]==None{
+            return Err(CluEError::MultipleCosubstitutionGroups(*index));
+          }
+          cosubstitution_group_ids[*index] = Some(current_cosub_id)
+        }
+      }else{
+        cosubstitution_group_ids[idx] = Some(current_cosub_id)
+      }
+    Ok(())  
+  }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

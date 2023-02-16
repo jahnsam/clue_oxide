@@ -2,6 +2,7 @@ use crate::structure::Structure;
 use crate::space_3d::Vector3D;
 //use crate::structure::exchange_groups::ExchangeGroup;
 use crate::physical_constants::{Element,Isotope};
+use crate::clue_errors::CluEError;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Filters are used to specify a set of bath particles.
 // TODO: ensure filters can specify:
@@ -126,6 +127,31 @@ impl ParticleFilter{
       Some(idx)
     }).collect()
   }
+//------------------------------------------------------------------------------
+  pub fn augment_filter(
+    &mut self,
+    index: usize,
+    secondary_filter: &SecondaryParticleFilter,
+    structure: &Structure) -> Result<(),CluEError>
+  {
+
+
+    match secondary_filter{
+      Bonded => self.bonded_to.push(index),
+      SameResidueSequenceNumber => {
+        if let Some(res_seq_id) = structure.bath_particles[index]
+          .residue_sequence_number{
+        self.residue_sequence_numbers.push(res_seq_id);
+          }else{
+            return Err(CluEError::CannontAugmentFilter(index,
+                secondary_filter.to_string()));
+          }
+      },
+    }
+
+
+    Ok(())
+  }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -138,10 +164,18 @@ impl ParticleFilter{
 // particles found by the supplied filter and a secondary filter.
 #[derive(Debug,Clone)]
 pub enum SecondaryParticleFilter{
-  Bonded(String), // atoms bonded to particle
-  Particle, // the particle itself
-  SameMolecule(String), // atoms on the same molecule as particle 
-  SameResidueSequenceNumber(String), // atoms with the same ResSeq as particle.
+  Bonded, // atoms bonded to particle
+  //Particle, // the particle itself
+  //SameMolecule, // atoms on the same molecule as particle 
+  SameResidueSequenceNumber, // atoms with the same ResSeq as particle.
+}
+impl ToString for SecondaryParticleFilter{
+  fn to_string(&self) -> String{
+    match self{
+      Bonded => String::from("Bonded"),
+      SameResidueSequenceNumber => String::from("SameResidueSequenceNumber"),
+    }
+  } 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

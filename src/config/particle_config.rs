@@ -1,5 +1,6 @@
 
-use crate::structure::particle_filter::{ParticleFilter,VectorSpecifier};
+use crate::structure::particle_filter::{ParticleFilter,VectorSpecifier,
+  SecondaryParticleFilter};
 //use super::particle_specifier::*;
 use crate::physical_constants::*;
 
@@ -72,6 +73,7 @@ pub struct ParticleProperties{
   pub exchange_coupling: f64,
   pub hyperfine: Option<TensorSpecifier>,
   pub electric_quadrupole_coupling: Option<TensorSpecifier>,
+  pub cosubstitute: Option<SecondaryParticleFilter>,
 }
 impl Default for ParticleProperties{
   fn default() -> Self{
@@ -80,7 +82,7 @@ impl Default for ParticleProperties{
       exchange_coupling: 0.0,
       hyperfine: None,
       electric_quadrupole_coupling: None,
-
+      cosubstitute: None,
     }
   }
 }

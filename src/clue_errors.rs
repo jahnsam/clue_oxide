@@ -8,6 +8,7 @@ pub enum CluEError{
   CannotMulTokens,
   CannotPowTokens,
   CannotSubTokens,
+  CannontAugmentFilter(usize,String),
   CannotConvertToFloat(usize,String),
   CannotConvertToVector(usize),
   CannotParseElement(String),
@@ -23,6 +24,7 @@ pub enum CluEError{
   ModeAttributeWrongBrackets,
   ModeAttributeWrongOption(String),
   ModeAttributeWrongSharp,
+  MultipleCosubstitutionGroups(usize),
   NoCentralSpinCoor,
   NoClustersOfSize(usize),
   NoRadius,
@@ -43,6 +45,10 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotAddTokens => write!(f,
           "cannot add tokens meaningfully"),
+
+      CluEError::CannontAugmentFilter(index,secondary_filter) => write!(f,
+          "cannot use secondary filter \"{}\" with particle {}",
+         secondary_filter,index),
 
       CluEError::CannotCombineTokens(line_number) => write!(f,
           "{}: cannot combine tokens meaningfully", line_number),
@@ -102,6 +108,10 @@ impl fmt::Display for CluEError{
 
       CluEError::ModeAttributeWrongOption(mode)=> write!(f,
           "#[{}...] contains an invalid option",mode),
+
+      CluEError::MultipleCosubstitutionGroups(index)=> write!(f,
+          "particle {} is assigned to more than one cosubstitution group",
+          index),
 
       CluEError::ModeAttributeWrongSharp => write!(f,
           "modes are specified with a single '#' at the start"),

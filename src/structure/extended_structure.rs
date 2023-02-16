@@ -26,6 +26,8 @@ impl Structure{
     // determine which particles to keep.
     self.add_voidable_particles(rng, config)?;
 
+    self.pair_particle_configs(config);// TODO: where should this line go?
+
     // Set isotpic identities after adding voidable particles since the
     // non-void particles can potentially have multiple isotopic options. 
     self.set_isotopologue(rng, config)?;
@@ -41,6 +43,7 @@ impl Structure{
   {
 
     // TODO: TEST CODE, DOES NOT DO ANYTHING YET.
+    // TODO: loop over cosubstitution_groups not individual particles.
     let n: usize = 20;
     let bin = Binomial::new(n as u64, 0.3).unwrap();
     let v = bin.sample(&mut rand::thread_rng());
@@ -63,6 +66,7 @@ impl Structure{
     // Check if there are any configurations.
     let particle_configs = &config.particles;
 
+    // TODO: loop over cosubstitution_groups not individual particles.
     // Loop over bath particle.
     for (particle_idx,particle) in self.bath_particles.iter_mut().enumerate(){
       
@@ -132,7 +136,6 @@ impl Structure{
     }
 
     self.bath_particles = extra_particles;
-    self.pair_particle_configs(config);
 
     Ok(())
   }
