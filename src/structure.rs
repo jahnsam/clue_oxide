@@ -160,9 +160,15 @@ impl Structure{
 
     }
 
+    // TODO: n_none should be findable in one line.
+    let mut n_none: usize  = 0;
+    for opt in cosubstitution_group_ids.iter(){
+      if *opt == None{ n_none += 1;}
+    }
+
     // cosubstitutions
     let mut cosubstitution_groups 
-      = Vec::<Vec::<usize>>::with_capacity(current_cosub_id);
+      = Vec::<Vec::<usize>>::with_capacity(n_none + current_cosub_id);
     for ii in 0..current_cosub_id{
       let vec_indices = cosubstitution_group_ids.iter().enumerate()
         .filter(|(_, &r)| r == Some(ii))
@@ -171,6 +177,14 @@ impl Structure{
       cosubstitution_groups.push(vec_indices);
 
     }
+
+    
+    for (idx,opt) in cosubstitution_group_ids.iter().enumerate(){
+      if *opt != None{ continue;}
+      let vec_indices = vec![idx];
+      cosubstitution_groups.push(vec_indices);
+    }
+
     self.cosubstitution_groups = cosubstitution_groups;
 
     Ok(())

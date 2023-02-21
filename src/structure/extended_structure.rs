@@ -9,6 +9,7 @@ use crate::math;
 use rand::seq::index::sample;
 use rand_chacha::ChaCha20Rng;
 use rand_distr::{Binomial, Distribution, Uniform};
+use std::collections::HashMap;
 
 
 impl Structure{
@@ -21,6 +22,11 @@ impl Structure{
 
     // Copy non-voidable particles over to each PBC. 
     self.extend_structure(config)?;
+
+    // TODO: reduce calls to pair_particle_configs().
+    self.pair_particle_configs(config);
+
+    self.find_cosubstitution_groups(config); // TODO: where should this line go?
 
     // For particles that are to either be kept or dropped entirely,
     // determine which particles to keep.
@@ -36,14 +42,13 @@ impl Structure{
     Ok(())
   }
   //----------------------------------------------------------------------------
-  // TODO: implement.
+  // TODO: TEST add_voidable_particles()
   fn add_voidable_particles(&mut self, 
       rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
   {
 
-    // TODO: TEST CODE, DOES NOT DO ANYTHING YET.
-    // TODO: loop over cosubstitution_groups not individual particles.
+    /*
     let n: usize = 20;
     let bin = Binomial::new(n as u64, 0.3).unwrap();
     let v = bin.sample(&mut rand::thread_rng());
@@ -51,7 +56,68 @@ impl Structure{
 
     let x = sample(rng,n, v as usize);
     println!("{:?}",x);
+    */
+    
+    // Check if there are any configurations.
+    let particle_configs = &config.particles;
 
+    let mut property_map = HashMap::<u64, Vec::<usize>>::with_capacity(
+        self.cosubstitution_groups.len());
+
+    for (cosub_idx,cosubstitution_group) in self.cosubstitution_groups.iter()
+      .enumerate()
+    {
+      if cosubstitution_group.is_empty(){ continue; }
+
+      // Check if this particle has a custom config.
+      let Some(config_id) = self.particle_config_ids[0] else {
+        continue;
+      };
+
+      // Check if this particle has any custom properties.
+      let Some(properties) = &particle_configs[config_id].properties else{
+        continue;
+      };
+
+      let Some(p) = properties.isotopic_distribution
+        .extracell_void_probability else{
+          continue;
+      };
+      let p = 1.0 - p;
+      let ppt = (p*1e12) as u64;
+      if let Some(indices) = property_map.get_mut(&ppt){
+        indices.push(cosub_idx);
+      }else{
+        let indices = vec![cosub_idx];
+        property_map.insert(ppt,indices);
+      }
+
+    }
+
+    
+    for offset in self.cell_offsets.iter(){
+      for (ppt, indices) in property_map.iter(){ 
+
+        let p = (*ppt as f64)/1e12; 
+        let n_groups = indices.len();
+        let Ok(bin) = Binomial::new(n_groups as u64, p) else {
+          return Err(CluEError::CannotSampleBinomialDistribution(n_groups,p));
+        };
+
+        let n_indices = bin.sample(rng) as usize;
+        let non_void_indices = sample(rng,n_groups,n_indices);
+
+        for cosub_idx in non_void_indices.iter(){
+          for particle_idx in self.cosubstitution_groups[cosub_idx].iter(){
+
+            let mut new_particle = self.bath_particles[*particle_idx].clone();
+            new_particle.coordinates = &new_particle.coordinates + offset;
+            self.bath_particles.push(new_particle);
+          }
+        }
+
+      }
+    } 
     Ok(())
 
   }
@@ -68,32 +134,37 @@ impl Structure{
 
     // TODO: loop over cosubstitution_groups not individual particles.
     // Loop over bath particle.
-    for (particle_idx,particle) in self.bath_particles.iter_mut().enumerate(){
-      
-      // Check if this particle has a custom config.
-      let Some(config_id) = self.particle_config_ids[particle_idx] else {
-        continue;
-      };
-
-      // Check if this particle has any custom properties.
-      let Some(properties) = &particle_configs[config_id].properties else{
-        continue;
-      };
-
-
+    for cosubstitution_group in self.cosubstitution_groups.iter(){
       // Generate a random number.
       let random_number = range.sample(rng);
-      let mut cdf = 0.0;
-     
-      // Select a isotope for this particle.
-      for iso in properties.isotopic_distribution.isotope_abundances.iter(){
-        cdf += iso.abundance;
-        if cdf >= random_number{
-          particle.isotope = iso.isotope;
-          break;
-        } 
-      }
 
+      for particle_idx in cosubstitution_group.iter(){
+        
+        let particle = &mut self.bath_particles[*particle_idx];
+      
+        // Check if this particle has a custom config.
+        let Some(config_id) = self.particle_config_ids[*particle_idx] else {
+          continue;
+        };
+
+        // Check if this particle has any custom properties.
+        let Some(properties) = &particle_configs[config_id].properties else{
+          continue;
+        };
+
+
+        let mut cdf = 0.0;
+     
+        // Select a isotope for this particle.
+        for iso in properties.isotopic_distribution.isotope_abundances.iter(){
+          cdf += iso.abundance;
+          if cdf >= random_number{
+            particle.isotope = iso.isotope;
+            break;
+          } 
+        }
+
+      }
     }
 
     Ok(())
@@ -115,7 +186,7 @@ impl Structure{
         // does the same thing
         // if properties.force_no_pbc{}
 
-      /*  
+        
       // Check if this particle has a custom config.
       if let Some(config_id) = self.particle_config_ids[particle_idx]{
 
@@ -128,7 +199,7 @@ impl Structure{
         }
       }
       }
-      */
+      
         let mut new_particle = (*particle).clone();
         new_particle.coordinates = &new_particle.coordinates + offset;
         extra_particles.push(new_particle);

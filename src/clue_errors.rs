@@ -7,6 +7,7 @@ pub enum CluEError{
   CannotDivTokens,
   CannotMulTokens,
   CannotPowTokens,
+  CannotSampleBinomialDistribution(usize,f64),
   CannotSubTokens,
   CannontAugmentFilter(usize,String),
   CannotConvertToFloat(usize,String),
@@ -64,6 +65,10 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotParseLine(line) => write!(f,
           "cannot parse line \"{}\"", line),
+
+      CluEError::CannotSampleBinomialDistribution(n,p) => write!(f,
+          "cannot sample from the binomial distribution B(n={},p={})",
+          n,p),
 
       CluEError::CannotSubTokens => write!(f,
           "cannot subtract tokens meaningfully"),
