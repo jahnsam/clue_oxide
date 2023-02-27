@@ -124,7 +124,8 @@ impl Structure{
     
   }
   //----------------------------------------------------------------------------
-  //TODO: test find_cosubstitution_groups()
+  // TODO: Slow for large systems: find_cosubstitution_groups().
+  // TODO: test find_cosubstitution_groups()
   // This function goes through each particle, applies secondary filters,
   // and records the cosubstitution_groups.
   fn find_cosubstitution_groups(&mut self, config: &Config) 
@@ -166,6 +167,7 @@ impl Structure{
       if *opt == None{ n_none += 1;}
     }
 
+    // TODO: This loop is slow for large systems.
     // cosubstitutions
     let mut cosubstitution_groups 
       = Vec::<Vec::<usize>>::with_capacity(n_none + current_cosub_id);

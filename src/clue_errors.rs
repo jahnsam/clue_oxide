@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(PartialEq,Debug,Clone)]
 pub enum CluEError{
+  AtomDoesNotSpecifyElement(usize),
   CannotAddTokens,
   CannotCombineTokens(usize),
   CannotDivTokens,
@@ -12,6 +13,7 @@ pub enum CluEError{
   CannontAugmentFilter(usize,String),
   CannotConvertToFloat(usize,String),
   CannotConvertToVector(usize),
+  CannotOpenFile(String),
   CannotParseElement(String),
   CannotParseLine(String),
   ConfigModeNotRecognized(String),
@@ -44,6 +46,9 @@ impl fmt::Display for CluEError{
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
 
+      CluEError::AtomDoesNotSpecifyElement(serial) => write!(f,
+          "atom {} does not specify an element",serial),
+
       CluEError::CannotAddTokens => write!(f,
           "cannot add tokens meaningfully"),
 
@@ -59,6 +64,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotMulTokens => write!(f,
           "cannot multiply tokens meaningfully"),
+
+      CluEError::CannotOpenFile(file) => write!(f,
+          "cannot open \"{}\"", file),
 
       CluEError::CannotParseElement(element) => write!(f,
           "cannot parse \"{}\" as an element", element),

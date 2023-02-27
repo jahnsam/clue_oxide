@@ -2,311 +2,56 @@ use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
 use crate::physical_constants::{ANGSTROM,PI,Element,Isotope};
 use crate::space_3d::Vector3D;
-use crate::structure::particle::Particle;
-use crate::structure::Structure;
-use crate::math;
+use crate::structure::{Structure, particle::Particle};
 
-use substring::Substring;
+use pdbtbx;
 
-// TODO: SLOW FOR LARGE FILES!
-
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/// This function reads the contents of a PDB file into a Vec<Structure>.
-/// Each model within the PDB is saved as a separate Structure.
-/// Only the infomation directly in the PDB is set.  
-/// To get additional information, such as on spins and methyl groups,
-/// feed the output of this function to build_primary_structure(). 
-///
-///```
-///# use clue_oxide::structure::pdb::parse_pdb;
-/// let filename = "./assets/TEMPO.pdb";
-/// let file = std::fs::read_to_string(filename).unwrap();
-/// let structures = parse_pdb(&file).unwrap();
-///```
-///
-pub fn parse_pdb(file: &str) -> Result< Vec::<Structure>, CluEError>
+pub fn parse_pdb(filename: &str) -> Result< Vec::<Structure>, CluEError>
 {
-
-  // Crystallographic Information 
-  let cell_offsets = parse_pdb_crystal(&file)?;
-
-  
-  // Models
-  let (model_indices,endmdl_indices) = parse_pdb_models(&file)?;
-  let n_structs = model_indices.len();
-
+  // Read PDB file.
+  let Ok( (pdb, _errors) ) = pdbtbx::open(filename, 
+      pdbtbx::StrictnessLevel::Medium) 
+    else {
+    return Err(CluEError::CannotOpenFile((*filename).to_owned()));
+  };
 
   // Connections
-  let mut connections_vec = Vec::<AdjacencyList>::new();
+  let connections = build_connections(&pdb)?;
 
+  // Get cell offsets.
+  let cell_offsets: Vec::<Vector3D>; 
+  if let Some(unit_cell) = &pdb.unit_cell{
+     cell_offsets = read_unit_cell(unit_cell)?;
+  }else{
+    cell_offsets = Vec::<Vector3D>::with_capacity(1);
+  }
 
-  let mut structures = Vec::<Structure>::with_capacity(n_structs);
+  let mut structures = Vec::<Structure>::with_capacity(pdb.model_count());  
+  for model in pdb.models(){
+    
+    let bath_particles = parse_atoms(model)?;
 
-
-  for (ii, mdl) in model_indices.iter().enumerate(){
-
-    // Atoms
-    let bath_particles 
-      = parse_pdb_atoms(&file.substring(*mdl, endmdl_indices[ii] ))?;
-
-    // Connections
-    if connections_vec.is_empty(){
-      let connections = parse_pdb_connections(&file,&bath_particles)?;
-      connections_vec.push(connections);
+      structures.push(Structure::new(
+        bath_particles,
+        connections.clone(),
+        cell_offsets.clone(),
+      ));
     }
 
-    structures.push(Structure::new(
-        bath_particles,
-        connections_vec[0].clone(),
-        cell_offsets.clone(),
-        ));
-  }
 
   Ok(structures)
 }
 //------------------------------------------------------------------------------
-fn parse_pdb_atoms(file: &str) -> Result< Vec::<Particle>, CluEError> {
-
-
-  let mut atom_indices: Vec::<usize> 
-    = file.match_indices("ATOM").map(|(idx,_substr)| idx).collect();
-  let mut hetatm_indices: Vec::<usize> 
-    = file.match_indices("HETATM").map(|(idx,_substr)| idx).collect();
-  atom_indices.append(&mut hetatm_indices);
-  atom_indices = math::unique(atom_indices);
-  atom_indices.sort();
-
-
-  // Read atoms.
-  let n_atoms = atom_indices.len();
-  let mut bath_particles = Vec::<Particle>::with_capacity(n_atoms);
-
-  for idx in atom_indices.iter() {
-    let line = get_line(file.substring(*idx,*idx+80));
-    let particle = parse_atom(line)?;
-    bath_particles.push(particle);
-  }
-
-
-  Ok(bath_particles)
-}
-//------------------------------------------------------------------------------
-fn parse_pdb_connections(file: &str,bath_particles: &[Particle]) 
-  -> Result< AdjacencyList, CluEError> 
-{
-
-  //let n_atoms = file.matches("ATOM").count() + file.matches("HETATM").count();
-  let n_atoms = bath_particles.len();
-
-  // Read connections.
-  let conect_indices: Vec::<usize> 
-    = file.match_indices("CONECT").map(|(idx,_substr)| idx).collect();
-
-  let mut connections = AdjacencyList::with_capacity(n_atoms);
-  for line_idx in conect_indices.iter() {
-    let line = get_line(file.substring(*line_idx,*line_idx + 31));
-    match parse_connections(line){
-   
-      Ok(serials) => {
-
-        let serial0 = vec![serials[0]];
-        let index0 = serials_to_indices(serial0,&bath_particles);
-        let index0 = index0[0];
-
-        let indices = serials_to_indices(serials,&bath_particles);
-
-
-        for idx in indices.iter(){
-          connections.connect(index0,*idx);
-        }
-      },
-
-      Err(error) => return Err(error),
-    }
-  }
-
-  Ok(connections)
-}
-//------------------------------------------------------------------------------
-fn parse_pdb_crystal(file: &str)
-  -> Result< Vec::<Vector3D>, CluEError> 
-{
-  let cryst1_indices: Vec::<usize> 
-    = file.match_indices("CRYST1").map(|(idx,_substr)| idx).collect();
-  
-  if !cryst1_indices.is_empty() {
-    let line = get_line(file.substring(cryst1_indices[0],cryst1_indices[0]+70));
-    return parse_crystal_line(line);
-  }
-    Ok(Vec::<Vector3D>::new())
-  
-}
-//------------------------------------------------------------------------------
-fn parse_pdb_models(file: &str)
-  -> Result< (Vec::<usize>,Vec::<usize>), CluEError> 
-{
-  let mut model_indices: Vec::<usize> 
-    = file.match_indices("MODEL").map(|(idx,_substr)| idx).collect();
-
-  let mut endmdl_indices: Vec::<usize> 
-    = file.match_indices("ENDMDL").map(|(idx,_substr)| idx).collect();
-
-  assert_eq!(model_indices.len(), endmdl_indices.len());
-  if model_indices.is_empty(){
-    model_indices.push(0);
-    endmdl_indices.push(file.len());
-  }
-
-  Ok((model_indices,endmdl_indices))
-}
-//------------------------------------------------------------------------------
-fn get_line<'a>(file_slice: &'a str) -> &'a str {
-  
-  for (ii,ch) in file_slice.chars().enumerate() {
-
-    if ch == '\n' {
-      return &file_slice[0..ii+1];
-    }
-  }
-
-  file_slice
-}
-//------------------------------------------------------------------------------
-/*
-COLUMNS        DATA  TYPE    FIELD        DEFINITION
--------------------------------------------------------------------------------------
- 1 -  6        Record name   "ATOM  "
- 7 - 11        Integer       serial       Atom  serial number.
-13 - 16        Atom          name         Atom name.
-17             Character     altLoc       Alternate location indicator.
-18 - 20        Residue name  resName      Residue name.
-22             Character     chainID      Chain identifier.
-23 - 26        Integer       resSeq       Residue sequence number.
-27             AChar         iCode        Code for insertion of residues.
-31 - 38        Real(8.3)     x            Orthogonal coordinates for X in Angstroms.
-39 - 46        Real(8.3)     y            Orthogonal coordinates for Y in Angstroms.
-47 - 54        Real(8.3)     z            Orthogonal coordinates for Z in Angstroms.
-55 - 60        Real(6.2)     occupancy    Occupancy.
-61 - 66        Real(6.2)     tempFactor   Temperature  factor.
-77 - 78        LString(2)    element      Element symbol, right-justified.
-79 - 80        LString(2)    charge       Charge  on the atom.
-*/
-fn parse_atom(line: &str) -> Result<Particle,CluEError>{
-
-  let serial_result = line[6..=10].trim().parse::<u32>();
-  let x_coor = line[30..=37].trim().parse::<f64>();
-  let y_coor = line[38..=45].trim().parse::<f64>();
-  let z_coor = line[46..=53].trim().parse::<f64>();
-  let element = Element::from(line[76..=77].trim())?;
-  let residue = Some(line[17..=19].trim().to_string());
-  let residue_sequence_number = line[22..=25].trim().parse::<u32>();
- 
-
-
-  let coordinates: Vector3D;
-  if let (Ok(x),Ok(y), Ok(z)) = (x_coor, y_coor, z_coor) {
-    coordinates = Vector3D::from([x*ANGSTROM,y*ANGSTROM,z*ANGSTROM]);
-  }else{
-    return Err(CluEError::CannotParseLine(line.to_string()));
-  }
-
-  let serial: u32;
-  if let Ok(ser) = serial_result{
-    serial = ser;
-  }else{
-    return Err(CluEError::CannotParseLine(line.to_string()));
-  }
-
-  Ok(Particle{
-      element,
-      isotope: Isotope::most_common_for(&element),
-      coordinates,
-      serial: Some(serial),
-      residue,
-      residue_sequence_number: residue_sequence_number.ok(),
-      //exchange_group: None,
-      //exchange_group_id: None,
-      })
-}
-//------------------------------------------------------------------------------
-/*
-COLUMNS       DATA  TYPE      FIELD        DEFINITION
--------------------------------------------------------------------------
- 1 -  6        Record name    "CONECT"
- 7 - 11        Integer        serial       Atom  serial number
-12 - 16        Integer        serial       Serial number of bonded atom
-17 - 21        Integer        serial       Serial  number of bonded atom
-22 - 26        Integer        serial       Serial number of bonded atom
-27 - 31        Integer        serial       Serial number of bonded atom
-*/
-fn parse_connections(conect_line: &str) -> Result<Vec::<u32>,CluEError>{
-  let line = conect_line[6..].trim_end();
-
-  let num = line.len();
-  let n = 5;
-  let mut serials = Vec::<u32>::with_capacity(num/n);
-  let mut idx = 0;
-  while idx < num {
-    let idx_end = usize::min(idx+n,num);
-    let connect: u32; 
-    if let Ok(serial) = line[idx .. idx_end].trim().parse::<u32>(){
-      connect = serial;
-    }else{
-      return Err(CluEError::CannotParseLine(conect_line.to_string() ));
-    }
-    serials.push(connect);
-    idx += n;
-  }
-
-  Ok(serials)
-
-}
-//------------------------------------------------------------------------------
-fn serials_to_indices(serials: Vec::<u32>,bath_particles: &[Particle])
- -> Vec::<usize>
-{
-  let mut indices = Vec::<usize>::with_capacity(serials.len());
-  for (idx,particle) in bath_particles.iter().enumerate(){
-    if let Some(serial) = (*particle).serial{
-      if serials.contains(&serial){
-        indices.push(idx);
-      }
-    }
-  }
-  indices
-}
-//------------------------------------------------------------------------------
-/*
-COLUMNS       DATA  TYPE    FIELD          DEFINITION
--------------------------------------------------------------
- 1 -  6       Record name   "CRYST1"
- 7 - 15       Real(9.3)     a              a (Angstroms).
-16 - 24       Real(9.3)     b              b (Angstroms).
-25 - 33       Real(9.3)     c              c (Angstroms).
-34 - 40       Real(7.2)     alpha          alpha (degrees).
-41 - 47       Real(7.2)     beta           beta (degrees).
-48 - 54       Real(7.2)     gamma          gamma (degrees).
-56 - 66       LString       sGroup         Space  group.
-67 - 70       Integer       z              Z value.
-*/
-fn parse_crystal_line(line: &str) 
+fn read_unit_cell(unit_cell: &pdbtbx::UnitCell)
   -> Result<Vec::<Vector3D>,CluEError>
 {
-  if let (Ok(a),Ok(b),Ok(c),Ok(mut alpha),Ok(mut beta),Ok(mut gamma)) = (
-      line[6..=14].trim().parse::<f64>(),
-      line[15..=23].trim().parse::<f64>(),
-      line[24..=32].trim().parse::<f64>(),
-      line[33..=39].trim().parse::<f64>(),
-      line[40..=46].trim().parse::<f64>(),
-      line[47..=53].trim().parse::<f64>() ){
+    let alpha = unit_cell.alpha()*PI/180.0;
+    let beta = unit_cell.beta()*PI/180.0;
+    let gamma = unit_cell.gamma()*PI/180.0;
 
-    alpha *= PI/180.0;
-    beta *= PI/180.0;
-    gamma *= PI/180.0;
-
-    let a = a*ANGSTROM;
-    let b = b*ANGSTROM;
-    let c = c*ANGSTROM;
+    let a = unit_cell.a()*ANGSTROM;
+    let b = unit_cell.b()*ANGSTROM;
+    let c = unit_cell.c()*ANGSTROM;
 
     let a_vec = Vector3D::from([a, 0.0, 0.0]);
     let b_vec = Vector3D::from([b*f64::cos(gamma), b*f64::sin(gamma), 0.0]);
@@ -314,13 +59,108 @@ fn parse_crystal_line(line: &str)
     let cy = c*(f64::cos(alpha) - f64::cos(beta)*f64::cos(gamma))/f64::sin(gamma);
     let cz = c * f64::sqrt( 1.0 -cx*cx - cy*cy);
     let c_vec = Vector3D::from([cx, cy, cz]);
-  
+
 
     return Ok(vec![a_vec,b_vec,c_vec]);
-  }
-  Err(CluEError::CannotParseLine(line.to_string() ))
 }
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//------------------------------------------------------------------------------
+fn parse_atoms(model: &pdbtbx::Model) -> Result<Vec::<Particle>,CluEError>
+{
+  let mut bath_particles = Vec::<Particle>::with_capacity(model.atom_count());
+
+  for chain in model.chains(){
+    for res in chain.residues(){   
+      for conformer in res.conformers(){
+
+        for atom in conformer.atoms(){
+
+          let serial = atom.serial_number();
+          let Some(elmt) = atom.element() else{
+            return Err(CluEError::AtomDoesNotSpecifyElement(serial))
+          };
+
+          let element = Element::from(&elmt.to_string())?;
+
+          let coordinates = Vector3D::from(
+              [atom.x()*ANGSTROM, atom.y()*ANGSTROM, atom.z()*ANGSTROM]);
+
+          let residue = conformer.name().to_owned();
+
+          let residue_sequence_number = res.serial_number() as u32;
+
+          bath_particles.push(Particle{
+            element,
+            isotope: Isotope::most_common_for(&element),
+            coordinates,
+            serial: Some(serial as u32),
+            residue: Some(residue),
+            residue_sequence_number: Some(residue_sequence_number),
+          });
+        }
+      }
+    }
+  }
+
+  Ok(bath_particles)
+}
+//------------------------------------------------------------------------------
+fn build_connections(pdb: &pdbtbx::PDB) -> Result<AdjacencyList, CluEError>
+{
+  let mut connections = AdjacencyList::with_capacity(pdb.atom_count());
+  
+  let mut idx0 = 0;
+  for atom0 in pdb.atoms(){
+    let mut idx1 = 0;
+    let n0 = atom0.serial_number();
+    
+    for atom1 in pdb.atoms(){
+      if idx1 >= idx0 { break; }
+
+
+      let are_connected = are_atoms_connected(atom0,atom1, pdb)?;
+      if are_connected{
+        connections.connect(idx1,idx0);
+      }
+
+      idx1 += 1;
+    }
+
+    idx0 += 1;
+  }
+  Ok(connections)
+}
+//------------------------------------------------------------------------------
+fn are_atoms_connected(atom0: &pdbtbx::Atom, atom1: &pdbtbx::Atom,
+    pdb: &pdbtbx::PDB) -> Result<bool,CluEError> 
+{
+  
+  let r: f64;
+  if let Some(unit_cell) = &pdb.unit_cell{
+    r = atom0.distance_wrapping(atom1,unit_cell);
+  }else{
+    r = atom0.distance(atom1);
+  };
+
+  let Some(elmt0) = atom0.element() else{
+    let serial = atom0.serial_number();
+    return Err(CluEError::AtomDoesNotSpecifyElement(serial))
+  };
+  let r0 = elmt0.atomic_radius().covalent_single;
+
+  let Some(elmt1) = atom1.element() else{
+    let serial = atom1.serial_number();
+    return Err(CluEError::AtomDoesNotSpecifyElement(serial))
+  };
+  let r1 = elmt1.atomic_radius().covalent_single;
+
+  const TOLERANCE: f64 = 0.1; 
+  let are_connected = r <= (r0+r1)*(1.0 + TOLERANCE);
+
+  Ok(are_connected)
+}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -330,8 +170,8 @@ mod tests {
   #[test]
   fn test_parse_pdb(){
     let filename = "./assets/TEMPO.pdb";
-    let file = std::fs::read_to_string(filename).unwrap();
-    let structures = parse_pdb(&file).unwrap();
+    //let file = std::fs::read_to_string(filename).unwrap();
+    let structures = parse_pdb(&filename).unwrap();
 
     assert_eq!(structures.len(),1);
     assert_eq!(structures[0].bath_particles.len(),29);

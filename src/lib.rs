@@ -33,7 +33,15 @@ pub fn run(config: Config) -> Result<(),CluEError>{
     None => rng = ChaCha20Rng::from_entropy(),
   }
 
-
   Ok(())
+}
+pub fn run_test(){
+
+  let paths = std::fs::read_dir("./").unwrap();
+  let filename = "./assets/TEMPO_3gly_1npr_50A.pdb";
+  //let filename = "./assets/TEMPO.pdb";
+  let mut structures = structure::pdb::parse_pdb(&filename).unwrap();
+  println!("path = {:?}",paths);
+
 }
 

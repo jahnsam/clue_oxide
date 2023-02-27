@@ -26,6 +26,7 @@ impl Structure{
     // TODO: reduce calls to pair_particle_configs().
     self.pair_particle_configs(config);
 
+    // TODO: slow for large systems.
     self.find_cosubstitution_groups(config); // TODO: where should this line go?
 
     // For particles that are to either be kept or dropped entirely,
@@ -272,10 +273,10 @@ mod tests{
   use crate::physical_constants::{Element,Isotope};
 
   #[test]
-  fn test_build_extended_structure(){
+  fn test_build_extended_structure_TEMPO(){
     let filename = "./assets/TEMPO.pdb";
-    let file = std::fs::read_to_string(filename).unwrap();
-    let mut structures = pdb::parse_pdb(&file).unwrap();
+    //let file = std::fs::read_to_string(filename).unwrap();
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
 
     let mut particle_configs =vec![ParticleConfig::new("hydrogen".to_string())];
 
@@ -327,5 +328,64 @@ mod tests{
     assert_eq!(n_h1+n_h2,125*18);
     
   }
+  //----------------------------------------------------------------------------
+  // TODO: Particles appear to eing duplicated: 
+  // there should be 13891, but there are 14266057, a factor  of 1027.
+  #[test]
+  fn test_build_extended_structure_TEMPOi_3gly_1npr(){
+    let filename = "./assets/TEMPO_3gly_1npr_50A.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    assert_eq!(structures[0].bath_particles.len(),13891);
 
+    let mut particle_configs =vec![ParticleConfig::new("hydrogen".to_string())];
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Hydrogen];
+    particle_configs[0].filter = Some(filter);
+    
+    let mut properties = ParticleProperties::new();
+    properties.isotopic_distribution.isotope_abundances.push(
+        IsotopeAbundance{isotope: Isotope::Hydrogen1, abundance: 0.5});
+    properties.isotopic_distribution.isotope_abundances.push(
+        IsotopeAbundance{isotope: Isotope::Hydrogen2, abundance: 0.5});
+
+    particle_configs[0].properties = Some(properties);
+    
+    let mut config = Config::new();
+    config.particles = particle_configs;
+    config.radius = Some(7.35676e-10);
+
+
+    structures[0].build_primary_structure(&config);
+    let num_particles = structures[0].bath_particles.len();
+
+    let mut rng =  ChaCha20Rng::from_entropy();
+
+    let mut structure = structures[0].clone();
+    structure.build_extended_structure(&mut rng, &config);
+    /*
+
+    // Test: set_cell_shifts().
+    assert_eq!(structure.cell_offsets.len(),125);
+
+    // Test: extend_structure().
+    assert_eq!(structure.bath_particles.len(),125*num_particles);
+
+    // Test: set_isotopologue().
+    let mut n_h1 = 0;
+    let mut n_h2 = 0;
+    for particle in structure.bath_particles.iter(){
+      if (*particle).isotope == Isotope::Hydrogen1{
+        n_h1 += 1;
+      }else if (*particle).isotope == Isotope::Hydrogen2{
+        n_h2 += 1; 
+      }
+    }
+    assert!(n_h1 >= 1000);
+    assert!(n_h1 <= 1200);
+    assert!(n_h2 >= 1000);
+    assert!(n_h2 <= 1200);
+    assert_eq!(n_h1+n_h2,125*18);
+    */
+  }
 }

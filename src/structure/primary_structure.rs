@@ -224,8 +224,8 @@ mod tests{
   #[test]
   fn test_build_primary_structure_TEMPO(){
     let filename = "./assets/TEMPO.pdb";
-    let file = std::fs::read_to_string(filename).unwrap();
-    let mut structures = pdb::parse_pdb(&file).unwrap();
+    //let file = std::fs::read_to_string(filename).unwrap();
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
 
     let config = Config::new();
 
