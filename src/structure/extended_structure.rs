@@ -329,10 +329,10 @@ mod tests{
     
   }
   //----------------------------------------------------------------------------
-  // TODO: Particles appear to eing duplicated: 
-  // there should be 13891, but there are 14266057, a factor  of 1027.
+  // TODO: set non-exchangeable hydrons as cosubstitution groups.
+  // TODO: set extra-cell non-protons to voids.
   #[test]
-  fn test_build_extended_structure_TEMPOi_3gly_1npr(){
+  fn test_build_extended_structure_TEMPO_3gly_1npr(){
     let filename = "./assets/TEMPO_3gly_1npr_50A.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     assert_eq!(structures[0].bath_particles.len(),13891);
@@ -353,23 +353,24 @@ mod tests{
     
     let mut config = Config::new();
     config.particles = particle_configs;
-    config.radius = Some(7.35676e-10);
+    config.radius = Some(73.5676e-10);
+    let n_uc = 125;
 
 
     structures[0].build_primary_structure(&config);
     let num_particles = structures[0].bath_particles.len();
+    assert_eq!(num_particles,13891);
 
     let mut rng =  ChaCha20Rng::from_entropy();
 
     let mut structure = structures[0].clone();
     structure.build_extended_structure(&mut rng, &config);
-    /*
 
     // Test: set_cell_shifts().
-    assert_eq!(structure.cell_offsets.len(),125);
+    assert_eq!(structure.cell_offsets.len(),n_uc);
 
     // Test: extend_structure().
-    assert_eq!(structure.bath_particles.len(),125*num_particles);
+    assert_eq!(structure.bath_particles.len(),n_uc*num_particles);
 
     // Test: set_isotopologue().
     let mut n_h1 = 0;
@@ -381,11 +382,14 @@ mod tests{
         n_h2 += 1; 
       }
     }
-    assert!(n_h1 >= 1000);
-    assert!(n_h1 <= 1200);
-    assert!(n_h2 >= 1000);
-    assert!(n_h2 <= 1200);
-    assert_eq!(n_h1+n_h2,125*18);
-    */
+    let n_hydrogens = (18 + 775*8 + 251*8);
+    let n_hydrogens_uc = n_uc*n_hydrogens;
+    let n_up = 3*n_hydrogens_uc/5;  
+    let n_low = 2*n_hydrogens_uc/5;  
+    assert!(n_h1 >= n_low);
+    assert!(n_h1 <= n_up);
+    assert!(n_h2 >= n_low);
+    assert!(n_h2 <= n_up);
+    assert_eq!(n_h1+n_h2,n_hydrogens_uc);
   }
 }

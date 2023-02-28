@@ -141,12 +141,14 @@ impl Structure{
     let mut current_cosub_id = 0;
 
 
+    // Loop through bath particles.
     for (idx,particle) in self.bath_particles.iter().enumerate(){
 
+      // Check if there are custom properties for this particle.
       let Some(id) = self.particle_config_ids[idx] else{continue;};
-
       let Some(properties) = &config.particles[id].properties else{continue;}; 
     
+      // Check if this particle has a filter.
       let mut filter: ParticleFilter;
       if let Some(fltr) = &config.particles[id].filter{
         filter= fltr.clone();
@@ -154,7 +156,7 @@ impl Structure{
         filter = ParticleFilter::new();
       }
 
-      // cosubstitutions
+      // Set cosubstitution group for this particle.
       update_cosubstitution_ids(&mut cosubstitution_group_ids, 
         idx, current_cosub_id, filter.clone(),properties,self)?;
       current_cosub_id += 1;
@@ -167,10 +169,16 @@ impl Structure{
       if *opt == None{ n_none += 1;}
     }
 
-    // TODO: This loop is slow for large systems.
     // cosubstitutions
+    let n_groups = n_none + current_cosub_id;
     let mut cosubstitution_groups 
-      = Vec::<Vec::<usize>>::with_capacity(n_none + current_cosub_id);
+      = Vec::<Vec::<usize>>::with_capacity(n_groups);
+    for ii in 0..current_cosub_id{
+      cosubstitution_groups.push(Vec::<usize>::new());
+    }
+
+    /*
+    // TODO: This loop is slow for large systems.
     for ii in 0..current_cosub_id{
       let vec_indices = cosubstitution_group_ids.iter().enumerate()
         .filter(|(_, &r)| r == Some(ii))
@@ -178,6 +186,16 @@ impl Structure{
 
       cosubstitution_groups.push(vec_indices);
 
+    }
+    */
+    // TODO: this loop appears to be a faster version.  
+    // Delete above loop after testing.
+    for (ii,id_option) in cosubstitution_group_ids.iter().enumerate(){
+      if let Some(id) = id_option{
+        cosubstitution_groups[*id].push(ii);
+      }else{
+        cosubstitution_groups.push(vec![ii]);
+      }
     }
 
     
@@ -204,16 +222,26 @@ fn update_cosubstitution_ids(
     structure: &Structure)
     -> Result<(),CluEError>
   {
+      // Check if properties defines a cosubstitution set.
       if let Some(cosubstitute) = &properties.cosubstitute{
+
+        // Augment filter with criteria specific to particle idx.
         filter.augment_filter(idx,&cosubstitute,structure)?;
+
+        // Find all particle indices that fit the criteria.
         let indices = filter.filter(structure);
+
+        // Loop through all particles found.
         for index in indices.iter(){
+          // Ensure the particle is not part of a different group.
           if cosubstitution_group_ids[*index]==None{
             return Err(CluEError::MultipleCosubstitutionGroups(*index));
           }
+          // Assign the particle to this cosubstitution group.
           cosubstitution_group_ids[*index] = Some(current_cosub_id)
         }
       }else{
+        // Put the particle in a cosubstitution group by itself.
         cosubstitution_group_ids[idx] = Some(current_cosub_id)
       }
     Ok(())  
