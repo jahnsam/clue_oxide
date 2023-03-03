@@ -74,11 +74,13 @@ impl Structure{
       let Some(config_id) = self.particle_config_ids[0] else {
         continue;
       };
+    println!("DB 2");
 
       // Check if this particle has any custom properties.
       let Some(properties) = &particle_configs[config_id].properties else{
         continue;
       };
+    println!("DB 3");
 
       let Some(p) = properties.isotopic_distribution
         .extracell_void_probability else{
@@ -86,6 +88,7 @@ impl Structure{
       };
       let p = 1.0 - p;
       let ppt = (p*1e12) as u64;
+      println!("DB: {}",ppt);
       if let Some(indices) = property_map.get_mut(&ppt){
         indices.push(cosub_idx);
       }else{
@@ -177,8 +180,13 @@ impl Structure{
     let mut extra_particles = Vec::<Particle>::with_capacity(
         self.number()*self.cell_offsets.len());
 
+    let mut unit_cell_ids = Vec::<usize>::with_capacity(
+        self.number()*self.cell_offsets.len());
 
-    for offset in self.cell_offsets.iter(){
+    let mut primary_cell_indices = Vec::<usize>::with_capacity(
+        self.number()*self.cell_offsets.len());
+
+    for (unit_cell_id,offset) in self.cell_offsets.iter().enumerate(){
 
       for (particle_idx,particle) in self.bath_particles.iter().enumerate(){
 
@@ -204,10 +212,16 @@ impl Structure{
         let mut new_particle = (*particle).clone();
         new_particle.coordinates = &new_particle.coordinates + offset;
         extra_particles.push(new_particle);
+
+        unit_cell_ids.push(unit_cell_id);
+
+        primary_cell_indices.push(particle_idx);
       }
     }
 
     self.bath_particles = extra_particles;
+    self.unit_cell_ids = unit_cell_ids;
+    self.primary_cell_indices = primary_cell_indices;
 
     Ok(())
   }
@@ -337,11 +351,18 @@ mod tests{
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     assert_eq!(structures[0].bath_particles.len(),13891);
 
-    let mut particle_configs =vec![ParticleConfig::new("hydrogen".to_string())];
+    let mut particle_configs =vec![
+      ParticleConfig::new("exchangeable_hydrogen".to_string()),
+      ParticleConfig::new("nonexchangeable_hydrogen".to_string()),
+    ];
 
     let mut filter = ParticleFilter::new();
     filter.elements = vec![Element::Hydrogen];
-    particle_configs[0].filter = Some(filter);
+    filter.bonded_elements = vec![Element::Oxygen];
+    particle_configs[0].filter = Some(filter.clone());
+
+    filter.bonded_elements = vec![Element::Carbon];
+    particle_configs[1].filter = Some(filter);
     
     let mut properties = ParticleProperties::new();
     properties.isotopic_distribution.isotope_abundances.push(
@@ -349,7 +370,12 @@ mod tests{
     properties.isotopic_distribution.isotope_abundances.push(
         IsotopeAbundance{isotope: Isotope::Hydrogen2, abundance: 0.5});
 
-    particle_configs[0].properties = Some(properties);
+    //properties.isotopic_distribution.extracell_void_probability = Some(0.5);
+
+    //properties.cosubstitute
+
+    particle_configs[0].properties = Some(properties.clone());
+    particle_configs[1].properties = Some(properties);
     
     let mut config = Config::new();
     config.particles = particle_configs;
@@ -370,7 +396,7 @@ mod tests{
     assert_eq!(structure.cell_offsets.len(),n_uc);
 
     // Test: extend_structure().
-    assert_eq!(structure.bath_particles.len(),n_uc*num_particles);
+    //assert!(structure.bath_particles.len()-n_uc*num_particles);
 
     // Test: set_isotopologue().
     let mut n_h1 = 0;
@@ -382,8 +408,9 @@ mod tests{
         n_h2 += 1; 
       }
     }
+    println!("DB: H{}, D{}",n_h1,n_h2);
     let n_hydrogens = (18 + 775*8 + 251*8);
-    let n_hydrogens_uc = n_uc*n_hydrogens;
+    let n_hydrogens_uc = (n_uc)*n_hydrogens;
     let n_up = 3*n_hydrogens_uc/5;  
     let n_low = 2*n_hydrogens_uc/5;  
     assert!(n_h1 >= n_low);

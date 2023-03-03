@@ -21,13 +21,27 @@ impl Structure{
   // This method sets self.bath_spins_indices so that each element corresponds
   // to an element of self_bath_particles that has the potential to have a spin.
   fn set_spins(&mut self,config: &Config){
+    
+
+    let n_particles = self.bath_particles.len();
+    self.primary_cell_indices = Vec::<usize>::with_capacity(n_particles);
+    self.unit_cell_ids = Vec::<usize>::with_capacity(n_particles);
+    
+    for idx in 0..n_particles{
+      self.primary_cell_indices.push(idx);
+      self.unit_cell_ids.push(0);
+    }
+
     self.pair_particle_configs(config);
 
     // Find spins.
     let n_spins = self.count_spins(config);
+
     self.bath_spins_indices = Vec::<usize>::with_capacity(n_spins);
 
+
     for (idx, particle) in self.bath_particles.iter().enumerate(){
+
 
       if particle.isotope.spin_multiplicity() <= 1 { continue; }
 

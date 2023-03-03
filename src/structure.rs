@@ -51,6 +51,8 @@ pub struct Structure{
   cosubstitution_groups: Vec::< Vec::<usize> >,
   exchange_groups: Option<ExchangeGroupManager>,
   particle_config_ids: Vec::<Option<usize>>,
+  unit_cell_ids: Vec::<usize>,
+  primary_cell_indices: Vec::<usize>,
 }
 
 impl Structure{
@@ -71,6 +73,8 @@ impl Structure{
       cosubstitution_groups: Vec::<Vec::<usize>>::new(),
       exchange_groups: None,
       particle_config_ids: Vec::<Option<usize>>::new(),
+      unit_cell_ids: Vec::<usize>::new(),
+      primary_cell_indices: Vec::<usize>::new(),
     }
 
   }

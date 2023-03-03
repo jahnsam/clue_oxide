@@ -122,6 +122,36 @@ impl ParticleFilter{
         }
       }
 
+      let idx0 = structure.primary_cell_indices[idx];
+
+      // Bonded Elements
+      let mut pass = self.bonded_elements.is_empty();
+      for bonded_element in self.bonded_elements.iter(){ 
+        let Some(neighbors) = structure.connections.get_neighbors(idx0) else{
+          break;
+        };
+        for neighbor_idx in neighbors{
+          if particles[*neighbor_idx].element == *bonded_element{
+            pass = true;
+            break;
+          }
+        } 
+      }
+      if !pass{  return None;}
+
+      
+      // Not Bonded Elements
+      for not_bonded_element in self.not_bonded_elements.iter(){ 
+        let Some(neighbors) = structure.connections.get_neighbors(idx0) else{
+          break;
+        };
+        for neighbor_idx in neighbors{
+          if particles[*neighbor_idx].element == *not_bonded_element{
+            return None;
+          }
+        } 
+      }
+
       
 
       Some(idx)
