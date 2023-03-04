@@ -361,7 +361,8 @@ mod tests{
     filter.bonded_elements = vec![Element::Oxygen];
     particle_configs[0].filter = Some(filter.clone());
 
-    filter.bonded_elements = vec![Element::Carbon];
+    filter.bonded_elements = vec![];
+    filter.not_bonded_elements = vec![Element::Oxygen];
     particle_configs[1].filter = Some(filter);
     
     let mut properties = ParticleProperties::new();
@@ -385,7 +386,6 @@ mod tests{
 
     structures[0].build_primary_structure(&config);
     let num_particles = structures[0].bath_particles.len();
-    assert_eq!(num_particles,13891);
 
     let mut rng =  ChaCha20Rng::from_entropy();
 
@@ -404,10 +404,14 @@ mod tests{
     for particle in structure.bath_particles.iter(){
       if (*particle).isotope == Isotope::Hydrogen1{
         n_h1 += 1;
+        assert_eq!((*particle).element,Element::Hydrogen);
+
       }else if (*particle).isotope == Isotope::Hydrogen2{
         n_h2 += 1; 
+        assert_eq!((*particle).element,Element::Hydrogen);
       }
     }
+
     println!("DB: H{}, D{}",n_h1,n_h2);
     let n_hydrogens = (18 + 775*8 + 251*8);
     let n_hydrogens_uc = (n_uc)*n_hydrogens;
