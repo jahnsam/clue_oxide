@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn find_clusters(
-    adjacency_list: AdjacencyList, 
+    adjacency_list: &AdjacencyList, 
     max_size: usize) 
   -> Result< Vec::<HashMap::<Vec::<usize>,Cluster>>, CluEError>
 {
@@ -17,6 +17,7 @@ pub fn find_clusters(
 
   let vertices = adjacency_list.get_active_vertices();
   let mut one_clusters = HashMap::new(); 
+
   // Identify all 1-clusters, as those with adjacency_matrix[[ii,ii]] == true.
   for vertex in vertices.into_iter(){
 
@@ -34,9 +35,9 @@ pub fn find_clusters(
     if let Ok(n_clusters)
      = build_n_clusters(&mut clusters[clu_size -1],&adjacency_list){
       clusters.push(n_clusters);
-      }else{
+    }else{
         return Err(CluEError::NoClustersOfSize(clu_size+1));
-      }
+    }
 
 
   }
@@ -52,6 +53,9 @@ fn build_n_clusters(
 {
 
   let mut new_clusters = HashMap::new();
+  if n_minus_1_clusters.is_empty(){ 
+    return Ok(new_clusters);
+  }
 
   for (indices, _cluster) in n_minus_1_clusters {
 
@@ -132,7 +136,9 @@ mod tests{
     cube.connect(2,6);
     cube.connect(3,7);
 
-    let clusters = find_clusters(cube,8).unwrap();
+    let mut clusters = find_clusters(&cube,9).unwrap();
+    assert!(clusters[8].is_empty());
+    clusters.pop();
     assert_eq!(clusters.len(),8);
 
     assert_eq!(clusters[0].len(), 8);
@@ -399,7 +405,7 @@ mod tests{
     square.connect(2,3);
     square.connect(3,0);
     
-    let mut clusters = find_clusters(square,4).unwrap();
+    let mut clusters = find_clusters(&square,4).unwrap();
     remove_subclusters_of(&mut clusters, &Cluster::from(vec![0,1]));
 
     let one_clusters = vec![

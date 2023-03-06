@@ -74,13 +74,18 @@ impl AdjacencyList{
     None
   }
   //----------------------------------------------------------------------------
-  pub fn get_active_vertices(&self) -> Vec::<usize>{
+  pub fn n_active_vertices(&self) -> usize{
     let mut counter = 0;
     for ii in 0..self.len(){
       if let Some(_) = self.list[ii]{
         counter += 1;
       }
     }
+    counter
+  }
+  //----------------------------------------------------------------------------
+  pub fn get_active_vertices(&self) -> Vec::<usize>{
+    let counter = self.n_active_vertices();
 
     let mut vertices = Vec::<usize>::with_capacity(counter);
 

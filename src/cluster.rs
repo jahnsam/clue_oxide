@@ -1,6 +1,7 @@
 use crate::signal::Signal;
 
 pub mod adjacency;
+pub mod connected_subgraphs;
 pub mod find_clusters;
 pub mod get_subclusters;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -64,6 +65,10 @@ impl Cluster{
     }
     false
   }
+  //----------------------------------------------------------------------------
+  pub fn vertices(&self) -> &Vec::<usize>{
+    &self.vertices
+  } 
 }
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
