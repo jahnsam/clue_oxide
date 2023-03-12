@@ -342,6 +342,12 @@ mod tests{
     assert_eq!(n_h1+n_h2,125*18);
     
   }
+  #[test]
+  fn test_build_extended_structure_TEMPO_wat_gly_70A(){
+    let filename = "./assets/TEMPO_wat_gly_70A.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    assert_eq!(structures[0].bath_particles.len(),50905);
+  }
   //----------------------------------------------------------------------------
   // TODO: set non-exchangeable hydrons as cosubstitution groups.
   // TODO: set extra-cell non-protons to voids.
