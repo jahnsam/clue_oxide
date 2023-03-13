@@ -67,6 +67,7 @@ fn read_unit_cell(unit_cell: &pdbtbx::UnitCell)
 fn parse_atoms(model: &pdbtbx::Model) -> Result<Vec::<Particle>,CluEError>
 {
   let mut bath_particles = Vec::<Particle>::with_capacity(model.atom_count());
+  let mut n_parse_failures = 0;
 
   for chain in model.chains(){
     for res in chain.residues(){   
@@ -76,7 +77,9 @@ fn parse_atoms(model: &pdbtbx::Model) -> Result<Vec::<Particle>,CluEError>
 
           let serial = atom.serial_number();
           let Some(elmt) = atom.element() else{
-            return Err(CluEError::AtomDoesNotSpecifyElement(serial))
+            n_parse_failures += 1;
+            continue;
+            //return Err(CluEError::AtomDoesNotSpecifyElement(serial))
           };
 
           let element = Element::from(&elmt.to_string())?;
@@ -101,15 +104,24 @@ fn parse_atoms(model: &pdbtbx::Model) -> Result<Vec::<Particle>,CluEError>
     }
   }
 
+  if n_parse_failures > 0 {
+    println!("Warning, {} atoms could not be parsed.", n_parse_failures);
+  }
+
   Ok(bath_particles)
 }
 //------------------------------------------------------------------------------
 fn build_connections(pdb: &pdbtbx::PDB) -> Result<AdjacencyList, CluEError>
 {
   let mut connections = AdjacencyList::with_capacity(pdb.atom_count());
+
+  let mut n_connections_to_invalid_atoms = 0;
   
   let mut idx0 = 0;
   for atom0 in pdb.atoms(){
+    if atom0.element() == None{
+      continue;
+    }
     let mut idx1 = 0;
     let n0 = atom0.serial_number();
     
@@ -117,7 +129,13 @@ fn build_connections(pdb: &pdbtbx::PDB) -> Result<AdjacencyList, CluEError>
       if idx1 >= idx0 { break; }
 
 
-      let are_connected = are_atoms_connected(atom0,atom1, pdb)?;
+      let are_connected: bool;
+      match are_atoms_connected(atom0,atom1, pdb){
+        Ok(connected_status) => are_connected = connected_status,
+        Err(CluEError::AtomDoesNotSpecifyElement(serial)) => continue,
+        Err(err) => return Err(err),
+      }
+
       if are_connected{
         connections.connect(idx1,idx0);
       }
@@ -127,6 +145,7 @@ fn build_connections(pdb: &pdbtbx::PDB) -> Result<AdjacencyList, CluEError>
 
     idx0 += 1;
   }
+
   Ok(connections)
 }
 //------------------------------------------------------------------------------

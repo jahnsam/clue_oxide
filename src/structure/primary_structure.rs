@@ -2,15 +2,19 @@ use crate::structure::{Structure, exchange_groups::*};
 use crate::config::Config;
 use crate::space_3d;
 use crate::physical_constants::Element;
+use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
 
 impl Structure{
   /// This method uses an input `Config` to set the structure's
   /// spins and exchange groups.  The number of bath particle is unchanged.
   pub fn build_primary_structure(&mut self, config: &Config){
 
+    (self.molecules, self.molecule_ids)  =
+      separate_into_connected_subgraphs(&self.connections);
+
     // TODO: one PBC on each side should be used to ensure reconect_bonds()
     // does not take a spin out of range.
-    self.reconnect_bonds();
+    //self.reconnect_bonds();
 
     self.set_spins(config);
 
