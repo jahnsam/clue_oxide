@@ -98,6 +98,30 @@ impl Structure{
     out
   }
   //----------------------------------------------------------------------------
+  pub fn molecule_id(&self,idx: usize) -> usize{
+
+    let idx0 = self.primary_cell_indices[idx];
+    //let cell_id = self.unit_cell_ids[idx];
+   
+    let mol_id = self.molecule_ids[idx0];// + cell_id*self.molecules.len();
+
+    mol_id
+  }
+  //----------------------------------------------------------------------------
+  /*
+  pub fn molecule(&self,mol_id: usize) -> Vec::<usize>{
+    let mol_id0 = mol_id%self.molecules.len();
+    let cell_id = (mol_id-mol_id0)/self.molecules.len();
+
+    let mut molecule = self.molecules[mol_id0].clone();
+
+    for idx in molecule.iter_mut(){
+      idx = 
+    }
+
+  }
+  */
+  //----------------------------------------------------------------------------
   // This function searches the user specified particle configuration (if any),
   // and determines which one each particle goes with.
   // Since multiple filters may cover the same particle, 

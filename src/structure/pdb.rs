@@ -149,6 +149,8 @@ fn build_connections(pdb: &pdbtbx::PDB) -> Result<AdjacencyList, CluEError>
   Ok(connections)
 }
 //------------------------------------------------------------------------------
+// TODO: TOLERANCE is eirther too big or too small.
+// TODO: read CONECT from PDB (use this as back-up only).
 fn are_atoms_connected(atom0: &pdbtbx::Atom, atom1: &pdbtbx::Atom,
     pdb: &pdbtbx::PDB) -> Result<bool,CluEError> 
 {

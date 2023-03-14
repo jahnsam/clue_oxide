@@ -343,9 +343,18 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_build_extended_structure_TEMPO_wat_gly_70A(){
-    // 1 TEMPO
-    // 1500 glycerols
-    // 7469 waters
+    // n    : Molecules    : Hydrons 
+    // 1    : TEMPO        :    18
+    // 1500 : glycerols    : 12000
+    // 7469 : waters       : 14938
+    //
+    // total hydrons =  26956.
+    //
+    let n_wat = 7469;
+    let n_gly = 1500;
+    let n_ex = 2*n_wat + 3*n_gly; 
+    let n_nx = 5*n_gly + 18;
+
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     assert_eq!(structures[0].bath_particles.len(),43436);
@@ -385,10 +394,23 @@ mod tests{
     structures[0].build_primary_structure(&config);
     let num_particles = structures[0].bath_particles.len();
 
+    assert_eq!(structures[0].molecules[0].len(),29);
+    for ii in 1..=1500{
+      assert_eq!(structures[0].molecules[ii].len(),14);
+    }
+    for ii in 1501..num_particles{
+      assert_eq!(structures[0].molecules[ii].len(),3);
+    }
+
+    
+
     let mut rng =  ChaCha20Rng::from_entropy();
 
     let mut structure = structures[0].clone();
     structure.build_extended_structure(&mut rng, &config);
+
+    assert_eq!(structure.cell_offsets.len(),n_uc);
+    assert_eq!(structure.bath_particles.len(),n_uc*num_particles);
 
 
 
@@ -396,6 +418,10 @@ mod tests{
     let [n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
       get_conditional_hydron_stats(&structure,&filter_ex);
 
+    println!("DB: {}, {}, {}, {}, {} ",
+        n_h1_h1 , n_h1_h2 , n_h2_h1 ,  n_h2_h2 , n_mol);
+    let n_h = n_h1_h1 + n_h1_h2 + n_h2_h1 +  n_h2_h2 + n_mol;
+    assert_eq!(n_h,n_uc*n_ex);
     assert!(n_h1_h1>0);
     assert!(n_h2_h2>0);
     assert!(n_h2_h1>0);
@@ -404,6 +430,8 @@ mod tests{
     let [n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
       get_conditional_hydron_stats(&structure,&filter_nx);
 
+    let n_h = n_h1_h1 + n_h1_h2 + n_h2_h1 +  n_h2_h2 + n_mol;
+    assert_eq!(n_h,n_uc*n_nx);
     assert!(n_h1_h1>0);
     assert!(n_h2_h2>0);
     assert_eq!(n_h2_h1,0);
@@ -432,17 +460,23 @@ mod tests{
 
     let mut is_ref_proton = true;
     let mut ref_mol_id = 1000000;
+    let mut ref_cell_id = 1000000;
 
     let indices = filter.filter(structure);
 
     for idx in indices{
       let particle = &structure.bath_particles[idx];
 
-      let mol_id = structure.molecule_ids[idx];
+      let mol_id = structure.molecule_id(idx);
+      let cell_id = structure.unit_cell_ids[idx];
       let is_proton = (*particle).isotope == Isotope::Hydrogen1;
+      let is_deuteron = (*particle).isotope == Isotope::Hydrogen2;
 
-      if mol_id != ref_mol_id{
+      if !is_proton && !is_deuteron{ continue; }
+
+      if mol_id != ref_mol_id || cell_id != ref_cell_id{
         ref_mol_id = mol_id;
+        ref_cell_id = cell_id;
         is_ref_proton = is_proton;
         n_mol += 1;
         continue;
