@@ -124,7 +124,7 @@ fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize)
            if let Some(value) = unknown_elements.get_mut(&unk_el){
              *value += 1;
            }else{
-             unknown_elements.insert(unk_el,0);
+             unknown_elements.insert(unk_el,1);
            }
            continue;
          }

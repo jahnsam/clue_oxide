@@ -216,3 +216,60 @@ pub enum VectorSpecifier{
   Vector(Vector3D)
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+#[cfg(test)]
+mod tests{
+  use super::*;
+  use crate::structure::parse_pdb as pdb;
+  use crate::structure::primary_structure;
+  use crate::Config;
+
+  #[test]
+  fn test_filter(){
+    let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let config = Config::new();
+    let structure = &mut structures[0];
+    structure.build_primary_structure(&config);
+
+  
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Oxygen];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![28,32,36,41,43]);
+
+    let mut filter = ParticleFilter::new();
+    filter.not_elements = vec![Element::Hydrogen,Element::Carbon];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![27,28,32,36,41,43]);
+
+    let mut filter = ParticleFilter::new();
+    filter.serials = vec![28,29];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![27,28]);
+
+    let mut filter = ParticleFilter::new();
+    filter.bonded_elements = vec![Element::Oxygen];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![27,29,33,34,37,38,42,44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.not_bonded_elements = vec![Element::Carbon];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![28,33,37,42,43,44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Hydrogen];
+    filter.bonded_elements = vec![Element::Oxygen];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![33,37,42,44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Hydrogen];
+    filter.not_bonded_elements = vec![Element::Oxygen];
+    let indices = filter.filter(structure);
+    assert_eq!(indices.len(),23);
+    assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26,
+    30,31,35,39,40]);
+  }
+}
