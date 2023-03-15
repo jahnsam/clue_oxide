@@ -236,7 +236,7 @@ impl Structure{
 #[cfg(test)]
 mod tests{
   use super::*;
-  use crate::structure::pdb;
+  use crate::structure::parse_pdb as pdb;
   use crate::config::Config;
 
   #[test]
@@ -276,6 +276,36 @@ mod tests{
       assert_eq!(*id,ids[idx]);
     }
 
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_build_primary_structure_TEMPO_wat_gly_70A(){
+    // n    : Molecules    : Hydrons
+    // 1    : TEMPO        :    18
+    // 1500 : glycerols    : 12000
+    // 7469 : waters       : 14938
+    //
+    // total hydrons =  26956.
+    //
+    let n_wat = 7469;
+    let n_gly = 1500;
+    let n_ex = 2*n_wat + 3*n_gly;
+    let n_nx = 5*n_gly + 18;
+
+    let filename = "./assets/TEMPO_wat_gly_70A.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    
+    let config = Config::new();
+    structures[0].build_primary_structure(&config);
+    let num_particles = structures[0].bath_particles.len();
+    
+    assert_eq!(structures[0].molecules[0].len(),29);
+    for ii in 1..=1500{
+      assert_eq!(structures[0].molecules[ii].len(),14);
+    }
+    for ii in 1501..num_particles{
+      assert_eq!(structures[0].molecules[ii].len(),3);
+    }
   }
 }
 

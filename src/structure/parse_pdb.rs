@@ -13,27 +13,11 @@ pub fn parse_pdb(filename: &str) -> Result< Vec::<Structure>, CluEError>{
    
    let (bath_particles_sets, serial_to_index) 
      = parse_atoms(filename, n_atoms,n_models)?;
-   let mut connections = AdjacencyList::with_capacity(n_atoms);
-   let mut cell_offsets = Vec::<Vector3D>::new();
+
+   let connections = parse_connections(filename,n_atoms,serial_to_index)?;
+
+   let cell_offsets = parse_cell(filename)?;
    
-   let Ok(file) = std::fs::File::open(filename) else{
-     return Err(CluEError::CannotOpenFile(filename.to_string()));
-   };
-   let lines = std::io::BufReader::new(file).lines();
-
-
-   for line_result in lines {
-     let Ok(line) = line_result else{
-       return Err(CluEError::CannotOpenFile(filename.to_string()));
-     };
-     if line.contains("CONECT"){
-       let a = parse_connections(&line);
-     }else if line.contains("CRYST1"){
-       let a = parse_crystal_line(&line)?;
-     }
-   }
-    
-
   let mut structures = Vec::<Structure>::with_capacity(n_models);
   for bath_particles in bath_particles_sets{
     structures.push(Structure::new(
@@ -45,10 +29,76 @@ pub fn parse_pdb(filename: &str) -> Result< Vec::<Structure>, CluEError>{
   Ok(structures)
 }
 //------------------------------------------------------------------------------
-fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize) 
-  -> Result<(Vec::<Vec::<Particle>>, HashMap::<u32,usize>),CluEError>
+fn parse_cell(filename: &str) -> Result<Vec::<Vector3D>,CluEError>
 {
-   let mut serial_to_index = HashMap::<u32,usize>::new(); 
+
+   let mut cell_offsets = Vec::<Vector3D>::new();
+
+   let Ok(file) = std::fs::File::open(filename) else{
+     return Err(CluEError::CannotOpenFile(filename.to_string()));
+   };
+   let lines = std::io::BufReader::new(file).lines();
+
+
+   for line_result in lines {
+     let Ok(line) = line_result else{
+       return Err(CluEError::CannotOpenFile(filename.to_string()));
+     };
+     if line.contains("CRYST1"){
+       cell_offsets = parse_crystal_line(&line)?;
+       break;
+     }
+   }
+    
+  Ok(cell_offsets)
+}
+//------------------------------------------------------------------------------
+fn parse_connections(filename: &str ,n_atoms: usize,
+    serial_to_index: HashMap::<u32,Option<usize>>) 
+  -> Result<AdjacencyList,CluEError>
+{
+   let mut connections = AdjacencyList::with_capacity(n_atoms);
+
+   let Ok(file) = std::fs::File::open(filename) else{
+     return Err(CluEError::CannotOpenFile(filename.to_string()));
+   };
+   let lines = std::io::BufReader::new(file).lines();
+
+   for line_result in lines {
+     let Ok(line) = line_result else{
+       return Err(CluEError::CannotOpenFile(filename.to_string()));
+     };
+     if line.contains("CONECT"){
+       let bonds_serial = parse_connections_line(&line)?;
+
+       let mut bonds_index =  Vec::<usize>::with_capacity(bonds_serial.len());
+       for serial in bonds_serial.iter(){
+         let Some(idx_opt) = serial_to_index.get(serial) else{
+           return Err(CluEError::CannotConvertSerialToIndex(*serial));
+         };
+         if let Some(idx) = idx_opt{
+           bonds_index.push(*idx);
+         }else if bonds_index.is_empty(){
+           // If the first index correspond to an invalid atom, 
+           // all the connections that would be to the invalid atom can be 
+           // dropped.
+           continue;
+         }
+       }
+
+       for idx in 1..bonds_index.len(){
+         connections.connect(bonds_index[0],bonds_index[idx]);
+       }
+     }
+   }
+   Ok(connections)
+}
+//------------------------------------------------------------------------------
+fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize) 
+  -> Result<(Vec::<Vec::<Particle>>, HashMap::<u32,Option<usize>>),CluEError>
+{
+   let mut serial_to_index = HashMap::<u32,Option<usize>>::new(); 
+   let mut unknown_elements = HashMap::<String,usize>::new(); 
    let mut bath_particles = Vec::<Vec::<Particle>>::with_capacity(n_models);
    for ii in 0..n_models{
      bath_particles.push( Vec::<Particle>::with_capacity(n_atoms));
@@ -66,12 +116,25 @@ fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize)
        return Err(CluEError::CannotOpenFile(filename.to_string()));
      };
      if line.contains("ATOM") || line.contains("HETATM") {
-       let particle = parse_atom(&line)?;
+       let particle: Particle;
+       match parse_atom_line(&line){
+         Ok(p) => particle = p,
+         Err((CluEError::CannotParseElement(unk_el),serial)) => {
+           serial_to_index.insert(serial,None);
+           if let Some(value) = unknown_elements.get_mut(&unk_el){
+             *value += 1;
+           }else{
+             unknown_elements.insert(unk_el,0);
+           }
+           continue;
+         }
+         Err((err,_)) => return Err(err),
+       }
 
        if model_idx == 0{
          if let Some(serial) = particle.serial{
            if !serial_to_index.contains_key(&serial){
-             serial_to_index.insert(serial,bath_particles[0].len());
+             serial_to_index.insert(serial,Some(bath_particles[0].len()));
            }
          }
        }
@@ -82,6 +145,10 @@ fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize)
      }
    }
 
+   for (unk_el, unk_count) in unknown_elements.iter(){
+     println!("Could not parse {} instances of element \"{}\".",
+         unk_count, unk_el);
+   }
    Ok((bath_particles,serial_to_index))
 }
 //------------------------------------------------------------------------------
@@ -150,13 +217,12 @@ COLUMNS        DATA  TYPE    FIELD        DEFINITION
 77 - 78        LString(2)    element      Element symbol, right-justified.
 79 - 80        LString(2)    charge       Charge  on the atom.
 */
-fn parse_atom(line: &str) -> Result<Particle,CluEError>{
+fn parse_atom_line(line: &str) -> Result<Particle,(CluEError,u32)>{
 
   let serial_result = line[6..=10].trim().parse::<u32>();
   let x_coor = line[30..=37].trim().parse::<f64>();
   let y_coor = line[38..=45].trim().parse::<f64>();
   let z_coor = line[46..=53].trim().parse::<f64>();
-  let element = Element::from(line[76..=77].trim())?;
   let residue = Some(line[17..=19].trim().to_string());
   let residue_sequence_number = line[22..=25].trim().parse::<u32>();
 
@@ -166,14 +232,20 @@ fn parse_atom(line: &str) -> Result<Particle,CluEError>{
   if let (Ok(x),Ok(y), Ok(z)) = (x_coor, y_coor, z_coor) {
     coordinates = Vector3D::from([x*ANGSTROM,y*ANGSTROM,z*ANGSTROM]);
   }else{
-    return Err(CluEError::CannotParseLine(line.to_string()));
+    return Err((CluEError::CannotParseLine(line.to_string()),0));
   }
 
   let serial: u32;
   if let Ok(ser) = serial_result{
     serial = ser;
   }else{
-    return Err(CluEError::CannotParseLine(line.to_string()));
+    return Err((CluEError::CannotParseLine(line.to_string()),0));
+  }
+
+  let element: Element;
+  match Element::from(line[76..=77].trim()) {
+    Ok(elmt) => element = elmt,
+    Err(err) => return Err((err,serial))
   }
 
   Ok(Particle{
@@ -196,7 +268,7 @@ COLUMNS       DATA  TYPE      FIELD        DEFINITION
 22 - 26        Integer        serial       Serial number of bonded atom
 27 - 31        Integer        serial       Serial number of bonded atom
 */
-fn parse_connections(conect_line: &str) -> Result<Vec::<u32>,CluEError>{
+fn parse_connections_line(conect_line: &str) -> Result<Vec::<u32>,CluEError>{
   let line = conect_line[6..].trim_end();
 
   let num = line.len();
@@ -256,8 +328,90 @@ fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
 mod tests {
   use super::*;
   #[test]
-  fn test_parse_pdb(){
+  fn test_parse_pdb_TEMPO_wat_gly_70A(){
+    // n    : Molecules    : Hydrons 
+    // 1    : TEMPO        :    18
+    // 1500 : glycerols    : 12000
+    // 7469 : waters       : 14938
+    //
+    // total hydrons =  26956.
+    //
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
     let structures = parse_pdb(&filename).unwrap();
+    assert_eq!(structures[0].bath_particles.len(),43436);
+  }
+  //----------------------------------------------------------------------------
+  fn test_parse_pdb_TEMPO(){
+    let filename = "./assets/TEMPO.pdb";
+    let structures = parse_pdb(&filename).unwrap();
+
+    assert_eq!(structures.len(),1);
+    assert_eq!(structures[0].bath_particles.len(),29);
+    assert_eq!(structures[0].bath_particles[27].element,Element::Nitrogen);
+    assert_eq!(structures[0].bath_particles[28].element,Element::Oxygen);
+    assert!(structures[0].connections.are_connected(27,28));
+
+    assert_eq!(structures[0].bath_particles[27].serial, Some(28));
+    assert_eq!(structures[0].bath_particles[27].residue,
+        Some("TEM".to_string()));
+    assert_eq!(structures[0].bath_particles[27].residue_sequence_number,
+        Some(1));
+    assert_eq!(structures[0].bath_particles[27].coordinates.x(),
+        36.440*ANGSTROM);
+    assert_eq!(structures[0].bath_particles[27].coordinates.y(),
+        36.900*ANGSTROM);
+    assert_eq!(structures[0].bath_particles[27].coordinates.z(),
+        37.100*ANGSTROM);
+
+    assert_eq!(structures[0].cell_offsets[0].x(),72.5676*ANGSTROM);
+    assert_eq!(structures[0].cell_offsets[0].y(),0.0);
+    assert_eq!(structures[0].cell_offsets[0].z(),0.0);
+
+    assert!((structures[0].cell_offsets[1].x()-0.0).abs() < 1e12);
+    assert_eq!(structures[0].cell_offsets[1].y(),72.5676*ANGSTROM);
+    assert!((structures[0].cell_offsets[1].z()-0.0).abs() < 1e12);
+
+    assert!((structures[0].cell_offsets[2].x()-0.0).abs() < 1e12);
+    assert!((structures[0].cell_offsets[2].y()-0.0).abs() < 1e12);
+    assert_eq!(structures[0].cell_offsets[2].z(),72.5676*ANGSTROM);
+
+
+    //         O
+    //   3HC   N  CH3
+    //  3HC-C    C-CH3
+    //    2HC    CH2
+    //        CH2
+
+    assert!(structures[0].connections.are_connected(0,1));
+    assert!(structures[0].connections.are_connected(0,5));
+    assert!(structures[0].connections.are_connected(0,9));
+    assert!(structures[0].connections.are_connected(0,27));
+    assert!(structures[0].connections.are_connected(1,2));
+    assert!(structures[0].connections.are_connected(1,3));
+    assert!(structures[0].connections.are_connected(1,4));
+    assert!(structures[0].connections.are_connected(5,6));
+    assert!(structures[0].connections.are_connected(5,7));
+    assert!(structures[0].connections.are_connected(5,8));
+    assert!(structures[0].connections.are_connected(9,10));
+    assert!(structures[0].connections.are_connected(9,11));
+    assert!(structures[0].connections.are_connected(9,12));
+    assert!(structures[0].connections.are_connected(12,13));
+    assert!(structures[0].connections.are_connected(12,14));
+    assert!(structures[0].connections.are_connected(12,15));
+    assert!(structures[0].connections.are_connected(15,16));
+    assert!(structures[0].connections.are_connected(15,17));
+    assert!(structures[0].connections.are_connected(15,18));
+    assert!(structures[0].connections.are_connected(18,19));
+    assert!(structures[0].connections.are_connected(18,23));
+    assert!(structures[0].connections.are_connected(18,27));
+    assert!(structures[0].connections.are_connected(19,20));
+    assert!(structures[0].connections.are_connected(19,21));
+    assert!(structures[0].connections.are_connected(19,22));
+    assert!(structures[0].connections.are_connected(23,24));
+    assert!(structures[0].connections.are_connected(23,25));
+    assert!(structures[0].connections.are_connected(23,26));
+    assert!(structures[0].connections.are_connected(27,28));
+
+    assert!(!structures[0].connections.are_connected(0,28));
   }
 }

@@ -1,5 +1,5 @@
 pub mod parse_pdb;
-pub mod pdb;
+//pub mod pdb;
 pub mod extended_structure;
 pub mod primary_structure;
 pub mod exchange_groups;

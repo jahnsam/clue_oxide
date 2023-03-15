@@ -5,6 +5,7 @@ pub enum CluEError{
   AtomDoesNotSpecifyElement(usize),
   CannotAddTokens,
   CannotCombineTokens(usize),
+  CannotConvertSerialToIndex(u32),
   CannotDivTokens,
   CannotMulTokens,
   CannotPowTokens,
@@ -58,6 +59,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotCombineTokens(line_number) => write!(f,
           "{}: cannot combine tokens meaningfully", line_number),
+
+      CluEError::CannotConvertSerialToIndex(serial) => write!(f,
+          "cannot convert serial id, {}, to an index",serial),
 
       CluEError::CannotDivTokens => write!(f,
           "cannot divide tokens meaningfully"),
