@@ -239,14 +239,26 @@ mod tests{
   use crate::structure::parse_pdb as pdb;
   use crate::config::Config;
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_build_primary_structure_water(){
+    let filename = "./assets/water.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let config = Config::new();
+    structures[0].build_primary_structure(&config);
+
+  
+    assert_eq!(structures[0].molecules.len(),1);
+    assert_eq!(structures[0].molecules[0],vec![0,1,2]);
+    assert_eq!(structures[0].molecule_ids,vec![0,0,0]);
+  }
+  //----------------------------------------------------------------------------
   #[test]
   fn test_build_primary_structure_TEMPO(){
     let filename = "./assets/TEMPO.pdb";
-    //let file = std::fs::read_to_string(filename).unwrap();
     let mut structures = pdb::parse_pdb(&filename).unwrap();
 
     let config = Config::new();
-
     structures[0].build_primary_structure(&config);
 
     assert_eq!(structures[0].bath_spins_indices.len(), 19);
@@ -299,11 +311,13 @@ mod tests{
     structures[0].build_primary_structure(&config);
     let num_particles = structures[0].bath_particles.len();
     
+    assert_eq!(structures[0].molecules.len(), 1 + n_wat + n_gly);
+
     assert_eq!(structures[0].molecules[0].len(),29);
     for ii in 1..=1500{
       assert_eq!(structures[0].molecules[ii].len(),14);
     }
-    for ii in 1501..num_particles{
+    for ii in 1501..structures[0].molecules.len(){
       assert_eq!(structures[0].molecules[ii].len(),3);
     }
   }

@@ -358,7 +358,6 @@ mod tests{
 
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
-    //assert_eq!(structures[0].bath_particles.len(),43436);
 
 
     let mut particle_configs =vec![
@@ -395,15 +394,6 @@ mod tests{
     structures[0].build_primary_structure(&config);
     let num_particles = structures[0].bath_particles.len();
 
-    /*
-    assert_eq!(structures[0].molecules[0].len(),29);
-    for ii in 1..=1500{
-      assert_eq!(structures[0].molecules[ii].len(),14);
-    }
-    for ii in 1501..num_particles{
-      assert_eq!(structures[0].molecules[ii].len(),3);
-    }
-    */
 
     
 
@@ -433,6 +423,8 @@ mod tests{
     let [n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
       get_conditional_hydron_stats(&structure,&filter_nx);
 
+    println!("DB: {}, {}, {}, {}, {} ",
+        n_h1_h1 , n_h1_h2 , n_h2_h1 ,  n_h2_h2 , n_mol);
     let n_h = n_h1_h1 + n_h1_h2 + n_h2_h1 +  n_h2_h2 + n_mol;
     assert_eq!(n_h,n_uc*n_nx);
     assert!(n_h1_h1>0);

@@ -64,7 +64,7 @@ fn parse_connections(filename: &str ,n_atoms: usize,
    };
    let lines = std::io::BufReader::new(file).lines();
 
-   for line_result in lines {
+   'line_loop: for line_result in lines {
      let Ok(line) = line_result else{
        return Err(CluEError::CannotOpenFile(filename.to_string()));
      };
@@ -82,7 +82,7 @@ fn parse_connections(filename: &str ,n_atoms: usize,
            // If the first index correspond to an invalid atom, 
            // all the connections that would be to the invalid atom can be 
            // dropped.
-           continue;
+           continue 'line_loop;
          }
        }
 
@@ -327,6 +327,12 @@ fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
 #[cfg(test)]
 mod tests {
   use super::*;
+  #[test]
+  fn test_parse_pdb_water(){
+    let filename = "./assets/water.pdb";
+    let structures = parse_pdb(&filename).unwrap();
+  }
+  //----------------------------------------------------------------------------
   #[test]
   fn test_parse_pdb_TEMPO_wat_gly_70A(){
     // n    : Molecules    : Hydrons 
