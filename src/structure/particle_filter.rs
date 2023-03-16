@@ -13,6 +13,10 @@ use crate::clue_errors::CluEError;
 //  particle pbc behavior
 #[derive(Debug,Clone,Default)]
 pub struct ParticleFilter{
+
+  pub indices: Vec::<usize>,
+  pub not_indices: Vec::<usize>,
+  
   pub elements: Vec::<Element>, 
   pub not_elements: Vec::<Element>, 
 
@@ -65,6 +69,12 @@ impl ParticleFilter{
     let particles = &structure.bath_particles;
 
     particles.iter().enumerate().filter_map(|(idx,particle)| {
+
+      // Index
+      if (!self.indices.is_empty() && !self.indices.contains(&idx))
+       || self.not_indices.contains(&idx){
+        return None;
+      }
 
       // Element
       if (!self.elements.is_empty() 
@@ -158,22 +168,37 @@ impl ParticleFilter{
     }).collect()
   }
 //------------------------------------------------------------------------------
+  /// This function augments a particle filter, making it specific to the
+  /// specified particle.  
+  /// The secondary filter specifies how the filter should be restricted.
   pub fn augment_filter(
     &mut self,
-    index: usize,
+    index_ref_particle: usize,
     secondary_filter: &SecondaryParticleFilter,
     structure: &Structure) -> Result<(),CluEError>
   {
 
 
     match secondary_filter{
-      Bonded => self.bonded_to.push(index),
-      SameResidueSequenceNumber => {
-        if let Some(res_seq_id) = structure.bath_particles[index]
+      SecondaryParticleFilter::Bonded 
+        => self.bonded_to.push(index_ref_particle),
+      
+      SecondaryParticleFilter::SameMolecule 
+        => {
+        println!("DB {:?}", secondary_filter);
+        let id = structure.molecule_ids[index_ref_particle];
+        for idx in structure.molecules[id].iter(){
+          self.indices.push(*idx);
+        }
+      },
+      
+      SecondaryParticleFilter::SameResidueSequenceNumber 
+        => {
+        if let Some(res_seq_id) = structure.bath_particles[index_ref_particle]
           .residue_sequence_number{
         self.residue_sequence_numbers.push(res_seq_id);
           }else{
-            return Err(CluEError::CannontAugmentFilter(index,
+            return Err(CluEError::CannontAugmentFilter(index_ref_particle,
                 secondary_filter.to_string()));
           }
       },
@@ -186,17 +211,14 @@ impl ParticleFilter{
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-// The String that most SecondaryParticleFilters hold is the label to a
-// ParticleFilter.  Config has a HashMap<String,ParticleFilter> to access
-// the filter.
-//
-// Each enum entry corresponds to a function that takes the intersection of
-// particles found by the supplied filter and a secondary filter.
+/// Secondary particle filters allow particles filters to be modified so as to
+/// allow the filter to filter based off the relationship of particles to a
+/// specified particle.
 #[derive(Debug,Clone)]
 pub enum SecondaryParticleFilter{
   Bonded, // atoms bonded to particle
   //Particle, // the particle itself
-  //SameMolecule, // atoms on the same molecule as particle 
+  SameMolecule, // atoms on the same molecule as particle 
   SameResidueSequenceNumber, // atoms with the same ResSeq as particle.
 }
 impl ToString for SecondaryParticleFilter{
@@ -224,6 +246,40 @@ mod tests{
   use crate::structure::primary_structure;
   use crate::Config;
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_augment_filter(){
+    let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let config = Config::new();
+    let structure = &mut structures[0];
+    structure.build_primary_structure(&config);
+
+
+    let mut filter = ParticleFilter::new();
+    filter.augment_filter(43,
+        &SecondaryParticleFilter::Bonded,structure)
+      .unwrap();
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Hydrogen];
+    filter.augment_filter(28,
+        &SecondaryParticleFilter::SameMolecule,structure)
+      .unwrap();
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Hydrogen];
+    filter.augment_filter(28,
+        &SecondaryParticleFilter::SameResidueSequenceNumber,structure)
+      .unwrap();
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
+  }
+  //----------------------------------------------------------------------------
   #[test]
   fn test_filter(){
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
@@ -257,6 +313,26 @@ mod tests{
     filter.not_bonded_elements = vec![Element::Carbon];
     let indices = filter.filter(structure);
     assert_eq!(indices,vec![28,33,37,42,43,44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.residues = vec!["SOL".to_string()];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![43,44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.not_residues = vec!["TEM".to_string(),"MGL".to_string()];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![43,44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.residue_sequence_numbers = vec![1502];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![43,44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.not_residue_sequence_numbers = vec![1,2];
+    let indices = filter.filter(structure);
+    assert_eq!(indices,vec![43,44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.elements = vec![Element::Hydrogen];

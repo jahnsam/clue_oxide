@@ -277,7 +277,7 @@ impl Structure{
 mod tests{
   use super::*;
   use crate::structure::parse_pdb as pdb;
-  use crate::structure::{primary_structure,particle_filter::ParticleFilter};
+  use crate::structure::{primary_structure,particle_filter::*};
   use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
   use crate::config::particle_config::{ParticleConfig,
@@ -286,9 +286,46 @@ mod tests{
 
   //----------------------------------------------------------------------------
   #[test]
+  fn test_find_cosubstitution_groups(){
+    let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut config = Config::new();
+    let structure = &mut structures[0];
+    structure.build_primary_structure(&config);
+
+    let mut filter_nx = ParticleFilter::new();
+    filter_nx.elements = vec![Element::Hydrogen];
+    filter_nx.not_bonded_elements = vec![Element::Oxygen];
+
+    let mut properties = ParticleProperties::new();
+    properties.cosubstitute = Some(SecondaryParticleFilter::SameMolecule);
+
+    let mut particle_configs =vec![
+      ParticleConfig::new("non-exchangeable".to_string())];
+    particle_configs[0].properties = Some(properties);
+
+    config.particles = particle_configs;
+
+    structure.find_cosubstitution_groups(&config);
+    println!("DB: {:?}",structure.cosubstitution_groups);
+    let expected = vec![
+        vec![0],vec![1],
+        vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26],
+        vec![5],vec![9],vec![12],vec![15],vec![18],vec![19],
+        vec![23],vec![27],vec![28],
+        vec![29],
+        vec![30,31,35,39,40],
+        vec![32],vec![33],vec![34],vec![36],vec![37],vec![38],vec![41],vec![42],
+        vec![43],vec![44],vec![44],
+    ];
+
+    assert_eq!(structure.cosubstitution_groups.len(), expected.len()); 
+    assert_eq!(structure.cosubstitution_groups, expected); 
+  }
+  //----------------------------------------------------------------------------
+  #[test]
   fn test_build_extended_structure_TEMPO(){
     let filename = "./assets/TEMPO.pdb";
-    //let file = std::fs::read_to_string(filename).unwrap();
     let mut structures = pdb::parse_pdb(&filename).unwrap();
 
     let mut particle_configs =vec![ParticleConfig::new("hydrogen".to_string())];
@@ -383,6 +420,8 @@ mod tests{
 
 
     particle_configs[0].properties = Some(properties.clone());
+
+    properties.cosubstitute = Some(SecondaryParticleFilter::SameMolecule);
     particle_configs[1].properties = Some(properties);
     
     let mut config = Config::new();
@@ -519,9 +558,9 @@ mod tests{
 
     //properties.isotopic_distribution.extracell_void_probability = Some(0.5);
 
-    //properties.cosubstitute
 
     particle_configs[0].properties = Some(properties.clone());
+    
     particle_configs[1].properties = Some(properties);
     
     let mut config = Config::new();

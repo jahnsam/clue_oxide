@@ -155,7 +155,6 @@ impl Structure{
     
   }
   //----------------------------------------------------------------------------
-  // TODO: Slow for large systems: find_cosubstitution_groups().
   // TODO: test find_cosubstitution_groups()
   // This function goes through each particle, applies secondary filters,
   // and records the cosubstitution_groups.
