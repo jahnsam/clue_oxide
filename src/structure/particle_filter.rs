@@ -185,7 +185,6 @@ impl ParticleFilter{
       
       SecondaryParticleFilter::SameMolecule 
         => {
-        println!("DB {:?}", secondary_filter);
         let id = structure.molecule_ids[index_ref_particle];
         for idx in structure.molecules[id].iter(){
           self.indices.push(*idx);

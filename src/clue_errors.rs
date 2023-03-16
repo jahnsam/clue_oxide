@@ -39,6 +39,7 @@ pub enum CluEError{
   UnmatchedBlockComment(usize),
   UnmatchedDelimiter(usize),
   TooManyRelationalOperators(usize),
+  UnassignedCosubstitutionGroup(usize),
   UnrecognizedOption(String),
   WrongVectorLength(usize,usize,usize)
 }
@@ -164,6 +165,10 @@ impl fmt::Display for CluEError{
       CluEError::TooManyRelationalOperators(line_number) => write!(f,
           "{}: too many relational operators (=, <, >, in, ...), are present", 
           line_number),
+
+      CluEError::UnassignedCosubstitutionGroup(index)=> write!(f,
+          "particle {} cannot be assigned to a cosubstitution group",
+          index),
 
       CluEError::UnrecognizedOption(option) => write!(f,
           "unrecognized option \"{}\"",option),

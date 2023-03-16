@@ -155,7 +155,7 @@ impl Structure{
     
   }
   //----------------------------------------------------------------------------
-  // TODO: test find_cosubstitution_groups()
+  // TODO: find_cosubstitution_groups() is slow for large systems.
   // This function goes through each particle, applies secondary filters,
   // and records the cosubstitution_groups.
   fn find_cosubstitution_groups(&mut self, config: &Config) 
@@ -177,6 +177,9 @@ impl Structure{
       // Check if there are custom properties for this particle.
       let Some(id) = self.particle_config_ids[idx] else{continue;};
       let Some(properties) = &config.particles[id].properties else{continue;}; 
+      if cosubstitution_group_ids[idx]!=None{
+        continue;
+      }
     
       // Check if this particle has a filter.
       let mut filter: ParticleFilter;
@@ -192,49 +195,22 @@ impl Structure{
       current_cosub_id += 1;
 
     }
-
-    // TODO: n_none should be findable in one line.
-    let mut n_none: usize  = 0;
-    for opt in cosubstitution_group_ids.iter(){
-      if *opt == None{ n_none += 1;}
+    for id in cosubstitution_group_ids.iter_mut(){
+      if *id != None {continue;}
+      *id = Some(current_cosub_id);
+      current_cosub_id += 1;
     }
-
-    // cosubstitutions
-    let n_groups = n_none + current_cosub_id;
     let mut cosubstitution_groups 
-      = Vec::<Vec::<usize>>::with_capacity(n_groups);
+      = Vec::<Vec::<usize>>::with_capacity(current_cosub_id);
     for ii in 0..current_cosub_id{
       cosubstitution_groups.push(Vec::<usize>::new());
     }
-
-    /*
-    // TODO: This loop is slow for large systems.
-    for ii in 0..current_cosub_id{
-      let vec_indices = cosubstitution_group_ids.iter().enumerate()
-        .filter(|(_, &r)| r == Some(ii))
-        .map(|(index, _)| index).collect();
-
-      cosubstitution_groups.push(vec_indices);
-
+    for (idx,id_opt) in cosubstitution_group_ids.iter().enumerate(){
+      let Some(id) = *id_opt else{
+        return Err(CluEError::UnassignedCosubstitutionGroup(idx))
+      };
+      cosubstitution_groups[id].push(idx);
     }
-    */
-    // TODO: this loop appears to be a faster version.  
-    // Delete above loop after testing.
-    for (ii,id_option) in cosubstitution_group_ids.iter().enumerate(){
-      if let Some(id) = id_option{
-        cosubstitution_groups[*id].push(ii);
-      }else{
-        cosubstitution_groups.push(vec![ii]);
-      }
-    }
-
-    
-    for (idx,opt) in cosubstitution_group_ids.iter().enumerate(){
-      if *opt != None{ continue;}
-      let vec_indices = vec![idx];
-      cosubstitution_groups.push(vec_indices);
-    }
-
     self.cosubstitution_groups = cosubstitution_groups;
 
     Ok(())
@@ -250,8 +226,9 @@ fn update_cosubstitution_ids(
     mut filter: ParticleFilter,
     properties: &ParticleProperties,
     structure: &Structure)
-    -> Result<(),CluEError>
+    -> Result<usize,CluEError>
   {
+      let n_indices: usize;
       // Check if properties defines a cosubstitution set.
       if let Some(cosubstitute) = &properties.cosubstitute{
 
@@ -260,21 +237,20 @@ fn update_cosubstitution_ids(
 
         // Find all particle indices that fit the criteria.
         let indices = filter.filter(structure);
+        n_indices = indices.len();
 
         // Loop through all particles found.
         for index in indices.iter(){
-          // Ensure the particle is not part of a different group.
-          if cosubstitution_group_ids[*index]==None{
-            return Err(CluEError::MultipleCosubstitutionGroups(*index));
-          }
           // Assign the particle to this cosubstitution group.
           cosubstitution_group_ids[*index] = Some(current_cosub_id)
         }
       }else{
         // Put the particle in a cosubstitution group by itself.
-        cosubstitution_group_ids[idx] = Some(current_cosub_id)
+        cosubstitution_group_ids[idx] = Some(current_cosub_id);
+        n_indices = 1;  
       }
-    Ok(())  
+
+    Ok(n_indices)  
   }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
