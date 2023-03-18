@@ -12,11 +12,12 @@ use crate::config::{Config,
 use crate::clue_errors::CluEError;
 use crate::integration_grid::IntegrationGrid;
 use crate::structure::particle::Particle;
-use crate::structure::particle_filter::ParticleFilter;
+use crate::structure::particle_filter::*;
 use crate::space_3d::Vector3D;
 use crate::cluster::adjacency::AdjacencyList;
 use crate::structure::exchange_groups::ExchangeGroupManager;
 use crate::physical_constants::Isotope;
+use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
@@ -53,8 +54,8 @@ pub struct Structure{
   cosubstitution_groups: Vec::< Vec::<usize> >,
   exchange_groups: Option<ExchangeGroupManager>,
   particle_config_ids: Vec::<Option<usize>>,
-  unit_cell_ids: Vec::<usize>,
   primary_cell_indices: Vec::<usize>,
+  cell_indices: Vec::<Vec::<Option<usize>>>,
 }
 
 impl Structure{
@@ -76,8 +77,8 @@ impl Structure{
       cosubstitution_groups: Vec::<Vec::<usize>>::new(),
       exchange_groups: None,
       particle_config_ids: Vec::<Option<usize>>::new(),
-      unit_cell_ids: Vec::<usize>::new(),
       primary_cell_indices: Vec::<usize>::new(),
+      cell_indices: Vec::<Vec::<Option<usize>>>::new(),
     }
 
   }
@@ -102,12 +103,27 @@ impl Structure{
   pub fn molecule_id(&self,idx: usize) -> usize{
 
     let idx0 = self.primary_cell_indices[idx];
-    //let cell_id = self.unit_cell_ids[idx];
    
     let mol_id = self.molecule_ids[idx0];// + cell_id*self.molecules.len();
 
     mol_id
   }
+  //----------------------------------------------------------------------------
+  /*
+  fn get_extended_index(&self, 
+      primary_cell_index: usize, unit_cell_id: usize, guess_idx: mut usize) 
+    -> Option<usize>
+  {
+    if unit_cell_id == 0{
+      return Some(primary_cell_index);
+    }
+
+    let decend: bool
+    let idx = self.primary_cell_indices[guess_idx];
+    if idx0 == primary_cell_index && 
+
+  }
+  */
   //----------------------------------------------------------------------------
   /*
   pub fn molecule(&self,mol_id: usize) -> Vec::<usize>{
@@ -154,104 +170,8 @@ impl Structure{
     }
     
   }
-  //----------------------------------------------------------------------------
-  // TODO: find_cosubstitution_groups() is slow for large systems.
-  // This function goes through each particle, applies secondary filters,
-  // and records the cosubstitution_groups.
-  fn find_cosubstitution_groups(&mut self, config: &Config) 
-    -> Result<(),CluEError>
-  {
-  
-    let mut cosubstitution_group_ids 
-      = Vec::<Option<usize>>::with_capacity(self.bath_particles.len());
-    for ii in 0..self.bath_particles.len(){
-      cosubstitution_group_ids.push(None);
-    }
-    
-    let mut current_cosub_id = 0;
-
-
-    // Loop through bath particles.
-    for (idx,particle) in self.bath_particles.iter().enumerate(){
-
-      // Check if there are custom properties for this particle.
-      let Some(id) = self.particle_config_ids[idx] else{continue;};
-      let Some(properties) = &config.particles[id].properties else{continue;}; 
-      if cosubstitution_group_ids[idx]!=None{
-        continue;
-      }
-    
-      // Check if this particle has a filter.
-      let mut filter: ParticleFilter;
-      if let Some(fltr) = &config.particles[id].filter{
-        filter= fltr.clone();
-      }else{
-        filter = ParticleFilter::new();
-      }
-
-      // Set cosubstitution group for this particle.
-      update_cosubstitution_ids(&mut cosubstitution_group_ids, 
-        idx, current_cosub_id, filter.clone(),properties,self)?;
-      current_cosub_id += 1;
-
-    }
-    for id in cosubstitution_group_ids.iter_mut(){
-      if *id != None {continue;}
-      *id = Some(current_cosub_id);
-      current_cosub_id += 1;
-    }
-    let mut cosubstitution_groups 
-      = Vec::<Vec::<usize>>::with_capacity(current_cosub_id);
-    for ii in 0..current_cosub_id{
-      cosubstitution_groups.push(Vec::<usize>::new());
-    }
-    for (idx,id_opt) in cosubstitution_group_ids.iter().enumerate(){
-      let Some(id) = *id_opt else{
-        return Err(CluEError::UnassignedCosubstitutionGroup(idx))
-      };
-      cosubstitution_groups[id].push(idx);
-    }
-    self.cosubstitution_groups = cosubstitution_groups;
-
-    Ok(())
-  }
 }
-//------------------------------------------------------------------------------
-// This function finds all the particles that cosubstitute with particle idx,
-// and records them in cosubstitution_group_ids.
-fn update_cosubstitution_ids(
-    cosubstitution_group_ids: &mut Vec::<Option<usize>>,
-    idx: usize,
-    current_cosub_id: usize,
-    mut filter: ParticleFilter,
-    properties: &ParticleProperties,
-    structure: &Structure)
-    -> Result<usize,CluEError>
-  {
-      let n_indices: usize;
-      // Check if properties defines a cosubstitution set.
-      if let Some(cosubstitute) = &properties.cosubstitute{
 
-        // Augment filter with criteria specific to particle idx.
-        filter.augment_filter(idx,&cosubstitute,structure)?;
-
-        // Find all particle indices that fit the criteria.
-        let indices = filter.filter(structure);
-        n_indices = indices.len();
-
-        // Loop through all particles found.
-        for index in indices.iter(){
-          // Assign the particle to this cosubstitution group.
-          cosubstitution_group_ids[*index] = Some(current_cosub_id)
-        }
-      }else{
-        // Put the particle in a cosubstitution group by itself.
-        cosubstitution_group_ids[idx] = Some(current_cosub_id);
-        n_indices = 1;  
-      }
-
-    Ok(n_indices)  
-  }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

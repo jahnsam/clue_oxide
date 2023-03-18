@@ -13,7 +13,9 @@ use std::collections::HashMap;
 
 
 impl Structure{
-  pub fn build_extended_structure(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
+  // This function takes a structure for build_primary_structure(), applies
+  // periodic boundary condition (if applicable), and sets isotope identities.
+  fn build_extended_structure(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
   {
 
@@ -23,17 +25,9 @@ impl Structure{
     // Copy non-voidable particles over to each PBC. 
     self.extend_structure(config)?;
 
-    // TODO: reduce calls to pair_particle_configs().
-    self.pair_particle_configs(config);
-
-    // TODO: slow for large systems.
-    self.find_cosubstitution_groups(config); // TODO: where should this line go?
-
     // For particles that are to either be kept or dropped entirely,
     // determine which particles to keep.
     self.add_voidable_particles(rng, config)?;
-
-    self.pair_particle_configs(config);// TODO: where should this line go?
 
     // Set isotpic identities after adding voidable particles since the
     // non-void particles can potentially have multiple isotopic options. 
@@ -126,45 +120,50 @@ impl Structure{
   fn set_isotopologue(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
   {
-    
     // Initialize rng range.
     let range = Uniform::new(0.0f64, 1.0);
 
     // Check if there are any configurations.
     let particle_configs = &config.particles;
 
-    // TODO: loop over cosubstitution_groups not individual particles.
-    // Loop over bath particle.
-    for cosubstitution_group in self.cosubstitution_groups.iter(){
-      // Generate a random number.
-      let random_number = range.sample(rng);
+    for unit_cell_id in 0..self.cell_offsets.len(){
 
-      for particle_idx in cosubstitution_group.iter(){
+      // Loop over bath particle.
+      for cosubstitution_group in self.cosubstitution_groups.iter(){
+
+        // Generate a random number.
+        let random_number = range.sample(rng);
+
+        for particle_idx0 in cosubstitution_group.iter(){
         
-        let particle = &mut self.bath_particles[*particle_idx];
+          let Some(particle_idx) 
+            = self.cell_indices[*particle_idx0][unit_cell_id] else{continue;};
+
+          let particle = &mut self.bath_particles[particle_idx];
       
-        // Check if this particle has a custom config.
-        let Some(config_id) = self.particle_config_ids[*particle_idx] else {
-          continue;
-        };
+          // Check if this particle has a custom config.
+          let Some(config_id) = self.particle_config_ids[*particle_idx0] else {
+            continue;
+          };
 
-        // Check if this particle has any custom properties.
-        let Some(properties) = &particle_configs[config_id].properties else{
-          continue;
-        };
+          // Check if this particle has any custom properties.
+          let Some(properties) = &particle_configs[config_id].properties else{
+            continue;
+          };
 
 
-        let mut cdf = 0.0;
+          let mut cdf = 0.0;
      
-        // Select a isotope for this particle.
-        for iso in properties.isotopic_distribution.isotope_abundances.iter(){
-          cdf += iso.abundance;
-          if cdf >= random_number{
-            particle.isotope = iso.isotope;
-            break;
-          } 
-        }
+          // Select a isotope for this particle.
+          for iso in properties.isotopic_distribution.isotope_abundances.iter(){
+            cdf += iso.abundance;
+            if cdf >= random_number{
+              particle.isotope = iso.isotope;
+              break;
+            } 
+          }
 
+        }
       }
     }
 
@@ -174,18 +173,19 @@ impl Structure{
   //----------------------------------------------------------------------------
   fn extend_structure(&mut self, config: &Config) -> Result<(),CluEError>{
 
-    let mut extra_particles = Vec::<Particle>::with_capacity(
-        self.number()*self.cell_offsets.len());
+    let n_particles0 = self.number();
 
-    let mut unit_cell_ids = Vec::<usize>::with_capacity(
-        self.number()*self.cell_offsets.len());
+    let n_to_reserve = n_particles0*(self.cell_offsets.len()-1);
+    self.bath_particles.reserve( n_to_reserve );
+    self.primary_cell_indices.reserve( n_to_reserve );
 
-    let mut primary_cell_indices = Vec::<usize>::with_capacity(
-        self.number()*self.cell_offsets.len());
+    for cindices in self.cell_indices.iter_mut(){
+      cindices.reserve(self.cell_offsets.len()-1);
+    }
 
-    for (unit_cell_id,offset) in self.cell_offsets.iter().enumerate(){
+    for offset in self.cell_offsets.iter().skip(1){
 
-      for (particle_idx,particle) in self.bath_particles.iter().enumerate(){
+      for particle_idx0 in 0..n_particles0{
 
         // TODO: implement force_no_pbc?
         // No because properties.extracell_void_probability = Some(0.0)
@@ -193,32 +193,30 @@ impl Structure{
         // if properties.force_no_pbc{}
 
         
-      // Check if this particle has a custom config.
-      if let Some(config_id) = self.particle_config_ids[particle_idx]{
-
-      // Check if this particle has any custom properties.
-      if let Some(properties) = &config.particles[config_id].properties{
-        // TODO: check void probability.
-        if let Some(_) = properties.isotopic_distribution
-          .extracell_void_probability{
-          continue;
+        // Check if this particle has a custom config.
+        if let Some(config_id) = self.particle_config_ids[particle_idx0]{
+          // Check if this particle has any custom properties.
+          if let Some(properties) = &config.particles[config_id].properties{
+            // TODO: check void probability.
+            if let Some(_) = properties.isotopic_distribution
+              .extracell_void_probability{
+              self.cell_indices[particle_idx0].push(None); 
+              continue;
+            }
+          }
         }
-      }
-      }
       
-        let mut new_particle = (*particle).clone();
+        let mut new_particle = self.bath_particles[particle_idx0].clone();
         new_particle.coordinates = &new_particle.coordinates + offset;
-        extra_particles.push(new_particle);
+        self.bath_particles.push(new_particle);
 
-        unit_cell_ids.push(unit_cell_id);
 
-        primary_cell_indices.push(particle_idx);
+        self.primary_cell_indices.push(particle_idx0);
+        let particle_idx = self.bath_particles.len() - 1;
+        self.cell_indices[particle_idx0].push(Some(particle_idx));
       }
     }
 
-    self.bath_particles = extra_particles;
-    self.unit_cell_ids = unit_cell_ids;
-    self.primary_cell_indices = primary_cell_indices;
 
     Ok(())
   }
@@ -284,50 +282,10 @@ mod tests{
     ParticleProperties,IsotopeDistribution,IsotopeAbundance};
   use crate::physical_constants::{Element,Isotope};
 
+  
   //----------------------------------------------------------------------------
   #[test]
-  fn test_find_cosubstitution_groups(){
-    let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
-    let mut config = Config::new();
-    let structure = &mut structures[0];
-    structure.build_primary_structure(&config);
-
-    let mut filter_nx = ParticleFilter::new();
-    filter_nx.elements = vec![Element::Hydrogen];
-    filter_nx.not_bonded_elements = vec![Element::Oxygen];
-
-    let mut properties = ParticleProperties::new();
-    properties.cosubstitute = Some(SecondaryParticleFilter::SameMolecule);
-
-    let mut particle_configs =vec![
-      ParticleConfig::new("non-exchangeable".to_string())];
-    particle_configs[0].properties = Some(properties);
-    particle_configs[0].filter = Some(filter_nx);
-
-    config.particles = particle_configs;
-
-    structure.pair_particle_configs(&config);
-
-    structure.find_cosubstitution_groups(&config);
-    println!("DB: {:?}",structure.cosubstitution_groups);
-    let expected = vec![
-        vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26],
-        vec![30,31,35,39,40],
-        vec![0],vec![1],vec![5],vec![9],vec![12],
-        vec![15],vec![18],vec![19],vec![23],vec![27],
-        vec![28],vec![29],
-        vec![32],vec![33],vec![34],vec![36],vec![37],
-        vec![38],vec![41],vec![42],
-        vec![43],vec![44],vec![45]
-    ];
-
-    assert_eq!(structure.cosubstitution_groups.len(), expected.len()); 
-    assert_eq!(structure.cosubstitution_groups, expected); 
-  }
-  //----------------------------------------------------------------------------
-  #[test]
-  fn test_build_extended_structure_TEMPO(){
+  fn test_build_extended_structure_lone_TEMPO(){
     let filename = "./assets/TEMPO.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
 
@@ -374,12 +332,76 @@ mod tests{
         n_h2 += 1; 
       }
     }
+    println!("DB: n_h1 = {}; n_h2 = {}.",n_h1,n_h2);
+    assert_eq!(n_h1+n_h2,125*18);
     assert!(n_h1 >= 1000);
     assert!(n_h1 <= 1200);
     assert!(n_h2 >= 1000);
     assert!(n_h2 <= 1200);
-    assert_eq!(n_h1+n_h2,125*18);
     
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_add_voidable_particles(){
+    let filename = "./assets/TEMPO_wat_gly_70A.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+
+
+    let mut particle_configs =vec![
+      ParticleConfig::new("exchangeable_hydrogens".to_string()),
+      ParticleConfig::new("nonexchangeable_hydrogens".to_string()),
+    ];
+
+    let mut filter_ex = ParticleFilter::new();
+    filter_ex.elements = vec![Element::Hydrogen];
+    filter_ex.bonded_elements = vec![Element::Oxygen];
+    particle_configs[0].filter = Some(filter_ex.clone());
+
+    let mut filter_nx = ParticleFilter::new();
+    filter_nx.elements = vec![Element::Hydrogen];
+    filter_nx.not_bonded_elements = vec![Element::Oxygen];
+    particle_configs[1].filter = Some(filter_nx.clone());
+    
+    let mut properties = ParticleProperties::new();
+    properties.isotopic_distribution.isotope_abundances.push(
+        IsotopeAbundance{isotope: Isotope::Hydrogen1, abundance: 0.5});
+    properties.isotopic_distribution.isotope_abundances.push(
+        IsotopeAbundance{isotope: Isotope::Hydrogen2, abundance: 0.5});
+
+
+    particle_configs[0].properties = Some(properties.clone());
+
+    properties.cosubstitute = Some(SecondaryParticleFilter::SameMolecule);
+    particle_configs[1].properties = Some(properties);
+    
+    let mut config = Config::new();
+    config.particles = particle_configs;
+    config.radius = Some(73.5676e-10);
+    let n_uc = 125;
+
+
+    structures[0].build_primary_structure(&config);
+    let num_particles = structures[0].bath_particles.len();
+
+
+    
+
+    let mut rng =  ChaCha20Rng::from_entropy();
+
+    let mut structure = structures[0].clone();
+    structure.build_extended_structure(&mut rng, &config);
+
+    assert_eq!(structure.cell_offsets.len(),n_uc);
+    assert_eq!(structure.bath_particles.len(),n_uc*num_particles);
+
+    // Check that outside the primary cell deuterons are removed.
+    for (idx, particle) in structure.bath_particles.iter().enumerate(){
+      if (*particle).isotope == Isotope::Hydrogen2{
+        let idx0 = structure.primary_cell_indices[idx];
+        assert_eq!(idx,idx0);
+      }
+    }
+
   }
   //----------------------------------------------------------------------------
   #[test]
@@ -411,7 +433,7 @@ mod tests{
     particle_configs[0].filter = Some(filter_ex.clone());
 
     let mut filter_nx = ParticleFilter::new();
-    filter_ex.elements = vec![Element::Hydrogen];
+    filter_nx.elements = vec![Element::Hydrogen];
     filter_nx.not_bonded_elements = vec![Element::Oxygen];
     particle_configs[1].filter = Some(filter_nx.clone());
     
@@ -450,45 +472,43 @@ mod tests{
 
 
     // Check for for the correct exchanges.
-    let [n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
+    let [n_h, n_h1, n_h2,n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
       get_conditional_hydron_stats(&structure,&filter_ex);
 
-    println!("DB: {}, {}, {}, {}, {} ",
-        n_h1_h1 , n_h1_h2 , n_h2_h1 ,  n_h2_h2 , n_mol);
-    let n_h = n_h1_h1 + n_h1_h2 + n_h2_h1 +  n_h2_h2 + n_mol;
     assert_eq!(n_h,n_uc*n_ex);
+    let approx_eq = |m: usize,n: usize| -> bool{
+      (1.0 - (m as f64)/(n as f64) ).abs() <1e3 
+    };
     assert!(n_h1_h1>0);
     assert!(n_h2_h2>0);
     assert!(n_h2_h1>0);
     assert!(n_h1_h2>0);
+    assert!( approx_eq(n_h1_h1,n_h2_h2) );
+    assert!( approx_eq(n_h1_h1,n_h2_h1) );
+    assert!( approx_eq(n_h1_h1,n_h1_h2) );
 
-    let [n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
+    let [n_h, n_h1, n_h2, n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
       get_conditional_hydron_stats(&structure,&filter_nx);
 
-    println!("DB: {}, {}, {}, {}, {} ",
-        n_h1_h1 , n_h1_h2 , n_h2_h1 ,  n_h2_h2 , n_mol);
-    let n_h = n_h1_h1 + n_h1_h2 + n_h2_h1 +  n_h2_h2 + n_mol;
     assert_eq!(n_h,n_uc*n_nx);
     assert!(n_h1_h1>0);
     assert!(n_h2_h2>0);
     assert_eq!(n_h2_h1,0);
     assert_eq!(n_h1_h2,0);
+    assert!( approx_eq(n_h1_h1,n_h2_h2) );
 
-
-    // Check that outside the primary cell deuterons are removed.
-    for (idx, particle) in structure.bath_particles.iter().enumerate(){
-      if (*particle).isotope == Isotope::Hydrogen2{
-        assert_eq!(structure.unit_cell_ids[idx],0);
-      }
-    }
 
    
   }
   //----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   fn get_conditional_hydron_stats(structure: &Structure,filter: &ParticleFilter)
-    -> [usize;5]
+    -> [usize;8]
   {
 
+    let mut n_h = 0;
+    let mut n_h1 = 0;
+    let mut n_h2 = 0;
     let mut n_h1_h1 = 0;
     let mut n_h1_h2 = 0;
     let mut n_h2_h1 = 0;
@@ -503,11 +523,25 @@ mod tests{
 
     for idx in indices{
       let particle = &structure.bath_particles[idx];
-
+      if (*particle).element == Element::Hydrogen{
+        n_h += 1;
+      }else{
+        assert!((*particle).element != Element::Oxygen);
+      }
       let mol_id = structure.molecule_id(idx);
-      let cell_id = structure.unit_cell_ids[idx];
+      let idx0 = structure.primary_cell_indices[idx];
+      let cell_indices = &structure.cell_indices[idx0];
+      let cell_id = cell_indices.iter().position(|&x| {
+            match x{ Some(id) => id == idx, None => false,}
+          }).unwrap();
       let is_proton = (*particle).isotope == Isotope::Hydrogen1;
       let is_deuteron = (*particle).isotope == Isotope::Hydrogen2;
+      
+      if is_proton{
+        n_h1 += 1;
+      }else if is_deuteron{
+        n_h2 += 1;
+      }
 
       if !is_proton && !is_deuteron{ continue; }
 
@@ -527,7 +561,7 @@ mod tests{
       }
 
     }
-    [n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2, n_mol]
+    [n_h, n_h1, n_h2, n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2, n_mol]
   }
 
   //----------------------------------------------------------------------------

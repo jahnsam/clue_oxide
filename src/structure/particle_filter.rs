@@ -1,6 +1,7 @@
 use crate::structure::Structure;
 use crate::space_3d::Vector3D;
 //use crate::structure::exchange_groups::ExchangeGroup;
+use crate::structure::Particle;
 use crate::physical_constants::{Element,Isotope};
 use crate::clue_errors::CluEError;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -64,12 +65,29 @@ impl ParticleFilter{
     Default::default()
   }
   //----------------------------------------------------------------------------
+  pub fn filter_indices(&self, structure: &Structure,indices: &Vec::<usize>) 
+    -> Vec::<usize>
+  {
+    indices.iter().filter_map( |idx| {
+      let particle = &structure.bath_particles[*idx];
+      self.does_pass_filter(structure, *idx,particle)
+    }).collect()
+  }
+  //----------------------------------------------------------------------------
   pub fn filter(&self, structure: &Structure) -> Vec::<usize>{
     
     let particles = &structure.bath_particles;
 
-    particles.iter().enumerate().filter_map(|(idx,particle)| {
-
+    particles.iter().enumerate()
+      .filter_map(|(idx,particle)| 
+          self.does_pass_filter(structure, idx,particle)
+    ).collect()
+  }
+  //----------------------------------------------------------------------------
+  fn does_pass_filter(&self, structure: &Structure,
+      idx: usize, particle: &Particle) -> Option<usize>
+  {
+    let particles = &structure.bath_particles;
       // Index
       if (!self.indices.is_empty() && !self.indices.contains(&idx))
        || self.not_indices.contains(&idx){
@@ -165,8 +183,7 @@ impl ParticleFilter{
       
 
       Some(idx)
-    }).collect()
-  }
+    }
 //------------------------------------------------------------------------------
   /// This function augments a particle filter, making it specific to the
   /// specified particle.  
@@ -191,6 +208,7 @@ impl ParticleFilter{
         }
       },
       
+      /*
       SecondaryParticleFilter::SameResidueSequenceNumber 
         => {
         if let Some(res_seq_id) = structure.bath_particles[index_ref_particle]
@@ -201,6 +219,7 @@ impl ParticleFilter{
                 secondary_filter.to_string()));
           }
       },
+      */
     }
 
 
@@ -218,7 +237,7 @@ pub enum SecondaryParticleFilter{
   Bonded, // atoms bonded to particle
   //Particle, // the particle itself
   SameMolecule, // atoms on the same molecule as particle 
-  SameResidueSequenceNumber, // atoms with the same ResSeq as particle.
+  //SameResidueSequenceNumber, // atoms with the same ResSeq as particle.
 }
 impl ToString for SecondaryParticleFilter{
   fn to_string(&self) -> String{
@@ -273,7 +292,7 @@ mod tests{
     let mut filter = ParticleFilter::new();
     filter.elements = vec![Element::Hydrogen];
     filter.augment_filter(28,
-        &SecondaryParticleFilter::SameResidueSequenceNumber,structure)
+        &SecondaryParticleFilter::SameMolecule,structure)
       .unwrap();
     let indices = filter.filter(structure);
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);

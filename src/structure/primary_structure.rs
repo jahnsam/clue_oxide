@@ -3,6 +3,10 @@ use crate::config::Config;
 use crate::space_3d;
 use crate::physical_constants::Element;
 use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
+use crate::structure::ParticleFilter;
+use crate::CluEError;
+use crate::structure::ParticleProperties;
+use crate::structure::SecondaryParticleFilter;
 
 impl Structure{
   /// This method uses an input `Config` to set the structure's
@@ -20,6 +24,8 @@ impl Structure{
 
     // Set methyl and primary amonium groups..
     self.set_exchange_groups();
+
+    self.find_cosubstitution_groups(config);
   }  
   //----------------------------------------------------------------------------
   // This method sets self.bath_spins_indices so that each element corresponds
@@ -29,11 +35,11 @@ impl Structure{
 
     let n_particles = self.bath_particles.len();
     self.primary_cell_indices = Vec::<usize>::with_capacity(n_particles);
-    self.unit_cell_ids = Vec::<usize>::with_capacity(n_particles);
+    self.cell_indices = Vec::<Vec::<Option<usize>>>::with_capacity(n_particles);
     
     for idx in 0..n_particles{
       self.primary_cell_indices.push(idx);
-      self.unit_cell_ids.push(0);
+      self.cell_indices.push(vec![Some(idx)]);
     }
 
     self.pair_particle_configs(config);
@@ -92,7 +98,6 @@ impl Structure{
 
     const MAXBOND: f64 = 3.0; // Angstroms.
 
-    //for connections in self.connections.iter() {
     for idx0 in 0..self.bath_particles.len() {
 
 
@@ -228,8 +233,111 @@ impl Structure{
    Some([hydrons[0], hydrons[1], hydrons[2] ])
  }  
  //-----------------------------------------------------------------------------
+   //----------------------------------------------------------------------------
+  // TODO: find_cosubstitution_groups() is slow for large systems.
+  // This function goes through each particle, applies secondary filters,
+  // and records the cosubstitution_groups.
+  fn find_cosubstitution_groups(&mut self, config: &Config)
+    -> Result<(),CluEError>
+  {
+
+    let mut cosubstitution_group_ids
+      = Vec::<Option<usize>>::with_capacity(self.bath_particles.len());
+    for ii in 0..self.bath_particles.len(){
+      cosubstitution_group_ids.push(None);
+    }
+
+    let mut current_cosub_id = 0;
+
+
+    // Loop through bath particles.
+    for (idx,particle) in self.bath_particles.iter().enumerate(){
+
+      let idx0 = self.primary_cell_indices[idx];
+      // Check if there are custom properties for this particle.
+      let Some(id) = self.particle_config_ids[idx0] else{continue;};
+      let Some(properties) = &config.particles[id].properties else{continue;};
+      if cosubstitution_group_ids[idx]!=None{
+        continue;
+      }
+
+      // Check if this particle has a filter.
+      let mut filter: ParticleFilter;
+      if let Some(fltr) = &config.particles[id].filter{
+        filter= fltr.clone();
+      }else{
+        filter = ParticleFilter::new();
+      }
+
+      // Set cosubstitution group for this particle.
+      update_cosubstitution_ids(&mut cosubstitution_group_ids,
+        idx, current_cosub_id, filter.clone(),properties,self)?;
+      current_cosub_id += 1;
+
+    }
+    for id in cosubstitution_group_ids.iter_mut(){
+      if *id != None {continue;}
+      *id = Some(current_cosub_id);
+      current_cosub_id += 1;
+    }
+    let mut cosubstitution_groups
+      = Vec::<Vec::<usize>>::with_capacity(current_cosub_id);
+    for ii in 0..current_cosub_id{
+      cosubstitution_groups.push(Vec::<usize>::new());
+    }
+    for (idx,id_opt) in cosubstitution_group_ids.iter().enumerate(){
+      let Some(id) = *id_opt else{
+        return Err(CluEError::UnassignedCosubstitutionGroup(idx))
+      };
+      cosubstitution_groups[id].push(idx);
+    }
+    self.cosubstitution_groups = cosubstitution_groups;
+
+    Ok(())
+  }
+
+ //-----------------------------------------------------------------------------
 
 }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//------------------------------------------------------------------------------
+// This function finds all the particles that cosubstitute with particle idx,
+// and records them in cosubstitution_group_ids.
+fn update_cosubstitution_ids(
+    cosubstitution_group_ids: &mut Vec::<Option<usize>>,
+    idx: usize,
+    current_cosub_id: usize,
+    mut filter: ParticleFilter,
+    properties: &ParticleProperties,
+    structure: &Structure)
+    -> Result<(),CluEError>
+  {
+      let idx0 = structure.primary_cell_indices[idx];
+      let mut indices = Vec::<usize>::new();
+
+      // Check if properties defines a cosubstitution set.
+      match properties.cosubstitute{
+        Some(SecondaryParticleFilter::Bonded) => {
+          if let Some(bonded) = structure.connections.get_neighbors(idx0){
+            indices = filter.filter_indices(structure,bonded);
+          }
+        },
+        Some(SecondaryParticleFilter::SameMolecule) => {
+          let mol_id = structure.molecule_ids[idx0];
+          indices = filter.filter_indices(structure,&structure.molecules[mol_id]);
+        },
+        None => (),
+      }
+      for index in indices.iter(){
+        // Assign the particle to this cosubstitution group.
+        cosubstitution_group_ids[*index] = Some(current_cosub_id)
+      }
+
+    Ok(())
+  }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 
@@ -238,7 +346,49 @@ mod tests{
   use super::*;
   use crate::structure::parse_pdb as pdb;
   use crate::config::Config;
+  use crate::structure::ParticleConfig;
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_find_cosubstitution_groups(){
+    let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
+    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut config = Config::new();
+    let structure = &mut structures[0];
+    structure.build_primary_structure(&config);
+
+    let mut filter_nx = ParticleFilter::new();
+    filter_nx.elements = vec![Element::Hydrogen];
+    filter_nx.not_bonded_elements = vec![Element::Oxygen];
+
+    let mut properties = ParticleProperties::new();
+    properties.cosubstitute = Some(SecondaryParticleFilter::SameMolecule);
+
+    let mut particle_configs =vec![
+      ParticleConfig::new("non-exchangeable".to_string())];
+    particle_configs[0].properties = Some(properties);
+    particle_configs[0].filter = Some(filter_nx);
+
+    config.particles = particle_configs;
+
+    structure.pair_particle_configs(&config);
+
+    structure.find_cosubstitution_groups(&config);
+    println!("DB: {:?}",structure.cosubstitution_groups);
+    let expected = vec![
+        vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26],
+        vec![30,31,35,39,40],
+        vec![0],vec![1],vec![5],vec![9],vec![12],
+        vec![15],vec![18],vec![19],vec![23],vec![27],
+        vec![28],vec![29],
+        vec![32],vec![33],vec![34],vec![36],vec![37],
+        vec![38],vec![41],vec![42],
+        vec![43],vec![44],vec![45]
+    ];
+
+    assert_eq!(structure.cosubstitution_groups.len(), expected.len());
+    assert_eq!(structure.cosubstitution_groups, expected);
+  }
   //----------------------------------------------------------------------------
   #[test]
   fn test_build_primary_structure_water(){

@@ -11,6 +11,16 @@ impl AdjacencyList{
     self.list.len()
   }
 
+  //----------------------------------------------------------------------------
+  pub fn active_with_capacity(n: usize) -> Self{
+    let mut list = Vec::< Option<Vec::<usize>> >::with_capacity(n);
+    for _ii in 0..n{
+      list.push(Some(Vec::new()));
+    }
+
+    AdjacencyList{list}
+  }
+  //----------------------------------------------------------------------------
   pub fn with_capacity(n: usize) -> Self{
     let mut list = Vec::< Option<Vec::<usize>> >::with_capacity(n);
     for _ii in 0..n{
