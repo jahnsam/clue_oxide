@@ -14,6 +14,7 @@ pub enum CluEError{
   CannontAugmentFilter(usize,String),
   CannotConvertToFloat(usize,String),
   CannotConvertToVector(usize),
+  CannotFindCellID(usize),
   CannotOpenFile(String),
   CannotParseElement(String),
   CannotParseLine(String),
@@ -66,6 +67,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotDivTokens => write!(f,
           "cannot divide tokens meaningfully"),
+
+      CluEError::CannotFindCellID(idx) => write!(f,
+          "cannot determine cell id for particle {}",idx),
 
       CluEError::CannotMulTokens => write!(f,
           "cannot multiply tokens meaningfully"),

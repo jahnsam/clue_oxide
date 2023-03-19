@@ -100,6 +100,18 @@ impl Structure{
     out
   }
   //----------------------------------------------------------------------------
+  pub fn cell_id(&self, idx: usize) -> Result<usize,CluEError>
+  {
+    let idx0 = self.primary_cell_indices[idx];
+    let cell_indices = &self.cell_indices[idx0];
+    let Some(cell_id) = cell_indices.iter().position(|&x| {
+        match x{ Some(id) => id == idx, None => false,} }) else{
+      return Err(CluEError::CannotFindCellID(idx));
+    };
+
+    Ok(cell_id)
+  }
+  //----------------------------------------------------------------------------
   pub fn molecule_id(&self,idx: usize) -> usize{
 
     let idx0 = self.primary_cell_indices[idx];

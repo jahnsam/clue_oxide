@@ -71,7 +71,7 @@ transition = [-1/2, +1/2];
 
 
 #[filter(label=TEMPO_N)]
-  element iin [N];
+  element in [N];
   
 #[filter(label=TEMPO_axis)]
 pdb_indices in [17,18];

@@ -272,7 +272,7 @@ impl Element{
       "Pt" => Ok(Element::Platinum),
       "Au" => Ok(Element::Gold),
       "Hg" => Ok(Element::Mercury),
-      "Ti" => Ok(Element::Thallium),
+      "Tl" => Ok(Element::Thallium),
       "Pb" => Ok(Element::Lead),
       "Bi" => Ok(Element::Bismuth),
       "Po" => Ok(Element::Polonium),

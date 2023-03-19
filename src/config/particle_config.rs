@@ -70,6 +70,7 @@ impl ParticleConfig{
 #[derive(Debug,Clone)]
 pub struct ParticleProperties{
   pub isotopic_distribution:  IsotopeDistribution,
+  pub extracell_isotopic_distribution:  Option<IsotopeDistribution>,
   pub exchange_coupling: f64,
   pub hyperfine: Option<TensorSpecifier>,
   pub electric_quadrupole_coupling: Option<TensorSpecifier>,
@@ -79,6 +80,7 @@ impl Default for ParticleProperties{
   fn default() -> Self{
     ParticleProperties{
       isotopic_distribution:  IsotopeDistribution::default(),
+      extracell_isotopic_distribution:  None,
       exchange_coupling: 0.0,
       hyperfine: None,
       electric_quadrupole_coupling: None,

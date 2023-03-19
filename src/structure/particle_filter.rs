@@ -18,6 +18,9 @@ pub struct ParticleFilter{
   pub indices: Vec::<usize>,
   pub not_indices: Vec::<usize>,
   
+  //pub cell_ids: Vec::<usize>,
+  //pub not_cell_ids: Vec::<usize>,
+
   pub elements: Vec::<Element>, 
   pub not_elements: Vec::<Element>, 
 
@@ -94,6 +97,15 @@ impl ParticleFilter{
         return None;
       }
 
+      /*
+      // Cell ID
+      if !self.cell_ids.is_empty(){
+        if let Ok(cell_id) = structure.cell_id(idx){ 
+          if !self.cell_ids.contains(&idx) || self.not_cell_ids.contains(&idx){
+            return None;
+        }}
+      }
+      */
       // Element
       if (!self.elements.is_empty() 
           && !self.elements.contains(&particle.element))
@@ -242,8 +254,9 @@ pub enum SecondaryParticleFilter{
 impl ToString for SecondaryParticleFilter{
   fn to_string(&self) -> String{
     match self{
-      Bonded => String::from("Bonded"),
-      SameResidueSequenceNumber => String::from("SameResidueSequenceNumber"),
+      SecondaryParticleFilter::Bonded => String::from("Bonded"),
+      SecondaryParticleFilter::SameMolecule
+        => String::from("SameMolecule"),
     }
   } 
 }

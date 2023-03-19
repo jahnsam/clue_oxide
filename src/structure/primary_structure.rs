@@ -11,21 +11,26 @@ use crate::structure::SecondaryParticleFilter;
 impl Structure{
   /// This method uses an input `Config` to set the structure's
   /// spins and exchange groups.  The number of bath particle is unchanged.
-  pub fn build_primary_structure(&mut self, config: &Config){
+  pub fn build_primary_structure(&mut self, config: &Config)
+    -> Result<(),CluEError>
+    {
 
     (self.molecules, self.molecule_ids)  =
       separate_into_connected_subgraphs(&self.connections);
 
     // TODO: one PBC on each side should be used to ensure reconect_bonds()
     // does not take a spin out of range.
-    //self.reconnect_bonds();
+    self.reconnect_bonds();
+    
 
     self.set_spins(config);
 
     // Set methyl and primary amonium groups..
     self.set_exchange_groups();
 
-    self.find_cosubstitution_groups(config);
+    self.find_cosubstitution_groups(config)?;
+
+    Ok(())
   }  
   //----------------------------------------------------------------------------
   // This method sets self.bath_spins_indices so that each element corresponds
@@ -141,7 +146,7 @@ impl Structure{
    
    let mut exchange_group_ids 
      = Vec::<Option<usize>>::with_capacity(self.number());
-   for ii in 0..self.number(){
+   for _ii in 0..self.number(){
      exchange_group_ids.push(None);
    }
 
@@ -243,7 +248,7 @@ impl Structure{
 
     let mut cosubstitution_group_ids
       = Vec::<Option<usize>>::with_capacity(self.bath_particles.len());
-    for ii in 0..self.bath_particles.len(){
+    for _ii in 0..self.bath_particles.len(){
       cosubstitution_group_ids.push(None);
     }
 
@@ -251,7 +256,7 @@ impl Structure{
 
 
     // Loop through bath particles.
-    for (idx,particle) in self.bath_particles.iter().enumerate(){
+    for idx in 0..self.bath_particles.len(){
 
       let idx0 = self.primary_cell_indices[idx];
       // Check if there are custom properties for this particle.
@@ -262,7 +267,7 @@ impl Structure{
       }
 
       // Check if this particle has a filter.
-      let mut filter: ParticleFilter;
+      let filter: ParticleFilter;
       if let Some(fltr) = &config.particles[id].filter{
         filter= fltr.clone();
       }else{
@@ -282,7 +287,7 @@ impl Structure{
     }
     let mut cosubstitution_groups
       = Vec::<Vec::<usize>>::with_capacity(current_cosub_id);
-    for ii in 0..current_cosub_id{
+    for _ii in 0..current_cosub_id{
       cosubstitution_groups.push(Vec::<usize>::new());
     }
     for (idx,id_opt) in cosubstitution_group_ids.iter().enumerate(){
@@ -309,7 +314,7 @@ fn update_cosubstitution_ids(
     cosubstitution_group_ids: &mut Vec::<Option<usize>>,
     idx: usize,
     current_cosub_id: usize,
-    mut filter: ParticleFilter,
+    filter: ParticleFilter,
     properties: &ParticleProperties,
     structure: &Structure)
     -> Result<(),CluEError>
@@ -355,7 +360,7 @@ mod tests{
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     let mut config = Config::new();
     let structure = &mut structures[0];
-    structure.build_primary_structure(&config);
+    structure.build_primary_structure(&config).unwrap();
 
     let mut filter_nx = ParticleFilter::new();
     filter_nx.elements = vec![Element::Hydrogen];
@@ -373,7 +378,7 @@ mod tests{
 
     structure.pair_particle_configs(&config);
 
-    structure.find_cosubstitution_groups(&config);
+    structure.find_cosubstitution_groups(&config).unwrap();
     println!("DB: {:?}",structure.cosubstitution_groups);
     let expected = vec![
         vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26],
@@ -395,7 +400,7 @@ mod tests{
     let filename = "./assets/water.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     let config = Config::new();
-    structures[0].build_primary_structure(&config);
+    structures[0].build_primary_structure(&config).unwrap();
 
   
     assert_eq!(structures[0].molecules.len(),1);
@@ -404,12 +409,12 @@ mod tests{
   }
   //----------------------------------------------------------------------------
   #[test]
-  fn test_build_primary_structure_TEMPO(){
+  fn test_build_primary_structure_tempo(){
     let filename = "./assets/TEMPO.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
 
     let config = Config::new();
-    structures[0].build_primary_structure(&config);
+    structures[0].build_primary_structure(&config).unwrap();
 
     assert_eq!(structures[0].bath_spins_indices.len(), 19);
     let exchange_group_manager = structures[0].exchange_groups
@@ -441,7 +446,7 @@ mod tests{
   }
   //----------------------------------------------------------------------------
   #[test]
-  fn test_build_primary_structure_TEMPO_wat_gly_70A(){
+  fn test_build_primary_structure_tempo_wat_gly_7nm(){
     // n    : Molecules    : Hydrons
     // 1    : TEMPO        :    18
     // 1500 : glycerols    : 12000
@@ -451,15 +456,12 @@ mod tests{
     //
     let n_wat = 7469;
     let n_gly = 1500;
-    let n_ex = 2*n_wat + 3*n_gly;
-    let n_nx = 5*n_gly + 18;
 
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     
     let config = Config::new();
-    structures[0].build_primary_structure(&config);
-    let num_particles = structures[0].bath_particles.len();
+    structures[0].build_primary_structure(&config).unwrap();
     
     assert_eq!(structures[0].molecules.len(), 1 + n_wat + n_gly);
 
