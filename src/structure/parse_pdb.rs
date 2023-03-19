@@ -252,6 +252,7 @@ fn parse_atom_line(line: &str) -> Result<Particle,(CluEError,u32)>{
       element,
       isotope: Isotope::most_common_for(&element),
       coordinates,
+      active: true,
       serial: Some(serial),
       residue,
       residue_sequence_number: residue_sequence_number.ok(),
@@ -334,7 +335,7 @@ mod tests {
   }
   //----------------------------------------------------------------------------
   #[test]
-  fn test_parse_pdb_TEMPO_wat_gly_70A(){
+  fn test_parse_pdb_tempo_wat_gly_7nm(){
     // n    : Molecules    : Hydrons 
     // 1    : TEMPO        :    18
     // 1500 : glycerols    : 12000
@@ -347,7 +348,8 @@ mod tests {
     assert_eq!(structures[0].bath_particles.len(),43436);
   }
   //----------------------------------------------------------------------------
-  fn test_parse_pdb_TEMPO(){
+  #[test]
+  fn test_parse_pdb_tempo(){
     let filename = "./assets/TEMPO.pdb";
     let structures = parse_pdb(&filename).unwrap();
 

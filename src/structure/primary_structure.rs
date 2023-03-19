@@ -55,17 +55,19 @@ impl Structure{
     self.bath_spins_indices = Vec::<usize>::with_capacity(n_spins);
 
 
-    for (idx, particle) in self.bath_particles.iter().enumerate(){
+    for (idx, particle) in self.bath_particles.iter_mut().enumerate(){
 
 
-      if particle.isotope.spin_multiplicity() <= 1 { continue; }
 
       if let Some(id) = self.particle_config_ids[idx]{
-        if config.max_spin_multiplicity_for_particle_config(id) <= 1{
-          continue;
-        }
+        particle.active
+          = config.max_spin_multiplicity_for_particle_config(id) > 1;
+      }else{
+        particle.active = particle.isotope.spin_multiplicity() > 1;
       }
-      self.bath_spins_indices.push(idx);
+
+      //if !particle.active { continue; }
+      //self.bath_spins_indices.push(idx);
     }
 
    
@@ -331,7 +333,8 @@ fn update_cosubstitution_ids(
         },
         Some(SecondaryParticleFilter::SameMolecule) => {
           let mol_id = structure.molecule_ids[idx0];
-          indices = filter.filter_indices(structure,&structure.molecules[mol_id]);
+          indices = filter.filter_indices(structure,
+              &structure.molecules[mol_id]);
         },
         None => (),
       }
@@ -416,7 +419,8 @@ mod tests{
     let config = Config::new();
     structures[0].build_primary_structure(&config).unwrap();
 
-    assert_eq!(structures[0].bath_spins_indices.len(), 19);
+    assert_eq!(structures[0].bath_particles
+        .iter().filter(|p| (*p).active).count(), 19);
     let exchange_group_manager = structures[0].exchange_groups
                                  .as_ref().unwrap();
     assert_eq!(exchange_group_manager.exchange_groups.len(), 4);

@@ -34,6 +34,7 @@ pub struct Particle{
   pub element: Element,
   pub isotope: Isotope,
   pub coordinates: Vector3D,
+  pub active: bool,
 
   pub serial: Option<u32>,
   pub residue: Option<String>,

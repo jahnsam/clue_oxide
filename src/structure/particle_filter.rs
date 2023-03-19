@@ -284,7 +284,7 @@ mod tests{
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     let config = Config::new();
     let structure = &mut structures[0];
-    structure.build_primary_structure(&config);
+    structure.build_primary_structure(&config).unwrap();
 
 
     let mut filter = ParticleFilter::new();
@@ -317,7 +317,7 @@ mod tests{
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     let config = Config::new();
     let structure = &mut structures[0];
-    structure.build_primary_structure(&config);
+    structure.build_primary_structure(&config).unwrap();
 
   
     let mut filter = ParticleFilter::new();

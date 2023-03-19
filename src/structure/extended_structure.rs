@@ -66,6 +66,8 @@ impl Structure{
       if cosubstitution_group.is_empty(){ continue; }
 
       let particle_idx0 = cosubstitution_group[0];
+      if !self.bath_particles[particle_idx0].active {continue;}
+      
       // Check if this particle has a custom config.
       let Some(config_id) = self.particle_config_ids[particle_idx0] else {
         continue;
@@ -142,6 +144,7 @@ impl Structure{
         let random_number = range.sample(rng);
 
         for particle_idx0 in cosubstitution_group.iter(){
+          if !self.bath_particles[*particle_idx0].active {continue;}
         
           let Some(particle_idx) 
             = self.cell_indices[*particle_idx0][unit_cell_id] else{continue;};
@@ -177,6 +180,7 @@ impl Structure{
             cdf += iso.abundance;
             if cdf >= random_number{
               particle.isotope = iso.isotope;
+              particle.active = particle.isotope.spin_multiplicity() > 1;
               break;
             } 
           }
@@ -204,6 +208,10 @@ impl Structure{
     for offset in self.cell_offsets.iter().skip(1){
 
       for particle_idx0 in 0..n_particles0{
+        if !self.bath_particles[particle_idx0].active {
+          self.cell_indices[particle_idx0].push(None);
+          continue;
+        }
 
         // TODO: implement force_no_pbc?
         // No because properties.extracell_void_probability = Some(0.0)
@@ -338,7 +346,8 @@ mod tests{
     assert_eq!(structure.cell_offsets.len(),125);
 
     // Test: extend_structure().
-    assert_eq!(structure.bath_particles.len(),125*num_particles);
+    let expected_num = num_particles + 124*19;
+    assert_eq!(structure.bath_particles.len(),expected_num);
 
     // Test: set_isotopologue().
     let mut n_h1 = 0;
@@ -350,7 +359,6 @@ mod tests{
         n_h2 += 1; 
       }
     }
-    println!("DB: n_h1 = {}; n_h2 = {}.",n_h1,n_h2);
     assert_eq!(n_h1+n_h2,125*18);
     assert!(n_h1 >= 1000);
     assert!(n_h1 <= 1200);
@@ -361,6 +369,17 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_add_voidable_particles(){
+    // n    : Molecules    : Hydrons 
+    // 1    : TEMPO        :    18
+    // 1500 : glycerols    : 12000
+    // 7469 : waters       : 14938
+    //
+    // total hydrons =  26956.
+    //
+    let n_wat = 7469;
+    let n_gly = 1500;
+    let n_ex = 2*n_wat + 3*n_gly; 
+    let n_nx = 5*n_gly + 18;
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
 
@@ -374,13 +393,13 @@ mod tests{
     let mut filter_ex = ParticleFilter::new();
     filter_ex.elements = vec![Element::Hydrogen];
     filter_ex.bonded_elements = vec![Element::Oxygen];
-    particle_configs[0].filter = Some(filter_ex);
+    particle_configs[0].filter = Some(filter_ex.clone());
 
     // filter 1
     let mut filter_nx = ParticleFilter::new();
     filter_nx.elements = vec![Element::Hydrogen];
     filter_nx.not_bonded_elements = vec![Element::Oxygen];
-    particle_configs[1].filter = Some(filter_nx);
+    particle_configs[1].filter = Some(filter_nx.clone());
     
     let mut properties = ParticleProperties::new();
     properties.isotopic_distribution.isotope_abundances.push(
@@ -407,10 +426,8 @@ mod tests{
     config.radius = Some(73.5676e-10);
     let n_uc = 125;
 
-    //println!("DB: {:?}",config.particles);
 
     structures[0].build_primary_structure(&config).unwrap();
-    let num_particles = structures[0].bath_particles.len();
 
 
     
@@ -419,7 +436,6 @@ mod tests{
 
     let structure = &mut structures[0];
     structure.build_extended_structure(&mut rng, &config);
-    println!("DB: id={:?}",structure.particle_config_ids[21026]);
 
     assert_eq!(structure.cell_offsets.len(),n_uc);
     //assert_eq!(structure.bath_particles.len(),n_uc*num_particles);
@@ -427,7 +443,11 @@ mod tests{
     // Check that outside the primary cell deuterons are removed.
     for (idx, particle) in structure.bath_particles.iter().enumerate(){
       if structure.cell_id(idx).unwrap() > 0{
-        assert_eq!((*particle).isotope, Isotope::Hydrogen1);
+        assert!(
+            (*particle).isotope==Isotope::Hydrogen1 
+            || (*particle).isotope==Isotope::Nitrogen14 
+            );
+
       }else{
         let idx0 = structure.primary_cell_indices[idx];
         assert_eq!(idx,idx0);
@@ -439,10 +459,39 @@ mod tests{
       }
     }
 
+
+    // Check for for the correct exchanges.
+    let [n_h, n_h1, n_h2,n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
+      get_conditional_hydron_stats(&structure,&filter_ex);
+
+    let approx_eq = |m: usize,n: usize| -> bool{
+      (1.0 - (m as f64)/(n as f64) ).abs() <1e3 
+    };
+    assert!(n_h1_h1>0);
+    assert!(n_h2_h2>0);
+    assert!(n_h2_h1>0);
+    assert!(n_h1_h2>0);
+    assert!( approx_eq(n_h1,n_uc*n_h2) );
+    assert!( approx_eq(n_h1_h1,n_h2_h2) );
+    assert!( approx_eq(n_h1_h1,n_h2_h1) );
+    assert!( approx_eq(n_h1_h1,n_uc*n_h1_h2) );
+    assert!( approx_eq(n_h, n_ex*(1 +(n_uc-1)/2)  ));
+
+    let [n_h, n_h1, n_h2, n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,_n_mol] =
+      get_conditional_hydron_stats(&structure,&filter_nx);
+
+    assert!(n_h1_h1>0);
+    assert!(n_h2_h2>0);
+    assert_eq!(n_h2_h1,0);
+    assert_eq!(n_h1_h2,0);
+    assert!( approx_eq(n_h1,n_uc*n_h2) );
+    assert!( approx_eq(n_h1_h1,n_uc*n_h2_h2) );
+    assert!( approx_eq(n_h, n_nx*(1 +(n_uc-1)/2)  ));
+
   }
   //----------------------------------------------------------------------------
   #[test]
-  fn test_build_extended_structure_TEMPO_wat_gly_70A(){
+  fn test_build_extended_structure_tempo_wat_gly_7nm(){
     // n    : Molecules    : Hydrons 
     // 1    : TEMPO        :    18
     // 1500 : glycerols    : 12000
@@ -504,7 +553,6 @@ mod tests{
     structure.build_extended_structure(&mut rng, &config);
 
     assert_eq!(structure.cell_offsets.len(),n_uc);
-    assert_eq!(structure.bath_particles.len(),n_uc*num_particles);
 
 
 
@@ -520,11 +568,12 @@ mod tests{
     assert!(n_h2_h2>0);
     assert!(n_h2_h1>0);
     assert!(n_h1_h2>0);
+    assert!( approx_eq(n_h1,n_h2) );
     assert!( approx_eq(n_h1_h1,n_h2_h2) );
     assert!( approx_eq(n_h1_h1,n_h2_h1) );
     assert!( approx_eq(n_h1_h1,n_h1_h2) );
 
-    let [n_h, n_h1, n_h2, n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
+    let [n_h, n_h1, n_h2, n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,_n_mol] =
       get_conditional_hydron_stats(&structure,&filter_nx);
 
     assert_eq!(n_h,n_uc*n_nx);
@@ -532,6 +581,7 @@ mod tests{
     assert!(n_h2_h2>0);
     assert_eq!(n_h2_h1,0);
     assert_eq!(n_h1_h2,0);
+    assert!( approx_eq(n_h1,n_h2) );
     assert!( approx_eq(n_h1_h1,n_h2_h2) );
 
 
@@ -605,7 +655,7 @@ mod tests{
   // TODO: set non-exchangeable hydrons as cosubstitution groups.
   // TODO: set extra-cell non-protons to voids.
   #[test]
-  fn test_build_extended_structure_TEMPO_3gly_1npr(){
+  fn test_build_extended_structure_tempo_3gly_1npr(){
     let filename = "./assets/TEMPO_3gly_1npr_50A.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     assert_eq!(structures[0].bath_particles.len(),13891);
@@ -671,8 +721,7 @@ mod tests{
       }
     }
 
-    println!("DB: H{}, D{}",n_h1,n_h2);
-    let n_hydrogens = (18 + 775*8 + 251*8);
+    let n_hydrogens = 18 + 775*8 + 251*8;
     let n_hydrogens_uc = (n_uc)*n_hydrogens;
     let n_up = 3*n_hydrogens_uc/5;  
     let n_low = 2*n_hydrogens_uc/5;  
