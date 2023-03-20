@@ -21,6 +21,24 @@ pub fn get_tokens_from_file(filename: &str)
 
     Ok(expressions)
 }
+//------------------------------------------------------------------------------
+// This function reads in a file and returns a Vec::<TokenExpression>; 
+// each element contains a line of input.
+pub fn get_tokens_from_line(input: &str) 
+  -> Result<Vec::<TokenExpression>,CluEError>
+{
+
+    let input = str::replace(input, ";", ";\n");
+    let lexer = Lexer{input, position: 0, line_number: 0};
+    let tokens = parse_tokens(lexer)?;
+    let tokens = find_comments(tokens);
+    let (tokens,line_numbers) = prune_tokens(tokens)?;
+    let tokens =  simplify_tokens(tokens);
+    let expressions = get_token_statements(tokens, &line_numbers)?;
+
+    Ok(expressions)
+}
+
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /*
@@ -328,6 +346,11 @@ fn build_composit_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
     if tokens[ii-1] == Token::Bang && tokens[ii] == Token::Equals{
       out.push(Token::NotEqual);
       continue;}
+
+    // not in
+    if tokens[ii-1] == Token::Not && tokens[ii] == Token::In{
+      out.push(Token::NotIn);
+      continue;}
   
     // /*
     if tokens[ii-1] == Token::Times && tokens[ii] == Token::Slash{
@@ -455,7 +478,7 @@ fn get_token_statements(tokens: Vec::<Token>, line_numbers: &[usize])
 
 
 //------------------------------------------------------------------------------
-fn to_string_vector(tokens: Vec::<Token>, line_number: usize) 
+pub fn to_string_vector(tokens: Vec::<Token>, line_number: usize) 
  -> Result<Token, CluEError>
 {
 
@@ -670,25 +693,6 @@ magnetic_field = 1.2; // T"),
   }
   */
   //----------------------------------------------------------------------------
-  #[allow(non_snake_case)]
-  #[test]
-  fn test_TokenExpression(){
-    let tokens = vec![Token::Float(1.0), Token::Plus, Token::Float(2.0),
-    Token::Equals, Token::Float(3.0)];
-
-    let expression = TokenExpression::from(tokens.clone(),0).unwrap();
-
-    assert_eq!(expression.relationship,Some(tokens[3].clone()));
-    for ii in 0..3{
-      assert_eq!(expression.lhs[ii],tokens[ii]);
-    }
-    if let Some(rhs) = expression.rhs{
-      assert_eq!(rhs[0],tokens[4]);
-    }
-    else{
-      panic!("Expected Some(rhs), but found None.");
-    }
-  }
   
   //----------------------------------------------------------------------------
   #[test]

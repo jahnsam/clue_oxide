@@ -6,8 +6,10 @@ use crate::config::token_stream;
 use crate::config::token_algebra::*;
 use crate::space_3d::Vector3D;
 use crate::config::to_i32_token;
+use crate::physical_constants::Element;
 
 // TokenExpression holds a line of input, organized for easy parsing.
+#[derive(Debug,Clone,Default,PartialEq)]
 pub struct TokenExpression{
   pub lhs: Vec::<Token>,
   pub rhs: Option<Vec::<Token>>,
@@ -161,10 +163,70 @@ pub fn set_to_some_vector3d(
 
   Ok(())
 }
+//------------------------------------------------------------------------------
+pub fn vec_tokens_to_vec_strings(tokens: Vec::<Token>)
+  -> Result<Vec::<String>,CluEError>
+{
+  /*
+  let str_token: Vec::<String> = tokens.into_iter()
+    .map(|tok| tok.to_string())
+    .collect();
+  */
+  let mut value_token = Vec::<String>::with_capacity(tokens.len());
+  for tok in tokens{
+    if let Token::UserInputValue(tok_str) = tok{
+      value_token.push(tok_str);
+    }
+  }
+
+  Ok(value_token)
+}
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+pub fn vec_tokens_to_vec_elements(tokens: Vec::<Token>)
+  -> Result<Vec::<Element>,CluEError>
+{
+  let mut value_token = Vec::<Element>::with_capacity(tokens.len());
+  for tok in tokens.iter(){
+    if let Token::UserInputValue(el_str) = tok{
+      let el = Element::from(el_str)?;
+      value_token.push(el);
+    }
+  }
+
+  Ok(value_token)
+}
+//------------------------------------------------------------------------------
+
+
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[cfg(test)]
 mod tests{
   use super::*;  
+    //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
+  fn test_TokenExpression(){
+    let tokens = vec![Token::Float(1.0), Token::Plus, Token::Float(2.0),
+    Token::Equals, Token::Float(3.0)];
+
+    let expression = TokenExpression::from(tokens.clone(),0).unwrap();
+
+    assert_eq!(expression.relationship,Some(tokens[3].clone()));
+    for ii in 0..3{
+      assert_eq!(expression.lhs[ii],tokens[ii]);
+    }
+    if let Some(rhs) = expression.rhs{
+      assert_eq!(rhs[0],tokens[4]);
+    }
+    else{
+      panic!("Expected Some(rhs), but found None.");
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
   #[test]
   fn test_find_lhs_rhs_delimiter_index(){
 

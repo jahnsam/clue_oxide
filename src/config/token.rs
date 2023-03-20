@@ -56,7 +56,7 @@ pub enum Token{
  Whitespace,
  Indices,                                                      
  //NotIndices,                                                   
- Elemments,                                                    
+ Elements,                                                    
  //NotElements,                                                  
  Serials,                                                      
  //NotSerials,                                                   
@@ -124,7 +124,7 @@ impl Token{
       Token::VectorString(v) => format!("{:?}",v), 
       Token::Whitespace => " ".to_string(),
       Token::Indices => "indices".to_string(),
-      Token::Elemments => "elements".to_string(),
+      Token::Elements => "elements".to_string(),
       Token::Serials => "serials".to_string(),
       Token::Residues => "residues".to_string(),
       Token::ResSeqNums => "residue_sequence_numbers".to_string(),
@@ -181,7 +181,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "type" => Some(Token::Type),
     " " => Some(Token::Whitespace),
     "indices" => Some(Token::Indices), 
-    "elements" => Some(Token::Elemments), 
+    "elements" => Some(Token::Elements), 
     "serials" => Some(Token::Serials), 
     "residues" => Some(Token::Residues),
     "residue_sequence_numbers" => Some(Token::ResSeqNums),
@@ -774,7 +774,7 @@ mod tests{
     assert_eq!(identify_token("type").unwrap(), Token::Type);
     assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
     assert_eq!(identify_token("indices").unwrap(), Token::Indices); 
-    assert_eq!(identify_token("elements").unwrap(), Token::Elemments); 
+    assert_eq!(identify_token("elements").unwrap(), Token::Elements); 
     assert_eq!(identify_token("serials").unwrap(), Token::Serials); 
     assert_eq!(identify_token("residues").unwrap(), Token::Residues);
     assert_eq!(identify_token("residue_sequence_numbers").unwrap(), 
