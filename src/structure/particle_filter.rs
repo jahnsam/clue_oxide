@@ -243,7 +243,7 @@ impl ParticleFilter{
 /// Secondary particle filters allow particles filters to be modified so as to
 /// allow the filter to filter based off the relationship of particles to a
 /// specified particle.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub enum SecondaryParticleFilter{
   Bonded, // atoms bonded to particle
   //Particle, // the particle itself
@@ -262,7 +262,7 @@ impl ToString for SecondaryParticleFilter{
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub enum VectorSpecifier{
   Diff(SecondaryParticleFilter,SecondaryParticleFilter),
   Vector(Vector3D)

@@ -74,7 +74,7 @@ transition = [-1/2, +1/2];
   element in [N];
   
 #[filter(label=TEMPO_axis)]
-pdb_indices in [17,18];
+  indices in [17,18];
 
 
 #[property(label= water_h)]

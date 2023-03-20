@@ -5,8 +5,6 @@ use crate::config::token_stream;
 use crate::config::particle_config::ParticleConfig;
 use crate::config::token_expressions::*;
 use crate::config::to_i32_token;
-use crate::config::to_string_vector;
-use crate::physical_constants::Element;
 use crate::structure::particle_filter::ParticleFilter;
 
 impl Config{
@@ -193,6 +191,7 @@ impl Config{
 mod tests{
   use super::*;
   use crate::config::get_tokens_from_line;
+  use crate::physical_constants::Element;
   #[test]
   fn test_parse_filter_line(){
     let expressions = get_tokens_from_line(

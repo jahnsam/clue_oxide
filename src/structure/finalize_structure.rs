@@ -11,28 +11,19 @@ use std::collections::HashMap;
 use crate::config::particle_config::IsotopeDistribution;
 
 impl Structure{
-  /// This function takes a structure from build_primary_structure(), applies
-  /// periodic boundary condition (if applicable), and sets isotope identities.
-  pub fn build_extended_structure(&mut self,
+  /// This function takes a structure from build_extended_structure(), 
+  /// trims the system and sets isotope identities.
+  pub fn finalize_structure(&mut self,
       rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
   {
 
-    // Construct offset vectors for each pbc application.
-    self.set_cell_shifts(config)?;
-
-    // Copy non-voidable particles over to each PBC. 
-    self.extend_structure(config)?;
-
-    // For particles that are to either be kept or dropped entirely,
-    // determine which particles to keep.
-    self.add_voidable_particles(rng, config)?;
+    //self.trim_system(config)?;
 
     // Set isotpic identities after adding voidable particles since the
     // non-void particles can potentially have multiple isotopic options. 
     self.set_isotopologue(rng, config)?;
 
-    //self.trim_system(config)?;
 
     Ok(())
   }
@@ -60,95 +51,6 @@ impl Structure{
     Ok(())
   }
   */
-  //----------------------------------------------------------------------------
-  // TODO: TEST add_voidable_particles()
-  fn add_voidable_particles(&mut self, 
-      rng: &mut ChaCha20Rng, config: &Config) 
-    -> Result<(),CluEError>
-  {
-
-    /*
-    let n: usize = 20;
-    let bin = Binomial::new(n as u64, 0.3).unwrap();
-    let v = bin.sample(&mut rand::thread_rng());
-    println!("Choosing {} out of {} from a binomial distribution", v,n);
-
-    let x = sample(rng,n, v as usize);
-    println!("{:?}",x);
-    */
-    
-    // Check if there are any configurations.
-    let particle_configs = &config.particles;
-
-    let mut property_map = HashMap::<u64, Vec::<usize>>::with_capacity(
-        self.cosubstitution_groups.len());
-
-    // Find all the cosubstitution_groups with the same substitution chance.
-    for (cosub_idx,cosubstitution_group) in self.cosubstitution_groups.iter()
-      .enumerate()
-    {
-      if cosubstitution_group.is_empty(){ continue; }
-
-      let particle_idx0 = cosubstitution_group[0];
-      if !self.bath_particles[particle_idx0].active {continue;}
-      
-      // Check if this particle has a custom config.
-      let Some(config_id) = self.particle_config_ids[particle_idx0] else {
-        continue;
-      };
-
-      // Check if this particle has any custom properties.
-      let Some(properties) = &particle_configs[config_id].properties else{
-        continue;
-      };
-
-      let Some(p_remove) = properties.isotopic_distribution
-        .extracell_void_probability else{
-          continue;
-      };
-      let p_keep = 1.0 - p_remove;
-      let ppt = (p_keep*1e12) as u64;
-      if let Some(indices) = &mut property_map.get_mut(&ppt){
-        indices.push(cosub_idx);
-      }else{
-        let indices = vec![cosub_idx];
-        property_map.insert(ppt,indices);
-      }
-
-    }
-
-    
-    for (cell_id,offset) in self.cell_offsets.iter().enumerate().skip(1){
-      for (ppt, indices) in property_map.iter(){ 
-
-        let p_keep = (*ppt as f64)/1e12; 
-        let n_groups = indices.len();
-        let Ok(bin) = Binomial::new(n_groups as u64, p_keep) else {
-          return Err(CluEError::CannotSampleBinomialDistribution(
-                n_groups,p_keep));
-        };
-
-        let n_indices = bin.sample(rng) as usize;
-        let non_void_indices = sample(rng,n_groups,n_indices);
-
-        for cosub_idx in non_void_indices.iter(){
-          for particle_idx0 in self.cosubstitution_groups[cosub_idx].iter(){
-
-            let mut new_particle = self.bath_particles[*particle_idx0].clone();
-            new_particle.coordinates = &new_particle.coordinates + offset;
-            self.bath_particles.push(new_particle);
-        
-            self.primary_cell_indices.push(*particle_idx0);
-            let particle_idx = self.bath_particles.len() - 1;
-            self.cell_indices[*particle_idx0][cell_id] = Some(particle_idx);
-          }
-        }
-
-      }
-    } 
-    Ok(())
-
-  }
   //----------------------------------------------------------------------------
   fn set_isotopologue(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
@@ -217,136 +119,6 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
-  fn extend_structure(&mut self, config: &Config) -> Result<(),CluEError>{
-
-    let n_particles0 = self.number();
-
-    let n_to_reserve = n_particles0*(self.cell_offsets.len()-1);
-    self.bath_particles.reserve( n_to_reserve );
-    self.primary_cell_indices.reserve( n_to_reserve );
-
-    for cindices in self.cell_indices.iter_mut(){
-      cindices.reserve(self.cell_offsets.len()-1);
-    }
-
-    for offset in self.cell_offsets.iter().skip(1){
-
-      for particle_idx0 in 0..n_particles0{
-        if !self.bath_particles[particle_idx0].active {
-          self.cell_indices[particle_idx0].push(None);
-          continue;
-        }
-
-        // TODO: implement force_no_pbc?
-        // No because properties.extracell_void_probability = Some(0.0)
-        // does the same thing
-        // if properties.force_no_pbc{}
-
-        
-        // Check if this particle has a custom config.
-        if let Some(config_id) = self.particle_config_ids[particle_idx0]{
-          // Check if this particle has any custom properties.
-          if let Some(properties) = &config.particles[config_id].properties{
-            // TODO: check void probability.
-            if let Some(_) = properties.isotopic_distribution
-              .extracell_void_probability{
-              self.cell_indices[particle_idx0].push(None); 
-              continue;
-            }
-          }
-        }
-      
-        let mut new_particle = self.bath_particles[particle_idx0].clone();
-        new_particle.coordinates = &new_particle.coordinates + offset;
-        self.bath_particles.push(new_particle);
-
-
-        self.primary_cell_indices.push(particle_idx0);
-        let particle_idx = self.bath_particles.len() - 1;
-        self.cell_indices[particle_idx0].push(Some(particle_idx));
-      }
-    }
-
-
-    Ok(())
-  }
-  //----------------------------------------------------------------------------
-  fn set_cell_shifts(&mut self, config: &Config) -> Result<(),CluEError>{
-    let cell_edges = self.cell_offsets.clone();
-
-    if cell_edges.is_empty(){
-      self.cell_offsets = vec![Vector3D::zeros()];
-      println!("No unit cell information found.  
-Periodic boudary conditions will not be applied.");
-      return Ok(());
-    }else if cell_edges.len() != 3 {
-      return Err(CluEError::IncorrectNumberOfAxes(cell_edges.len(),3));
-    }
-
-    self.cell_offsets = Structure::build_cell_shifts(cell_edges, config)?;
-    Ok(())
-  }
-  //----------------------------------------------------------------------------
-  fn build_cell_shifts(cell_edges: Vec::<Vector3D>, config: &Config) 
-    -> Result<Vec::<Vector3D>,CluEError>
-  {
-    
-    /*
-    let Some(load_geometry) = &config.load_geometry else {
-      return Err(CluEError::NoLoadGeometry);
-    };
-    */
-    let mut n_cells_per_dim = [1,1,1];
-
-    let Some(radius) = config.radius else {
-      return Err(CluEError::NoRadius);
-    };
-
-
-    let mut n_cells = 1;
-    for ix in 0..3{
-      n_cells_per_dim[ix] = std::cmp::max(1,
-       math::ceil(radius/cell_edges[ix].norm()) as i32
-          );
-
-      n_cells *= 1 + 2*(n_cells_per_dim[ix] as usize);
-    }
-
-    let mut cell_offsets = Vec::<Vector3D>::with_capacity(n_cells);
-  
-    for ix in -n_cells_per_dim[0]..=n_cells_per_dim[0]{
-      for iy in -n_cells_per_dim[1]..=n_cells_per_dim[1]{
-        for iz in -n_cells_per_dim[2]..=n_cells_per_dim[2]{
-
-          /*
-          // For spherical geometries, do not use unit cell that cannot
-          // have any particles within the load radius.
-          if ix !=0 && iy != 0 && iz != 0 
-            && *load_geometry == LoadGeometry::Sphere{
-              let jx = (ix.abs() - 1)*ix.signum();
-              let jy = (iy.abs() - 1)*iy.signum();
-              let jz = (iz.abs() - 1)*iz.signum();
-              
-            let min_possible_r = &(&cell_edges[0].scale(jx as f64)
-              + &cell_edges[1].scale(jy as f64)) 
-              + &cell_edges[2].scale(jz as f64);
-            
-            if min_possible_r.norm() > radius{
-              continue;
-            }
-
-          }
-          */
-
-          let offset = &(&cell_edges[0].scale(ix as f64)
-            + &cell_edges[1].scale(iy as f64)) 
-            + &cell_edges[2].scale(iz as f64);
-
-          cell_offsets.push(offset);
-    }}}
-    cell_offsets.sort();
-    Ok(cell_offsets)
-  }
 
 }
 
@@ -363,7 +135,6 @@ mod tests{
     ParticleProperties,IsotopeDistribution,IsotopeAbundance};
   use crate::physical_constants::{Element,Isotope};
 
-  use crate::config::LoadGeometry;
   
   //----------------------------------------------------------------------------
   #[test]

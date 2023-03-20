@@ -12,7 +12,6 @@ use crate::config::token_expressions::*;
 use crate::config::particle_config::ParticleConfig;//, ParticleProperties,  IsotopeAbundance};
 //use crate::physical_constants::*;
 use crate::space_3d::Vector3D;
-use crate::config::token_expressions::*;
 
 pub mod lexer;
 pub mod token;
@@ -22,6 +21,7 @@ pub mod token_expressions;
 pub mod particle_config;
 pub mod command_line_input;
 pub mod parse_filter;
+pub mod parse_properties;
 
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
@@ -136,7 +136,9 @@ pub enum PBCSyle{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Config{
   pub fn read_input(input: CommandLineInput) -> Result<Self,CluEError>{
-    let filename = &input.config_file.unwrap();
+    let Some(filename) = &input.config_file else{
+      return Err(CluEError::NoInputFile);
+    };
   
     let mut config = Config::new();
 

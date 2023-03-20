@@ -24,11 +24,11 @@ println!("\
 ##############################################################################\n");
   println!("CLuE Copyright (C) 2022 Samuel M. Jahn");
   version::print_version();
-  println!("\nThis program comes with ABSOLUTELY NO WARRANTY; for details run \
+  println!("\nThis program comes with ABSOLUTELY NO WARRANTY; for details run \n\
 \"clue --warrenty\".");
-  println!("This is free software, and you are welcome to redistribute it");
-  println!("under certain conditions; run \"clue --license\" for details.\n");
-  println!("For usage information; run \"clue --help\" for more details.\n");
+  println!("\nThis is free software distributed under the GPL v3.0 license; for details run ");
+  println!("\"clue --license\".");
+  println!("\nFor usage information, run \n\"clue --help\".\n");
 
 
 }

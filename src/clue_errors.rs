@@ -30,12 +30,15 @@ pub enum CluEError{
   InvalidToken(usize,String),
   MissingFilter(String),
   MissingFilterLabel(usize),
+  MissingProperties(String),
+  MissingPropertiesLabel(usize),
   ModeAttributeWrongBrackets,
   ModeAttributeWrongOption(String),
   ModeAttributeWrongSharp,
   MultipleCosubstitutionGroups(usize),
   NoCentralSpinCoor,
   NoClustersOfSize(usize),
+  NoInputFile,
   NoLoadGeometry,
   NoRadius,
   NoRelationalOperators(usize),
@@ -141,7 +144,13 @@ impl fmt::Display for CluEError{
           "no filter with label \"{}\"",label),
 
       CluEError::MissingFilterLabel(line_number) => write!(f,
-          "{}: missing label in at least one filter",line_number),
+          "{}: missing label in filter",line_number),
+
+      CluEError::MissingProperties(label) => write!(f,
+          "no properties with label \"{}\"",label),
+
+      CluEError::MissingPropertiesLabel(line_number) => write!(f,
+          "{}: missing label in properties",line_number),
 
       CluEError::ModeAttributeWrongBrackets => write!(f,
           "modes details should with square brackets"),
@@ -158,6 +167,9 @@ impl fmt::Display for CluEError{
 
       CluEError::NoCentralSpinCoor => write!(f,
           "coordinates for the detected spin were not defined"),
+      
+      CluEError::NoInputFile => write!(f,
+          "no input file"),
       
       CluEError::NoClustersOfSize(size) => write!(f,
           "cannot find any clusters of size {}", size),

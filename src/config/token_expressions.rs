@@ -1,7 +1,6 @@
 use crate::config::token::*;
 use crate::CluEError;
 use crate::config::ModeAttribute;
-use crate::config::lexer::*;
 use crate::config::token_stream;
 use crate::config::token_algebra::*;
 use crate::space_3d::Vector3D;

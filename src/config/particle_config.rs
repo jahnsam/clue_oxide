@@ -28,7 +28,7 @@ pub fn find_particle_configs<'a>(
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct ParticleConfig{
   pub label: String,
   pub filter: Option<ParticleFilter>,
@@ -67,7 +67,7 @@ impl ParticleConfig{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct ParticleProperties{
   pub isotopic_distribution:  IsotopeDistribution,
   pub extracell_isotopic_distribution:  Option<IsotopeDistribution>,
@@ -98,7 +98,7 @@ impl ParticleProperties{
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // TODO: Is force_no_pbc=true the same as extracell_void_probability=Some(0.0)?
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct IsotopeDistribution{
   pub isotope_abundances: Vec::<IsotopeAbundance>,
   //pub force_no_pbc: bool,  
@@ -115,7 +115,7 @@ impl Default for IsotopeDistribution{
   }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct IsotopeAbundance{
   pub isotope: Isotope,
   pub abundance: f64,         
@@ -124,7 +124,7 @@ pub struct IsotopeAbundance{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct TensorSpecifier{
   pub values: [f64; 3],
   pub x_axis: Option<VectorSpecifier>,
