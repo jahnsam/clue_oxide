@@ -4,37 +4,43 @@ use std::fmt;
 pub enum CluEError{
   AtomDoesNotSpecifyElement(usize),
   CannotAddTokens,
-  CannotCombineTokens(usize),
-  CannotConvertSerialToIndex(u32),
-  CannotDivTokens,
-  CannotMulTokens,
-  CannotPowTokens,
-  CannotSampleBinomialDistribution(usize,f64),
-  CannotSubTokens,
   CannontAugmentFilter(usize,String),
+  CannotCombineTokens(usize),
   CannotConvertToFloat(usize,String),
+  CannotConvertSerialToIndex(u32),
   CannotConvertToVector(usize),
+  CannotDivTokens,
   CannotFindCellID(usize),
+  CannotMulTokens,
   CannotOpenFile(String),
   CannotParseElement(String),
   CannotParseLine(String),
+  CannotPowTokens,
+  CannotSampleBinomialDistribution(usize,f64),
+  CannotSubTokens,
   ConfigModeNotRecognized(String),
   EmptyVector(usize),
   ExpectedEquality(usize),
   ExpectedFloatRHS(usize),
+  ExpectedIntRHS(usize),
   ExpectedVecOfNFloatsRHS(usize,usize),
+  IncorrectNumberOfAxes(usize,usize),
   IndexOutOfBounds(usize,usize,usize),
   InvalidConfigFile(String),
   InvalidToken(usize,String),
+  MissingFilter(String),
+  MissingFilterLabel(usize),
   ModeAttributeWrongBrackets,
   ModeAttributeWrongOption(String),
   ModeAttributeWrongSharp,
   MultipleCosubstitutionGroups(usize),
   NoCentralSpinCoor,
   NoClustersOfSize(usize),
+  NoLoadGeometry,
   NoRadius,
   NoRelationalOperators(usize),
   NoRHS(usize),
+  NoStructureFile,
   NotAnOperator(usize,String),
   OptionAlreadySet(usize,String),
   UnmatchedBlockComment(usize),
@@ -111,9 +117,15 @@ impl fmt::Display for CluEError{
       CluEError::ExpectedFloatRHS(line_number) => write!(f,
           "{}: expected a float on the right hand side",line_number),
 
+      CluEError::ExpectedIntRHS(line_number) => write!(f,
+          "{}: expected an integer on the right hand side",line_number),
+
       CluEError::ExpectedVecOfNFloatsRHS(line_number,n) => write!(f,
           "{}: expected a vector of {} floats on the right hand side",
           line_number,n),
+
+      CluEError::IncorrectNumberOfAxes(n,n_ref)=> write!(f,
+          "expected {} axes, but {} were provided",n_ref, n),
 
       CluEError::IndexOutOfBounds(line_number,idx, len) => write!(f,
           "{}: cannot access element {} from array of length {}", 
@@ -124,6 +136,12 @@ impl fmt::Display for CluEError{
 
       CluEError::InvalidToken(line_number,err_token) => write!(f,
           "{}: invalid token \"{}\"",line_number, err_token),
+
+      CluEError::MissingFilter(label) => write!(f,
+          "no filter with label \"{}\"",label),
+
+      CluEError::MissingFilterLabel(line_number) => write!(f,
+          "{}: missing label in at least one filter",line_number),
 
       CluEError::ModeAttributeWrongBrackets => write!(f,
           "modes details should with square brackets"),
@@ -144,6 +162,9 @@ impl fmt::Display for CluEError{
       CluEError::NoClustersOfSize(size) => write!(f,
           "cannot find any clusters of size {}", size),
 
+      CluEError::NoLoadGeometry => write!(f,
+          "geometry for loading in the system was not defined"),
+      
       CluEError::NoRadius => write!(f,
           "system radius not set"),
 
@@ -156,6 +177,9 @@ impl fmt::Display for CluEError{
 
       CluEError::NoRHS(line_number) => write!(f,
           "{}: cannot read right hand side",line_number),
+
+      CluEError::NoStructureFile => write!(f,
+          "no structure file defined"),
 
       CluEError::OptionAlreadySet(line_number,err_token) => write!(f,
           "{}: \"{}\" has already been set",line_number, err_token),

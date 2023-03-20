@@ -1,6 +1,7 @@
 use crate::clue_errors::*;
 use crate::config::token::*;
 use crate::config::token_stream::*;
+use crate::config::token_expressions::*;
 use substring::Substring;
 
 
@@ -22,6 +23,7 @@ pub fn get_tokens_from_file(filename: &str)
 }
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/*
 // TokenExpression holds a line of input, organized for easy parsing.
 pub struct TokenExpression{
   pub lhs: Vec::<Token>,
@@ -73,6 +75,7 @@ impl TokenExpression{
 
   }
 }
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -382,6 +385,7 @@ fn build_composit_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/*
 fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize) 
   -> Result<Option<usize>,CluEError>{
   let mut found_token = false;
@@ -404,7 +408,7 @@ fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize)
     return Ok(None);
   }
 }
-
+*/
 
 //------------------------------------------------------------------------------
 // TODO: use or delete
@@ -646,6 +650,7 @@ magnetic_field = 1.2; // T"),
     }
   }
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_find_lhs_rhs_delimiter_index(){
   
@@ -663,6 +668,7 @@ magnetic_field = 1.2; // T"),
     let result = find_lhs_rhs_delimiter_index(&tokens,0);
     assert_eq!(result,Err(CluEError::TooManyRelationalOperators(0)));
   }
+  */
   //----------------------------------------------------------------------------
   #[allow(non_snake_case)]
   #[test]

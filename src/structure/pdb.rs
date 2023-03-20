@@ -100,7 +100,7 @@ fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize)
    let mut serial_to_index = HashMap::<u32,Option<usize>>::new(); 
    let mut unknown_elements = HashMap::<String,usize>::new(); 
    let mut bath_particles = Vec::<Vec::<Particle>>::with_capacity(n_models);
-   for ii in 0..n_models{
+   for _ii in 0..n_models{
      bath_particles.push( Vec::<Particle>::with_capacity(n_atoms));
    }
 

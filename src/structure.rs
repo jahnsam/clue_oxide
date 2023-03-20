@@ -1,5 +1,4 @@
-pub mod parse_pdb;
-//pub mod pdb;
+pub mod pdb;
 pub mod extended_structure;
 pub mod primary_structure;
 pub mod exchange_groups;
@@ -7,8 +6,7 @@ pub mod particle;
 pub mod particle_filter;
 
 //use crate::config::particle_config;
-use crate::config::{Config, 
-  particle_config::{ParticleConfig,ParticleProperties}};
+use crate::config::{Config, particle_config::ParticleProperties};
 use crate::clue_errors::CluEError;
 use crate::integration_grid::IntegrationGrid;
 use crate::structure::particle::Particle;
@@ -17,8 +15,9 @@ use crate::space_3d::Vector3D;
 use crate::cluster::adjacency::AdjacencyList;
 use crate::structure::exchange_groups::ExchangeGroupManager;
 use crate::physical_constants::Isotope;
-use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
 
+
+use rand_chacha::ChaCha20Rng;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
 pub struct DetectedSpin{
@@ -81,6 +80,23 @@ impl Structure{
       cell_indices: Vec::<Vec::<Option<usize>>>::new(),
     }
 
+  }
+  //----------------------------------------------------------------------------
+  pub fn build_structures(rng: &mut ChaCha20Rng, config: &Config) 
+    -> Result<Vec::<Self>,CluEError>
+  {
+
+    let Some(filename) = &config.structure_file else{
+      return Err(CluEError::NoStructureFile);
+    };
+    let mut structures = pdb::parse_pdb(filename)?;
+
+    for structure in structures.iter_mut(){
+       structure.build_primary_structure(config)?;
+       structure.build_extended_structure(rng, config)?;
+    }
+
+    Ok(structures)
   }
   //----------------------------------------------------------------------------
   pub fn number(&self) -> usize{

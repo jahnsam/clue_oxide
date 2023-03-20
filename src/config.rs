@@ -6,20 +6,22 @@ use crate::clue_errors::*;
 use crate::config::lexer::*;
 use crate::config::token::*;
 use crate::config::command_line_input::CommandLineInput;
-//use crate::structure::particle_filter::ParticleFilter;
-use crate::structure::particle::Particle;
 use crate::config::token_algebra::*;
 //use crate::config::token_stream;
+use crate::config::token_expressions::*;
 use crate::config::particle_config::ParticleConfig;//, ParticleProperties,  IsotopeAbundance};
 //use crate::physical_constants::*;
 use crate::space_3d::Vector3D;
+use crate::config::token_expressions::*;
 
 pub mod lexer;
 pub mod token;
 pub mod token_algebra;
 pub mod token_stream;
+pub mod token_expressions;
 pub mod particle_config;
 pub mod command_line_input;
+pub mod parse_filter;
 
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
@@ -35,6 +37,8 @@ pub struct Config{
   //use_periodic_boundary_conditions: bool,
   //pub particles: Option<Vec::<ParticleConfig>>, // TODO: why in Option?
   pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
+  pub load_geometry: Option<LoadGeometry>,
+  pub structure_file: Option<String>,
 }
 /*
 impl Default for Config{
@@ -109,6 +113,11 @@ impl Config{
       max_spin_multiplicity
     }
     */
+}
+#[derive(Debug,Clone,PartialEq)]
+pub enum LoadGeometry{
+  Cube,
+  Sphere,
 }
 /*
 #[derive(Debug,Clone)]
@@ -191,69 +200,26 @@ impl Config{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Radius => set_to_some_f64(&mut self.radius,expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::RNGSeed => {
+        if let Some(_value) = &self.rng_seed{
+          return Err(already_set());
+        }
+        let mut rng_seed: Option<i32> = None;
+        set_to_some_i32(&mut rng_seed,expression)?;
+
+        if let Some(seed) = rng_seed{
+          self.rng_seed = Some( seed as u64);
+        }else{
+          return Err(CluEError::InvalidToken(expression.line_number,
+            expression.lhs[0].to_string()))
+        }
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       _ => return Err(CluEError::InvalidToken(expression.line_number,
             expression.lhs[0].to_string())),
     }
     Ok(())
   }
-}
-//------------------------------------------------------------------------------
-fn check_target<T>(target: &Option<T>, expression: &TokenExpression)
-  -> Result<(),CluEError>
-{ 
-  let already_set = ||{
-    CluEError::OptionAlreadySet(
-        expression.line_number, expression.lhs[0].to_string()) };
-
-  if let Some(_value) = target{
-    return Err(already_set());
-  }
-
-  Ok(())
-}
-
-//------------------------------------------------------------------------------
-fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression) 
-  -> Result<(),CluEError>
-{ 
-
-  check_target(target,expression)?;
-
-  let tokens = token_stream::extract_rhs(expression)?;
-
-  let value_token = to_f64_token(tokens, expression.line_number)?;
-  if let Token::VectorF64(vec) = value_token {
-    if vec.len() != 1{
-      return Err(CluEError::ExpectedFloatRHS(expression.line_number));
-    } 
-    *target = Some(vec[0]);
-  }else{
-    return Err(CluEError::NoRHS(expression.line_number));
-  }
-
-  Ok(())
-}
-//------------------------------------------------------------------------------
-fn set_to_some_vector3d(
-    target: &mut Option<Vector3D>, expression: &TokenExpression) 
-  -> Result<(),CluEError>
-{ 
-
-  check_target(target,expression)?;
-
-  let tokens = token_stream::extract_rhs(expression)?;
-
-  let value_token = to_f64_token(tokens, expression.line_number)?;
-  if let Token::VectorF64(vec) = value_token {
-    if vec.len() != 3{
-      return Err(CluEError::ExpectedVecOfNFloatsRHS(expression.line_number,3));
-    } 
-    *target = Some(Vector3D::from([vec[0],vec[1],vec[2]]));
-  }else{
-    return Err(CluEError::NoRHS(expression.line_number));
-  }
-
-  Ok(())
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

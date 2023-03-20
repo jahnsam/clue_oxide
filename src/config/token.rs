@@ -37,6 +37,7 @@ pub enum Token{
  Plus,
  Radius,
  Residue,
+ RNGSeed,
  Semicolon,
  Sharp,
  Slash,
@@ -53,6 +54,20 @@ pub enum Token{
  VectorI32(Vec::<i32>),
  VectorString(Vec::<String>),
  Whitespace,
+ Indices,                                                      
+ //NotIndices,                                                   
+ Elemments,                                                    
+ //NotElements,                                                  
+ Serials,                                                      
+ //NotSerials,                                                   
+ Residues,                                                     
+ //NotResidues,                                                  
+ ResSeqNums,                                                   
+ //NotResSeqNums,                                                
+ BondedIndices,                                                     
+ //NotBondedIndices,                                                  
+ BondedElements,                                               
+ //NotBondedElements,
 }
 impl Token{
   pub fn to_string(&self) -> String{
@@ -91,6 +106,7 @@ impl Token{
       Token::Plus => "+".to_string(),
       Token::Radius => "radius".to_string(),
       Token::Residue => "residue".to_string(),
+      Token::RNGSeed => "rng_seed".to_string(),
       Token::Semicolon => ";".to_string(),
       Token::Sharp => "#".to_string(),
       Token::Slash => "/".to_string(),
@@ -107,7 +123,13 @@ impl Token{
       Token::VectorI32(v) => format!("{:?}",v), 
       Token::VectorString(v) => format!("{:?}",v), 
       Token::Whitespace => " ".to_string(),
-
+      Token::Indices => "indices".to_string(),
+      Token::Elemments => "elements".to_string(),
+      Token::Serials => "serials".to_string(),
+      Token::Residues => "residues".to_string(),
+      Token::ResSeqNums => "residue_sequence_numbers".to_string(),
+      Token::BondedIndices => "bonded_indices".to_string(),
+      Token::BondedElements => "bonded_elements".to_string(),
     }
   }
 }
@@ -145,6 +167,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "+" => Some(Token::Plus),
     "radius" => Some(Token::Radius),
     "residue" => Some(Token::Residue),
+    "rng_seed" => Some(Token::RNGSeed),
     ";" => Some(Token::Semicolon),
     "#" => Some(Token::Sharp),
     "/" => Some(Token::Slash),
@@ -157,6 +180,13 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     "type" => Some(Token::Type),
     " " => Some(Token::Whitespace),
+    "indices" => Some(Token::Indices), 
+    "elements" => Some(Token::Elemments), 
+    "serials" => Some(Token::Serials), 
+    "residues" => Some(Token::Residues),
+    "residue_sequence_numbers" => Some(Token::ResSeqNums),
+    "bonded_indices" => Some(Token::BondedIndices),
+    "bonded_elements" => Some(Token::BondedElements),
     _ => None
   }
 }
@@ -729,6 +759,7 @@ mod tests{
     assert_eq!(identify_token("+").unwrap(), Token::Plus);
     assert_eq!(identify_token("radius").unwrap(), Token::Radius);
     assert_eq!(identify_token("residue").unwrap(), Token::Residue);
+    assert_eq!(identify_token("rng_seed").unwrap(), Token::RNGSeed);
     assert_eq!(identify_token(";").unwrap(), Token::Semicolon);
     assert_eq!(identify_token("#").unwrap(), Token::Sharp);
     assert_eq!(identify_token("/").unwrap(), Token::Slash);
@@ -742,6 +773,15 @@ mod tests{
         Token::TunnelSplitting);
     assert_eq!(identify_token("type").unwrap(), Token::Type);
     assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
+    assert_eq!(identify_token("indices").unwrap(), Token::Indices); 
+    assert_eq!(identify_token("elements").unwrap(), Token::Elemments); 
+    assert_eq!(identify_token("serials").unwrap(), Token::Serials); 
+    assert_eq!(identify_token("residues").unwrap(), Token::Residues);
+    assert_eq!(identify_token("residue_sequence_numbers").unwrap(), 
+        Token::ResSeqNums);
+    assert_eq!(identify_token("bonded_indices").unwrap(), Token::BondedIndices);
+    assert_eq!(identify_token("bonded_elements").unwrap(),
+        Token::BondedElements);
 
   }
   //----------------------------------------------------------------------------

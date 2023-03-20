@@ -1,6 +1,5 @@
 use crate::structure::Structure;
 use crate::space_3d::Vector3D;
-//use crate::structure::exchange_groups::ExchangeGroup;
 use crate::structure::Particle;
 use crate::physical_constants::{Element,Isotope};
 use crate::clue_errors::CluEError;
@@ -12,7 +11,7 @@ use crate::clue_errors::CluEError;
 //  particle isotope abundances
 //  particles to co-exchange for deuteration
 //  particle pbc behavior
-#[derive(Debug,Clone,Default)]
+#[derive(Debug,Clone,Default,PartialEq)]
 pub struct ParticleFilter{
 
   pub indices: Vec::<usize>,
@@ -39,8 +38,8 @@ pub struct ParticleFilter{
   pub isotopes: Vec::<Isotope>,
   pub not_isotopes: Vec::<Isotope>,
 
-  pub bonded_to: Vec::<usize>,
-  pub not_bonded_to: Vec::<usize>,
+  pub bonded_indices: Vec::<usize>,
+  pub not_bonded_indices: Vec::<usize>,
 
   //within_distance_of: Vec::<usize>,
   //not_within_distance_of: Vec::<usize>,
@@ -144,8 +143,8 @@ impl ParticleFilter{
 
 
       // Bonded To
-      let mut pass = self.bonded_to.is_empty();
-      for neighbor in self.bonded_to.iter(){
+      let mut pass = self.bonded_indices.is_empty();
+      for neighbor in self.bonded_indices.iter(){
         if *neighbor == idx { continue; }
         if structure.connections.are_connected(idx,*neighbor){
           pass = true;
@@ -155,7 +154,7 @@ impl ParticleFilter{
       if !pass{  return None;}
 
       // Not Bonded To
-      for neighbor in self.not_bonded_to.iter(){
+      for neighbor in self.not_bonded_indices.iter(){
         if *neighbor == idx { continue; }
         if structure.connections.are_connected(idx,*neighbor){
           return None
@@ -210,7 +209,7 @@ impl ParticleFilter{
 
     match secondary_filter{
       SecondaryParticleFilter::Bonded 
-        => self.bonded_to.push(index_ref_particle),
+        => self.bonded_indices.push(index_ref_particle),
       
       SecondaryParticleFilter::SameMolecule 
         => {
@@ -273,8 +272,7 @@ pub enum VectorSpecifier{
 #[cfg(test)]
 mod tests{
   use super::*;
-  use crate::structure::parse_pdb as pdb;
-  use crate::structure::primary_structure;
+  use crate::structure::pdb;
   use crate::Config;
 
   //----------------------------------------------------------------------------

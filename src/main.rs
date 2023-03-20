@@ -20,8 +20,6 @@ use clue_oxide::info;
 use std::time::Instant;
 fn main() {
 
-  clue_oxide::run_test();
-
   // Record start time
   let now = Instant::now();
 

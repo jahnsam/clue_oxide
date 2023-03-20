@@ -1,9 +1,7 @@
 use crate::clue_errors::CluEError;
-use crate::config::{Config,
-  particle_config::{ParticleConfig,ParticleProperties}};
+use crate::config::{Config,LoadGeometry};
 use crate::space_3d::Vector3D;
-use crate::structure::{Structure,particle::Particle,
-  particle_filter::ParticleFilter};
+use crate::structure::Structure;
 use crate::math;  
 
 use rand::seq::index::sample;
@@ -13,9 +11,10 @@ use std::collections::HashMap;
 use crate::config::particle_config::IsotopeDistribution;
 
 impl Structure{
-  // This function takes a structure for build_primary_structure(), applies
-  // periodic boundary condition (if applicable), and sets isotope identities.
-  fn build_extended_structure(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
+  /// This function takes a structure from build_primary_structure(), applies
+  /// periodic boundary condition (if applicable), and sets isotope identities.
+  pub fn build_extended_structure(&mut self,
+      rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
   {
 
@@ -33,9 +32,34 @@ impl Structure{
     // non-void particles can potentially have multiple isotopic options. 
     self.set_isotopologue(rng, config)?;
 
+    //self.trim_system(config)?;
 
     Ok(())
   }
+  //----------------------------------------------------------------------------
+  /*
+  fn trim_system(&mut self, configL &Config) -> Result<(),CluEError>{
+    let Some(load_geometry) = &config.load_geometry else {
+      return Err(CluEError::NoLoadGeometry);
+    };
+    match load_geometry{
+      LoadGeometry::Cube => (),
+      LoadGeometry::Sphere =>{  
+        let Some(radius) = config.radius else {
+          return Err(CluEError::NoRadius);
+        };
+
+        for particle in self.bath_particles.iter_mut(){
+
+          if (particle.coordinates - r_electron).norm() > radius{
+            particle.active = false;
+          }
+        }
+      }
+
+    Ok(())
+  }
+  */
   //----------------------------------------------------------------------------
   // TODO: TEST add_voidable_particles()
   fn add_voidable_particles(&mut self, 
@@ -250,8 +274,14 @@ impl Structure{
   fn set_cell_shifts(&mut self, config: &Config) -> Result<(),CluEError>{
     let cell_edges = self.cell_offsets.clone();
 
-    // TODO: Decide on better error handeling here.
-    assert_eq!(cell_edges.len(),3);
+    if cell_edges.is_empty(){
+      self.cell_offsets = vec![Vector3D::zeros()];
+      println!("No unit cell information found.  
+Periodic boudary conditions will not be applied.");
+      return Ok(());
+    }else if cell_edges.len() != 3 {
+      return Err(CluEError::IncorrectNumberOfAxes(cell_edges.len(),3));
+    }
 
     self.cell_offsets = Structure::build_cell_shifts(cell_edges, config)?;
     Ok(())
@@ -261,6 +291,11 @@ impl Structure{
     -> Result<Vec::<Vector3D>,CluEError>
   {
     
+    /*
+    let Some(load_geometry) = &config.load_geometry else {
+      return Err(CluEError::NoLoadGeometry);
+    };
+    */
     let mut n_cells_per_dim = [1,1,1];
 
     let Some(radius) = config.radius else {
@@ -283,6 +318,26 @@ impl Structure{
       for iy in -n_cells_per_dim[1]..=n_cells_per_dim[1]{
         for iz in -n_cells_per_dim[2]..=n_cells_per_dim[2]{
 
+          /*
+          // For spherical geometries, do not use unit cell that cannot
+          // have any particles within the load radius.
+          if ix !=0 && iy != 0 && iz != 0 
+            && *load_geometry == LoadGeometry::Sphere{
+              let jx = (ix.abs() - 1)*ix.signum();
+              let jy = (iy.abs() - 1)*iy.signum();
+              let jz = (iz.abs() - 1)*iz.signum();
+              
+            let min_possible_r = &(&cell_edges[0].scale(jx as f64)
+              + &cell_edges[1].scale(jy as f64)) 
+              + &cell_edges[2].scale(jz as f64);
+            
+            if min_possible_r.norm() > radius{
+              continue;
+            }
+
+          }
+          */
+
           let offset = &(&cell_edges[0].scale(ix as f64)
             + &cell_edges[1].scale(iy as f64)) 
             + &cell_edges[2].scale(iz as f64);
@@ -300,8 +355,8 @@ impl Structure{
 #[cfg(test)]
 mod tests{
   use super::*;
-  use crate::structure::parse_pdb as pdb;
-  use crate::structure::{primary_structure,particle_filter::*};
+  use crate::structure::pdb;
+  use crate::structure::particle_filter::*;
   use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
   use crate::config::particle_config::{ParticleConfig,
@@ -330,6 +385,7 @@ mod tests{
     particle_configs[0].properties = Some(properties);
     
     let mut config = Config::new();
+    config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
 
@@ -422,6 +478,7 @@ mod tests{
     particle_configs[1].properties = Some(properties);
 
     let mut config = Config::new();
+    config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
     let n_uc = 125;
@@ -435,7 +492,7 @@ mod tests{
     let mut rng =  ChaCha20Rng::from_entropy();
 
     let structure = &mut structures[0];
-    structure.build_extended_structure(&mut rng, &config);
+    structure.build_extended_structure(&mut rng, &config).unwrap();
 
     assert_eq!(structure.cell_offsets.len(),n_uc);
     //assert_eq!(structure.bath_particles.len(),n_uc*num_particles);
@@ -461,7 +518,7 @@ mod tests{
 
 
     // Check for for the correct exchanges.
-    let [n_h, n_h1, n_h2,n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
+    let [n_h, n_h1, n_h2,n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,_n_mol] =
       get_conditional_hydron_stats(&structure,&filter_ex);
 
     let approx_eq = |m: usize,n: usize| -> bool{
@@ -536,6 +593,7 @@ mod tests{
     particle_configs[1].properties = Some(properties);
     
     let mut config = Config::new();
+    config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
     let n_uc = 125;
@@ -557,7 +615,7 @@ mod tests{
 
 
     // Check for for the correct exchanges.
-    let [n_h, n_h1, n_h2,n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,n_mol] =
+    let [n_h, n_h1, n_h2,n_h1_h1, n_h1_h2, n_h2_h1, n_h2_h2,_n_mol] =
       get_conditional_hydron_stats(&structure,&filter_ex);
 
     assert_eq!(n_h,n_uc*n_ex);
@@ -688,13 +746,13 @@ mod tests{
     particle_configs[1].properties = Some(properties);
     
     let mut config = Config::new();
+    config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
     let n_uc = 125;
 
 
     structures[0].build_primary_structure(&config).unwrap();
-    let num_particles = structures[0].bath_particles.len();
 
     let mut rng =  ChaCha20Rng::from_entropy();
 

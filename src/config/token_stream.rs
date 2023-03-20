@@ -1,6 +1,6 @@
 use crate::clue_errors::*;
 use crate::config::token::*;
-use crate::config::lexer::TokenExpression;
+use crate::config::token_expressions::*;
 
 //------------------------------------------------------------------------------
 // The function takes a Vec::<Token> and inserts a token at the specified index.

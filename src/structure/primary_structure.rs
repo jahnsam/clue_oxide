@@ -22,7 +22,6 @@ impl Structure{
     // does not take a spin out of range.
     self.reconnect_bonds();
     
-
     self.set_spins(config);
 
     // Set methyl and primary amonium groups..
@@ -352,9 +351,9 @@ fn update_cosubstitution_ids(
 #[cfg(test)]
 mod tests{
   use super::*;
-  use crate::structure::parse_pdb as pdb;
+  use crate::structure::pdb;
   use crate::config::Config;
-  use crate::structure::ParticleConfig;
+  use crate::config::particle_config::ParticleConfig;
 
   //----------------------------------------------------------------------------
   #[test]
