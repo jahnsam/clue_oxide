@@ -102,6 +102,23 @@ nq_z_axis= diff(particle, connected(sol_o));
 #[property(label = glycerol_oh)]
 cosubstitute = same_residue_sequence(particle);
 
+#[filter(label=wat)]
+  elements in [H];
+  bonded_elements in [O];
+  residues in [WAT,SOL];
+  
+#[structure_properties(label=wat)]
+  
+#[tensors(label=wat,isotope=2H)]
+
+hf_x_axis =diff(particle, same_molecule(H));
+hf_y_axis =diff(particle, bonded(O));   
+
+hf_eigenvalues = [1,2,3];
+
+// overwrite hf for spin with index 1
+hf[1] = [1,2,4]
+
 #[define spins]
 // format: index particle
 1 1H;
