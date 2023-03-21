@@ -358,6 +358,7 @@ mod tests{
   use crate::structure::pdb;
   use crate::structure::particle_filter::*;
   use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+  use crate::config::DetectedSpinCoordinates;
 
   use crate::config::particle_config::{ParticleConfig,
     ParticleProperties,IsotopeDistribution,IsotopeAbundance};
@@ -389,8 +390,11 @@ mod tests{
     config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
+    config.detected_spin_position = Some( 
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
 
 
+    config.set_defaults();
     structures[0].build_primary_structure(&config).unwrap();
     let num_particles = structures[0].bath_particles.len();
 
@@ -482,9 +486,12 @@ mod tests{
     config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
+    config.detected_spin_position = Some( 
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
     let n_uc = 125;
 
 
+    config.set_defaults();
     structures[0].build_primary_structure(&config).unwrap();
 
 
@@ -598,8 +605,14 @@ mod tests{
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
     let n_uc = 125;
+    let r_N = Vector3D::from([36.440*1e-10, 36.900*1e-10,  37.100*1e-10]);
+    let r_O = Vector3D::from([35.290*1e-10, 36.430*1e-10, 37.810*1e-10]);
+    let r_e = (&r_N + &r_O).scale(0.5);
+    config.detected_spin_position = Some( 
+        DetectedSpinCoordinates::XYZ(r_e) );
 
 
+    config.set_defaults();
     structures[0].build_primary_structure(&config).unwrap();
     let num_particles = structures[0].bath_particles.len();
 
@@ -750,9 +763,12 @@ mod tests{
     config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
+    config.detected_spin_position = Some( 
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
     let n_uc = 125;
 
 
+    config.set_defaults();
     structures[0].build_primary_structure(&config).unwrap();
 
     let mut rng =  ChaCha20Rng::from_entropy();

@@ -37,6 +37,8 @@ pub enum CluEError{
   ModeAttributeWrongSharp,
   MultipleCosubstitutionGroups(usize),
   NoCentralSpinCoor,
+  NoCentralSpinIdentity,
+  NoCentralSpinTransition,
   NoClustersOfSize(usize),
   NoInputFile,
   NoLoadGeometry,
@@ -167,6 +169,12 @@ impl fmt::Display for CluEError{
 
       CluEError::NoCentralSpinCoor => write!(f,
           "coordinates for the detected spin were not defined"),
+      
+      CluEError::NoCentralSpinIdentity => write!(f,
+          "the detected spin's identity was not defined"),
+      
+      CluEError::NoCentralSpinTransition => write!(f,
+          "the detected spin transition was not defined"),
       
       CluEError::NoInputFile => write!(f,
           "no input file"),

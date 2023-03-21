@@ -1,12 +1,16 @@
 use crate::structure::{Structure, exchange_groups::*}; 
 use crate::config::Config;
+use crate::config::DetectedSpinCoordinates;
 use crate::space_3d;
-use crate::physical_constants::Element;
+use crate::physical_constants::{Element,Isotope};
 use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
 use crate::structure::ParticleFilter;
 use crate::CluEError;
 use crate::structure::ParticleProperties;
 use crate::structure::SecondaryParticleFilter;
+use crate::structure::IntegrationGrid;
+use crate::space_3d::Vector3D;
+use crate::structure::DetectedSpin;
 
 impl Structure{
   /// This method uses an input `Config` to set the structure's
@@ -29,8 +33,69 @@ impl Structure{
 
     self.find_cosubstitution_groups(config)?;
 
+    // Set the detected spin as the origin.
+    self.set_detected_spin(config)?;
+
     Ok(())
   }  
+  //----------------------------------------------------------------------------
+  fn set_detected_spin(&mut self, config: &Config) -> Result<(),CluEError>{
+
+    let Some(detected_spin_position) = &config.detected_spin_position else{
+      return Err(CluEError::NoCentralSpinCoor);
+    };
+
+    let mut weighted_coordinates = IntegrationGrid::new(3);
+    match detected_spin_position{
+      DetectedSpinCoordinates::MeanOverSerials(serials) => {
+        let mut filter = ParticleFilter::new();
+        filter.serials = serials.clone();
+        let indices = filter.filter(self);
+        let mut r_ave = Vector3D::zeros();
+        for &idx in indices.iter(){
+          let r = &self.bath_particles[idx].coordinates;
+          r_ave = &r_ave + r;
+        }
+        r_ave.scale(1.0/indices.len() as f64);
+
+        weighted_coordinates.push(vec![r_ave.x(),r_ave.y(),r_ave.z()],1.0);
+
+      },
+      DetectedSpinCoordinates::XYZ(r) => {
+        weighted_coordinates.push(vec![r.x(),r.y(),r.z()],1.0);
+      },
+      DetectedSpinCoordinates::ProbabilityDistribution(grid) => 
+        weighted_coordinates = grid.clone(),
+    
+    }
+
+    let origin = weighted_coordinates.mean(); 
+    self.pdb_origin = Vector3D::from([origin[0],origin[1],origin[2]])
+      .scale(-1.0);
+
+    weighted_coordinates.translate(
+        &vec![self.pdb_origin.x(),self.pdb_origin.y(),self.pdb_origin.z() ]); 
+
+    for particle in self.bath_particles.iter_mut(){
+      particle.coordinates = &particle.coordinates + &self.pdb_origin;
+    }
+
+    // TODO: move to config?
+    let Some(isotope) = config.detected_spin_identity.clone() else{
+      return Err(CluEError::NoCentralSpinIdentity);
+    };
+    
+    let Some(transition) = config.detected_spin_transition.clone() else{
+      return Err(CluEError::NoCentralSpinTransition);
+    };
+
+    self.detected_particle = Some(DetectedSpin{
+        isotope,weighted_coordinates,transition});
+
+
+    Ok(())
+
+  }
   //----------------------------------------------------------------------------
   // This method sets self.bath_spins_indices so that each element corresponds
   // to an element of self_bath_particles that has the potential to have a spin.
@@ -354,6 +419,7 @@ mod tests{
   use crate::structure::pdb;
   use crate::config::Config;
   use crate::config::particle_config::ParticleConfig;
+  use crate::config::DetectedSpinCoordinates;
 
   //----------------------------------------------------------------------------
   #[test]
@@ -361,7 +427,10 @@ mod tests{
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
     let structure = &mut structures[0];
+    config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
     let mut filter_nx = ParticleFilter::new();
@@ -401,7 +470,10 @@ mod tests{
   fn test_build_primary_structure_water(){
     let filename = "./assets/water.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
-    let config = Config::new();
+    let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+    config.set_defaults();
     structures[0].build_primary_structure(&config).unwrap();
 
   
@@ -415,7 +487,10 @@ mod tests{
     let filename = "./assets/TEMPO.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
 
-    let config = Config::new();
+    let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+    config.set_defaults();
     structures[0].build_primary_structure(&config).unwrap();
 
     assert_eq!(structures[0].bath_particles
@@ -463,7 +538,10 @@ mod tests{
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
     
-    let config = Config::new();
+    let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+    config.set_defaults();
     structures[0].build_primary_structure(&config).unwrap();
     
     assert_eq!(structures[0].molecules.len(), 1 + n_wat + n_gly);

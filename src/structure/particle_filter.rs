@@ -274,14 +274,18 @@ mod tests{
   use super::*;
   use crate::structure::pdb;
   use crate::Config;
+  use crate::config::DetectedSpinCoordinates;
 
   //----------------------------------------------------------------------------
   #[test]
   fn test_augment_filter(){
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
-    let config = Config::new();
+    let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
     let structure = &mut structures[0];
+    config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
 
@@ -313,8 +317,11 @@ mod tests{
   fn test_filter(){
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
     let mut structures = pdb::parse_pdb(&filename).unwrap();
-    let config = Config::new();
+    let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
     let structure = &mut structures[0];
+    config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
   

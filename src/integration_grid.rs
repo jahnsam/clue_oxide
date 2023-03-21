@@ -4,7 +4,7 @@ use lebedev_laikov;
 
 /// `IntegrationGrid` is a struct for use in 
 /// [quadrature](https://en.wikipedia.org/wiki/Quadrature_(mathematics)).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq)]
 pub struct IntegrationGrid{
   dim: usize,
   points: Vec::<f64>,
@@ -107,6 +107,30 @@ impl IntegrationGrid{
     Vector3D::from( [ self.x(index), self.y(index), self.z(index) ] )
   }
   //----------------------------------------------------------------------------
+  pub fn mean(&self) -> Vec::<f64>{
+    let mut r: Vec::<f64> = (0..self.dim).map(|_| 0.0).collect();
+
+    for (ii,x) in self.points.iter().enumerate(){
+      let idx = ii%self.dim;
+      r[idx] += x;
+    }
+
+    let normalizing_factor = (self.dim as f64)/(self.points.len() as f64);
+    r = r.iter().map(|x| normalizing_factor*x).collect();
+
+    r
+  }
+  //----------------------------------------------------------------------------
+  pub fn translate(&mut self, vector: &Vec::<f64>){
+    assert_eq!(vector.len(), self.dim);
+
+    for (ii,x) in self.points.iter_mut().enumerate(){
+      let idx = ii%self.dim;
+      *x += vector[idx];
+    }
+
+  }
+  //----------------------------------------------------------------------------
 
   pub fn remove_3d_hemisphere(self) -> IntegrationGrid{
     assert_eq!(self.dim,3);
@@ -162,7 +186,9 @@ mod tests{
         0.0, -1.0, 0.0,
         0.0, 0.0, 1.0,
         0.0, 0.0, -1.0,
-    ])
+    ]);
+
+    assert_eq!(grid.mean(), vec![0.0,0.0,0.0]);
   } 
   //----------------------------------------------------------------------------
   #[test]
@@ -174,9 +200,27 @@ mod tests{
         1.0, 0.0, 0.0,
         0.0, 1.0, 0.0,
         0.0, 0.0, 1.0,
-    ])
+    ]);
+
+    assert_eq!(grid.mean(), vec![1.0/3.0,1.0/3.0,1.0/3.0]);
 
   } 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_translate(){
+    let mut grid = IntegrationGrid::new(3);
+    let w = 1.0/6.0;
+    grid.push(vec![1.0, 2.0, 2.0],w);
+    grid.push(vec![3.0, 2.0, 2.0],w);
+    grid.push(vec![2.0, 1.0, 2.0],w);
+    grid.push(vec![2.0, 3.0, 2.0],w);
+    grid.push(vec![2.0, 2.0, 1.0],w);
+    grid.push(vec![2.0, 2.0, 3.0],w);
+    assert_eq!(grid.mean(), vec![2.0, 2.0, 2.0]);
+    let r = vec![-2.0,-2.0,-2.0];
+    grid.translate(&r);
+    assert_eq!(grid.mean(), vec![0.0, 0.0, 0.0]);
+  }
 }
 
 

@@ -10,8 +10,9 @@ use crate::config::token_algebra::*;
 //use crate::config::token_stream;
 use crate::config::token_expressions::*;
 use crate::config::particle_config::ParticleConfig;//, ParticleProperties,  IsotopeAbundance};
-//use crate::physical_constants::*;
+use crate::physical_constants::Isotope;
 use crate::space_3d::Vector3D;
+use crate::integration_grid::IntegrationGrid;
 
 pub mod lexer;
 pub mod token;
@@ -26,6 +27,9 @@ pub mod parse_properties;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
+  pub detected_spin_position: Option<DetectedSpinCoordinates>,
+  pub detected_spin_transition: Option<[usize;2]>,
+  pub detected_spin_identity: Option<Isotope>,
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
   //pub inner_radius: Option<f64>,
@@ -82,6 +86,21 @@ impl Config{
     Default::default()
   }
   //----------------------------------------------------------------------------
+  /// This function sets config setting that are necessary to be `Some`,
+  /// but will likely be the same for most simulations.  
+  /// Any field that is already `Some` will be left alone.
+  pub fn set_defaults(&mut self){
+    if self.detected_spin_identity == None{
+      self.detected_spin_identity = Some(Isotope::Electron);
+    }
+    if self.detected_spin_transition == None{
+      self.detected_spin_transition = Some([0,1]);
+    }
+    if self.load_geometry == None{
+      self.load_geometry == Some(LoadGeometry::Sphere);
+    }
+  }
+  //----------------------------------------------------------------------------
   pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) -> usize{
 
    if id >= self.particles.len() {return 0;}
@@ -119,12 +138,13 @@ pub enum LoadGeometry{
   Cube,
   Sphere,
 }
-/*
-#[derive(Debug,Clone)]
-pub enum CentralSpinCoordinates{
-  Atoms (Vec::<u32>),
-  XYZ (Vector3),
+#[derive(Debug,Clone,PartialEq)]
+pub enum DetectedSpinCoordinates{
+  MeanOverSerials(Vec::<u32>),
+  XYZ(Vector3D),
+  ProbabilityDistribution(IntegrationGrid),
 }
+/*
 
 
 #[derive(Debug,Clone)]

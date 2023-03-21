@@ -45,16 +45,17 @@ pub struct Structure{
   detected_particle: Option<DetectedSpin>,
   pub bath_particles: Vec::<Particle>,
   bath_spins_indices: Vec::<usize>,
-  pub connections: AdjacencyList,
+  cell_indices: Vec::<Vec::<Option<usize>>>,
   pub cell_offsets: Vec::<Vector3D>,
+  pub connections: AdjacencyList,
   molecules: Vec::<Vec::<usize>>,
   molecule_ids: Vec::<usize>,
   //cosubstitute: Option<AdjacencyList>,
   cosubstitution_groups: Vec::< Vec::<usize> >,
   exchange_groups: Option<ExchangeGroupManager>,
   particle_config_ids: Vec::<Option<usize>>,
+  pdb_origin: Vector3D,
   primary_cell_indices: Vec::<usize>,
-  cell_indices: Vec::<Vec::<Option<usize>>>,
 }
 
 impl Structure{
@@ -68,16 +69,17 @@ impl Structure{
       detected_particle: None,
       bath_particles,
       bath_spins_indices: Vec::<usize>::new(),
-      connections,
+      cell_indices: Vec::<Vec::<Option<usize>>>::new(),
       cell_offsets,
+      connections,
       molecules: Vec::<Vec::<usize>>::new(),
       molecule_ids: Vec::<usize>::new(),
       //cosubstitute: None,
       cosubstitution_groups: Vec::<Vec::<usize>>::new(),
       exchange_groups: None,
       particle_config_ids: Vec::<Option<usize>>::new(),
+      pdb_origin: Vector3D::zeros(),
       primary_cell_indices: Vec::<usize>::new(),
-      cell_indices: Vec::<Vec::<Option<usize>>>::new(),
     }
 
   }
