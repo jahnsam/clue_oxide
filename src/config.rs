@@ -97,7 +97,7 @@ impl Config{
       self.detected_spin_transition = Some([0,1]);
     }
     if self.load_geometry == None{
-      self.load_geometry == Some(LoadGeometry::Sphere);
+      self.load_geometry = Some(LoadGeometry::Sphere);
     }
   }
   //----------------------------------------------------------------------------

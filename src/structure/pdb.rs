@@ -7,6 +7,7 @@ use crate::space_3d::Vector3D;
 use std::io::BufRead;
 use std::collections::HashMap;
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn parse_pdb(filename: &str) -> Result< Vec::<Structure>, CluEError>{
 
    let (n_atoms, n_models) = count_pdb_atoms(filename)?;
@@ -319,8 +320,14 @@ fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
    }
    Ok((count,model_count))
 }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// TODO: write_pdb()
+pub fn write_pdb(structure: &Structure) -> Result<(),CluEError>{
+  Ok(())
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

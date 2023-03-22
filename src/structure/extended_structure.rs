@@ -1,5 +1,5 @@
 use crate::clue_errors::CluEError;
-use crate::config::Config;
+use crate::config::{Config,LoadGeometry};
 use crate::space_3d::Vector3D;
 use crate::structure::Structure;
 use crate::math;  
@@ -32,13 +32,13 @@ impl Structure{
     // non-void particles can potentially have multiple isotopic options. 
     self.set_isotopologue(rng, config)?;
 
-    //self.trim_system(config)?;
+    self.trim_system(config)?;
 
     Ok(())
   }
   //----------------------------------------------------------------------------
-  /*
-  fn trim_system(&mut self, configL &Config) -> Result<(),CluEError>{
+  
+  fn trim_system(&mut self, config: &Config) -> Result<(),CluEError>{
     let Some(load_geometry) = &config.load_geometry else {
       return Err(CluEError::NoLoadGeometry);
     };
@@ -51,15 +51,16 @@ impl Structure{
 
         for particle in self.bath_particles.iter_mut(){
 
-          if (particle.coordinates - r_electron).norm() > radius{
+          if particle.coordinates.norm() > radius{
             particle.active = false;
           }
         }
-      }
+      },
+    }
 
     Ok(())
   }
-  */
+  
   //----------------------------------------------------------------------------
   // TODO: TEST add_voidable_particles()
   fn add_voidable_particles(&mut self, 
