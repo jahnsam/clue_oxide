@@ -6,6 +6,7 @@ use crate::space_3d::Vector3D;
 
 use std::io::BufRead;
 use std::collections::HashMap;
+use substring::Substring;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn parse_pdb(filename: &str) -> Result< Vec::<Structure>, CluEError>{
@@ -324,9 +325,85 @@ fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-// TODO: write_pdb()
-pub fn write_pdb(structure: &Structure) -> Result<(),CluEError>{
-  Ok(())
+impl Structure{
+  // TODO: write_pdb()
+  pub fn write_pdb(&self) -> Result<(),CluEError>{
+    Ok(())
+  }
+//------------------------------------------------------------------------------
+/*
+COLUMNS        DATA  TYPE    FIELD        DEFINITION
+-------------------------------------------------------------------------------------
+ 1 -  6        Record name   "ATOM  "
+ 7 - 11        Integer       serial       Atom  serial number.
+13 - 16        Atom          name         Atom name.
+17             Character     altLoc       Alternate location indicator.
+18 - 20        Residue name  resName      Residue name.
+22             Character     chainID      Chain identifier.
+23 - 26        Integer       resSeq       Residue sequence number.
+27             AChar         iCode        Code for insertion of residues.
+31 - 38        Real(8.3)     x            Orthogonal coordinates for X in Angstroms.
+39 - 46        Real(8.3)     y            Orthogonal coordinates for Y in Angstroms.
+47 - 54        Real(8.3)     z            Orthogonal coordinates for Z in Angstroms.
+55 - 60        Real(6.2)     occupancy    Occupancy.
+61 - 66        Real(6.2)     tempFactor   Temperature  factor.
+77 - 78        LString(2)    element      Element symbol, right-justified.
+79 - 80        LString(2)    charge       Charge  on the atom.
+*/
+pub fn to_string_pdb(&self) 
+  -> Result<String,CluEError>
+{
+
+  let mut pdb_str = String::new();
+  // Write crystallographic information.
+
+  // Write coordinate lines.
+
+  let mut serial_num = 1;
+  for particle in self.bath_particles.iter(){
+    if !particle.active {continue; }
+    
+    let serial = format!("{: >5}", serial_num.to_string());
+    let name = format!(" {: <4}",particle.element.to_string());
+    let alt_loc = " ".to_string();
+    let res_name: String;
+    if let Some(res) = &particle.residue{
+      res_name = format!("{: >3}",res);
+    }else{
+      res_name = "UNK".to_string();
+    }
+    let chain_id = "  ".to_string();
+    let res_seq: String;
+    if let Some(res_seq_num) = particle.residue_sequence_number{
+      res_seq = format!("{: >4}",res_seq_num);
+    }else{
+      res_seq = "   0".to_string();
+    }
+    let icode = "    ".to_string();
+    let x = format!("{: >8}",
+        (particle.coordinates.x()/ANGSTROM).to_string().substring(0,8));
+    let y = format!("{: >8}",
+        (particle.coordinates.y()/ANGSTROM).to_string().substring(0,8));
+    let z = format!("{: >8}",
+        (particle.coordinates.z()/ANGSTROM).to_string().substring(0,8));
+
+    let occupancy = "  1.00";
+    let temp_factor = "  0.00";
+    let element = format!("          {: >2}",particle.element.to_string());
+
+    let line = format!("HETATM{}{}{}{}{}{}{}{}{}{}{}{}{}\n"
+        ,serial, name, alt_loc, res_name, chain_id,
+        res_seq, icode, x, y, z,
+        occupancy, temp_factor, element);
+
+    pdb_str = format!("{}{}",pdb_str,line);
+    serial_num += 1;
+
+  }
+
+  // Write connectivity information.
+  Ok(pdb_str)
+}
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -428,5 +505,15 @@ mod tests {
     assert!(structures[0].connections.are_connected(27,28));
 
     assert!(!structures[0].connections.are_connected(0,28));
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_to_string_pdb(){
+    let filename = "./assets/TEMPO.pdb";
+    let structures = parse_pdb(&filename).unwrap();
+    let pdb_str = structures[0].to_string_pdb().unwrap();
+    println!("{}",pdb_str);
+
+
   }
 }
