@@ -7,28 +7,28 @@ use crate::space_3d::Vector3D;
 use std::io::BufRead;
 use std::collections::HashMap;
 use substring::Substring;
+use std::fs::File;
+use std::io::prelude::*;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-pub fn parse_pdb(filename: &str) -> Result< Vec::<Structure>, CluEError>{
+pub fn parse_pdb(filename: &str,target_model: usize) 
+  -> Result< Structure, CluEError>
+{
 
    let (n_atoms, n_models) = count_pdb_atoms(filename)?;
    
-   let (bath_particles_sets, serial_to_index) 
-     = parse_atoms(filename, n_atoms,n_models)?;
+   let (bath_particles, serial_to_index) 
+     = parse_atoms(filename, n_atoms,n_models, target_model)?;
 
    let connections = parse_connections(filename,n_atoms,serial_to_index)?;
 
    let cell_offsets = parse_cell(filename)?;
    
-  let mut structures = Vec::<Structure>::with_capacity(n_models);
-  for bath_particles in bath_particles_sets{
-    structures.push(Structure::new(
+   Ok( Structure::new(
       bath_particles,
-      connections.clone(),
-      cell_offsets.clone())
+      connections,
+      cell_offsets)
     )
-  }
-  Ok(structures)
 }
 //------------------------------------------------------------------------------
 fn parse_cell(filename: &str) -> Result<Vec::<Vector3D>,CluEError>
@@ -96,15 +96,17 @@ fn parse_connections(filename: &str ,n_atoms: usize,
    Ok(connections)
 }
 //------------------------------------------------------------------------------
-fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize) 
-  -> Result<(Vec::<Vec::<Particle>>, HashMap::<u32,Option<usize>>),CluEError>
+fn parse_atoms(filename: &str,n_atoms: usize, 
+    n_models: usize, target_model:usize) 
+  -> Result<(Vec::<Particle>, HashMap::<u32,Option<usize>>),CluEError>
 {
    let mut serial_to_index = HashMap::<u32,Option<usize>>::new(); 
    let mut unknown_elements = HashMap::<String,usize>::new(); 
-   let mut bath_particles = Vec::<Vec::<Particle>>::with_capacity(n_models);
-   for _ii in 0..n_models{
-     bath_particles.push( Vec::<Particle>::with_capacity(n_atoms));
-   }
+   //let mut bath_particles = Vec::<Vec::<Particle>>::with_capacity(n_models);
+   //for _ii in 0..n_models{
+   //  bath_particles.push( Vec::<Particle>::with_capacity(n_atoms));
+   //}
+   let mut bath_particles = Vec::<Particle>::with_capacity(n_atoms);
 
    let mut model_idx = 0;
 
@@ -117,7 +119,8 @@ fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize)
      let Ok(line) = line_result else{
        return Err(CluEError::CannotOpenFile(filename.to_string()));
      };
-     if line.contains("ATOM") || line.contains("HETATM") {
+     if model_idx==target_model 
+       && (line.contains("ATOM") || line.contains("HETATM")) {
        let particle: Particle;
        match parse_atom_line(&line){
          Ok(p) => particle = p,
@@ -133,15 +136,16 @@ fn parse_atoms(filename: &str,n_atoms: usize, n_models: usize)
          Err((err,_)) => return Err(err),
        }
 
-       if model_idx == 0{
+       //if model_idx == 0{
          if let Some(serial) = particle.serial{
            if !serial_to_index.contains_key(&serial){
-             serial_to_index.insert(serial,Some(bath_particles[0].len()));
+             serial_to_index.insert(serial,Some(bath_particles.len()));
            }
          }
-       }
+       //}
 
-       bath_particles[model_idx].push(particle);
+       //bath_particles[model_idx].push(particle);
+       bath_particles.push(particle);
      }else if line.contains("ENDMDL"){
        model_idx += 1;
      }
@@ -299,7 +303,7 @@ fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
    let mut count = 0;
    let mut model_count = 0;
    let mut increment = 1;
-   let Ok(file) = std::fs::File::open(filename) else{
+   let Ok(file) = File::open(filename) else{
      return Err(CluEError::CannotOpenFile(filename.to_string()));
    };
    let lines = std::io::BufReader::new(file).lines();
@@ -326,8 +330,15 @@ fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Structure{
-  // TODO: write_pdb()
-  pub fn write_pdb(&self) -> Result<(),CluEError>{
+  pub fn write_pdb(&self,filename: &str) -> Result<(),CluEError>{
+    let pdb_str = self.to_string_pdb()?;
+
+    let Ok(mut file) = File::create(filename) else {
+      return Err(CluEError::CannotOpenFile(filename.to_string()) );
+    };
+    if let Err(_) = file.write(&pdb_str.as_bytes()){
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }
     Ok(())
   }
 //------------------------------------------------------------------------------
@@ -355,9 +366,36 @@ pub fn to_string_pdb(&self)
 {
 
   let mut pdb_str = String::new();
-  // Write crystallographic information.
+
 
   // Write coordinate lines.
+  if let Some(detected_particle) = &self.detected_particle{
+    let serial = format!("{: >5}", 0.to_string());
+    let name = format!(" {: <4}",detected_particle.isotope.to_string());
+    let alt_loc = " ".to_string();
+    let res_name = String::from("DET");
+    let chain_id = "  ".to_string();
+    let res_seq = format!("{: >4}",0);
+    let icode = "    ".to_string();
+    let r = detected_particle.weighted_coordinates.mean();
+    let x = format!("{: >8}",
+      (r[0]/ANGSTROM).to_string().substring(0,8));
+    let y = format!("{: >8}",
+      (r[1]/ANGSTROM).to_string().substring(0,8));
+    let z = format!("{: >8}",
+      (r[2]/ANGSTROM).to_string().substring(0,8));
+    let occupancy = "  1.00";
+    let temp_factor = "  0.00";
+    let element = format!("          {: >2}",
+        detected_particle.isotope.to_string());
+    let line = format!("HETATM{}{}{}{}{}{}{}{}{}{}{}{}{}\n"
+        ,serial, name, alt_loc, res_name, chain_id,
+        res_seq, icode, x, y, z,
+        occupancy, temp_factor, element);
+
+    pdb_str = format!("{}{}",pdb_str,line);
+    
+  }
 
   let mut serial_num = 1;
   for particle in self.bath_particles.iter(){
@@ -401,7 +439,6 @@ pub fn to_string_pdb(&self)
 
   }
 
-  // Write connectivity information.
   Ok(pdb_str)
 }
 }
@@ -415,7 +452,8 @@ mod tests {
   #[test]
   fn test_parse_pdb_water(){
     let filename = "./assets/water.pdb";
-    let structures = parse_pdb(&filename).unwrap();
+    let structure = parse_pdb(&filename,0).unwrap();
+    assert_eq!(structure.bath_particles.len(),3);
   }
   //----------------------------------------------------------------------------
   #[test]
@@ -428,44 +466,43 @@ mod tests {
     // total hydrons =  26956.
     //
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
-    let structures = parse_pdb(&filename).unwrap();
-    assert_eq!(structures[0].bath_particles.len(),43436);
+    let structure = parse_pdb(&filename,0).unwrap();
+    assert_eq!(structure.bath_particles.len(),43436);
   }
   //----------------------------------------------------------------------------
   #[test]
   fn test_parse_pdb_tempo(){
     let filename = "./assets/TEMPO.pdb";
-    let structures = parse_pdb(&filename).unwrap();
+    let structure = parse_pdb(&filename,0).unwrap();
 
-    assert_eq!(structures.len(),1);
-    assert_eq!(structures[0].bath_particles.len(),29);
-    assert_eq!(structures[0].bath_particles[27].element,Element::Nitrogen);
-    assert_eq!(structures[0].bath_particles[28].element,Element::Oxygen);
-    assert!(structures[0].connections.are_connected(27,28));
+    assert_eq!(structure.bath_particles.len(),29);
+    assert_eq!(structure.bath_particles[27].element,Element::Nitrogen);
+    assert_eq!(structure.bath_particles[28].element,Element::Oxygen);
+    assert!(structure.connections.are_connected(27,28));
 
-    assert_eq!(structures[0].bath_particles[27].serial, Some(28));
-    assert_eq!(structures[0].bath_particles[27].residue,
+    assert_eq!(structure.bath_particles[27].serial, Some(28));
+    assert_eq!(structure.bath_particles[27].residue,
         Some("TEM".to_string()));
-    assert_eq!(structures[0].bath_particles[27].residue_sequence_number,
+    assert_eq!(structure.bath_particles[27].residue_sequence_number,
         Some(1));
-    assert_eq!(structures[0].bath_particles[27].coordinates.x(),
+    assert_eq!(structure.bath_particles[27].coordinates.x(),
         36.440*ANGSTROM);
-    assert_eq!(structures[0].bath_particles[27].coordinates.y(),
+    assert_eq!(structure.bath_particles[27].coordinates.y(),
         36.900*ANGSTROM);
-    assert_eq!(structures[0].bath_particles[27].coordinates.z(),
+    assert_eq!(structure.bath_particles[27].coordinates.z(),
         37.100*ANGSTROM);
 
-    assert_eq!(structures[0].cell_offsets[0].x(),72.5676*ANGSTROM);
-    assert_eq!(structures[0].cell_offsets[0].y(),0.0);
-    assert_eq!(structures[0].cell_offsets[0].z(),0.0);
+    assert_eq!(structure.cell_offsets[0].x(),72.5676*ANGSTROM);
+    assert_eq!(structure.cell_offsets[0].y(),0.0);
+    assert_eq!(structure.cell_offsets[0].z(),0.0);
 
-    assert!((structures[0].cell_offsets[1].x()-0.0).abs() < 1e12);
-    assert_eq!(structures[0].cell_offsets[1].y(),72.5676*ANGSTROM);
-    assert!((structures[0].cell_offsets[1].z()-0.0).abs() < 1e12);
+    assert!((structure.cell_offsets[1].x()-0.0).abs() < 1e12);
+    assert_eq!(structure.cell_offsets[1].y(),72.5676*ANGSTROM);
+    assert!((structure.cell_offsets[1].z()-0.0).abs() < 1e12);
 
-    assert!((structures[0].cell_offsets[2].x()-0.0).abs() < 1e12);
-    assert!((structures[0].cell_offsets[2].y()-0.0).abs() < 1e12);
-    assert_eq!(structures[0].cell_offsets[2].z(),72.5676*ANGSTROM);
+    assert!((structure.cell_offsets[2].x()-0.0).abs() < 1e12);
+    assert!((structure.cell_offsets[2].y()-0.0).abs() < 1e12);
+    assert_eq!(structure.cell_offsets[2].z(),72.5676*ANGSTROM);
 
 
     //         O
@@ -474,45 +511,76 @@ mod tests {
     //    2HC    CH2
     //        CH2
 
-    assert!(structures[0].connections.are_connected(0,1));
-    assert!(structures[0].connections.are_connected(0,5));
-    assert!(structures[0].connections.are_connected(0,9));
-    assert!(structures[0].connections.are_connected(0,27));
-    assert!(structures[0].connections.are_connected(1,2));
-    assert!(structures[0].connections.are_connected(1,3));
-    assert!(structures[0].connections.are_connected(1,4));
-    assert!(structures[0].connections.are_connected(5,6));
-    assert!(structures[0].connections.are_connected(5,7));
-    assert!(structures[0].connections.are_connected(5,8));
-    assert!(structures[0].connections.are_connected(9,10));
-    assert!(structures[0].connections.are_connected(9,11));
-    assert!(structures[0].connections.are_connected(9,12));
-    assert!(structures[0].connections.are_connected(12,13));
-    assert!(structures[0].connections.are_connected(12,14));
-    assert!(structures[0].connections.are_connected(12,15));
-    assert!(structures[0].connections.are_connected(15,16));
-    assert!(structures[0].connections.are_connected(15,17));
-    assert!(structures[0].connections.are_connected(15,18));
-    assert!(structures[0].connections.are_connected(18,19));
-    assert!(structures[0].connections.are_connected(18,23));
-    assert!(structures[0].connections.are_connected(18,27));
-    assert!(structures[0].connections.are_connected(19,20));
-    assert!(structures[0].connections.are_connected(19,21));
-    assert!(structures[0].connections.are_connected(19,22));
-    assert!(structures[0].connections.are_connected(23,24));
-    assert!(structures[0].connections.are_connected(23,25));
-    assert!(structures[0].connections.are_connected(23,26));
-    assert!(structures[0].connections.are_connected(27,28));
+    assert!(structure.connections.are_connected(0,1));
+    assert!(structure.connections.are_connected(0,5));
+    assert!(structure.connections.are_connected(0,9));
+    assert!(structure.connections.are_connected(0,27));
+    assert!(structure.connections.are_connected(1,2));
+    assert!(structure.connections.are_connected(1,3));
+    assert!(structure.connections.are_connected(1,4));
+    assert!(structure.connections.are_connected(5,6));
+    assert!(structure.connections.are_connected(5,7));
+    assert!(structure.connections.are_connected(5,8));
+    assert!(structure.connections.are_connected(9,10));
+    assert!(structure.connections.are_connected(9,11));
+    assert!(structure.connections.are_connected(9,12));
+    assert!(structure.connections.are_connected(12,13));
+    assert!(structure.connections.are_connected(12,14));
+    assert!(structure.connections.are_connected(12,15));
+    assert!(structure.connections.are_connected(15,16));
+    assert!(structure.connections.are_connected(15,17));
+    assert!(structure.connections.are_connected(15,18));
+    assert!(structure.connections.are_connected(18,19));
+    assert!(structure.connections.are_connected(18,23));
+    assert!(structure.connections.are_connected(18,27));
+    assert!(structure.connections.are_connected(19,20));
+    assert!(structure.connections.are_connected(19,21));
+    assert!(structure.connections.are_connected(19,22));
+    assert!(structure.connections.are_connected(23,24));
+    assert!(structure.connections.are_connected(23,25));
+    assert!(structure.connections.are_connected(23,26));
+    assert!(structure.connections.are_connected(27,28));
 
-    assert!(!structures[0].connections.are_connected(0,28));
+    assert!(!structure.connections.are_connected(0,28));
   }
   //----------------------------------------------------------------------------
   #[test]
   fn test_to_string_pdb(){
     let filename = "./assets/TEMPO.pdb";
-    let structures = parse_pdb(&filename).unwrap();
-    let pdb_str = structures[0].to_string_pdb().unwrap();
-    println!("{}",pdb_str);
+    let structure = parse_pdb(&filename,0).unwrap();
+    let pdb_str = structure.to_string_pdb().unwrap();
+    let answer = "\
+HETATM    1 C    TEM     1    37.69999   36.15   37.34  1.00  0.00           C
+HETATM    2 C    TEM     1       38.19   36.29   38.76  1.00  0.00           C
+HETATM    3 H    TEM     1       38.97   35.51    38.8  1.00  0.00           H
+HETATM    4 H    TEM     1       37.38   36.13    39.5  1.00  0.00           H
+HETATM    5 H    TEM     1        38.8   37.18   39.01  1.00  0.00           H
+HETATM    6 C    TEM     1       37.56   34.69   37.01  1.00  0.00           C
+HETATM    7 H    TEM     1       37.11   34.14   37.86  1.00  0.00           H
+HETATM    8 H    TEM     1    38.56000   34.21   37.06  1.00  0.00           H
+HETATM    9 H    TEM     1       37.06   34.52   36.03  1.00  0.00           H
+HETATM   10 C    TEM     1       38.75   36.51   36.33  1.00  0.00           C
+HETATM   11 H    TEM     1       39.67   35.93   36.54  1.00  0.00           H
+HETATM   12 H    TEM     1       38.27   36.15    35.4  1.00  0.00           H
+HETATM   13 C    TEM     1       39.06   37.98   36.16  1.00  0.00           C
+HETATM   14 H    TEM     1       39.87   38.14   35.41  1.00  0.00           H
+HETATM   15 H    TEM     1       39.48   38.27   37.15  1.00  0.00           H
+HETATM   16 C    TEM     1       37.75   38.77   35.97  1.00  0.00           C
+HETATM   17 H    TEM     1       37.5638.53000    34.9  1.00  0.00           H
+HETATM   18 H    TEM     1       37.81   39.88   36.01  1.00  0.00           H
+HETATM   19 C    TEM     1       36.61   38.38   36.85  1.00  0.00           C
+HETATM   20 C    TEM     1       36.65   39.17   38.23  1.00  0.00           C
+HETATM   21 H    TEM     1       37.5738.86999   38.78  1.00  0.00           H
+HETATM   22 H    TEM     1       35.8438.86999   38.94  1.00  0.00           H
+HETATM   23 H    TEM     1       36.85   40.26   38.12  1.00  0.00           H
+HETATM   24 C    TEM     1       35.34   38.82   36.15  1.00  0.00           C
+HETATM   25 H    TEM     1       35.26   38.37   35.14  1.00  0.00           H
+HETATM   26 H    TEM     1       35.27   39.92   36.06  1.00  0.00           H
+HETATM   27 H    TEM     1       34.5338.46999   36.82  1.00  0.00           H
+HETATM   28 N    TEM     1       36.44    36.9    37.1  1.00  0.00           N
+HETATM   29 O    TEM     1       35.29   36.43   37.81  1.00  0.00           O
+".to_string();
+    assert_eq!(pdb_str,answer);
 
 
   }

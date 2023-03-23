@@ -371,7 +371,7 @@ mod tests{
   #[test]
   fn test_build_extended_structure_lone_tempo(){
     let filename = "./assets/TEMPO.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
 
     let mut particle_configs =vec![ParticleConfig::new("hydrogen".to_string())];
 
@@ -396,13 +396,12 @@ mod tests{
 
 
     config.set_defaults();
-    structures[0].build_primary_structure(&config).unwrap();
-    let num_particles = structures[0].bath_particles.len();
+    structure.build_primary_structure(&config).unwrap();
+    let num_particles = structure.bath_particles.len();
 
     let mut rng =  ChaCha20Rng::from_entropy();
 
-    let mut structure = structures[0].clone();
-    structure.build_extended_structure(&mut rng, &config);
+    structure.build_extended_structure(&mut rng, &config).unwrap();
 
     // Test: set_cell_shifts().
     assert_eq!(structure.cell_offsets.len(),125);
@@ -443,7 +442,7 @@ mod tests{
     let n_ex = 2*n_wat + 3*n_gly; 
     let n_nx = 5*n_gly + 18;
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
 
 
     let mut particle_configs =vec![
@@ -493,14 +492,13 @@ mod tests{
 
 
     config.set_defaults();
-    structures[0].build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&config).unwrap();
 
 
     
 
     let mut rng =  ChaCha20Rng::from_entropy();
 
-    let structure = &mut structures[0];
     structure.build_extended_structure(&mut rng, &config).unwrap();
 
     assert_eq!(structure.cell_offsets.len(),n_uc);
@@ -571,7 +569,7 @@ mod tests{
     let n_nx = 5*n_gly + 18;
 
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
 
 
     let mut particle_configs =vec![
@@ -606,24 +604,22 @@ mod tests{
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
     let n_uc = 125;
-    let r_N = Vector3D::from([36.440*1e-10, 36.900*1e-10,  37.100*1e-10]);
-    let r_O = Vector3D::from([35.290*1e-10, 36.430*1e-10, 37.810*1e-10]);
-    let r_e = (&r_N + &r_O).scale(0.5);
+    let r_nitrogen=Vector3D::from([36.440*1e-10, 36.900*1e-10,  37.100*1e-10]);
+    let r_oxygen = Vector3D::from([35.290*1e-10, 36.430*1e-10, 37.810*1e-10]);
+    let r_e = (&r_nitrogen + &r_oxygen).scale(0.5);
     config.detected_spin_position = Some( 
         DetectedSpinCoordinates::XYZ(r_e) );
 
 
     config.set_defaults();
-    structures[0].build_primary_structure(&config).unwrap();
-    let num_particles = structures[0].bath_particles.len();
+    structure.build_primary_structure(&config).unwrap();
 
 
     
 
     let mut rng =  ChaCha20Rng::from_entropy();
 
-    let mut structure = structures[0].clone();
-    structure.build_extended_structure(&mut rng, &config);
+    structure.build_extended_structure(&mut rng, &config).unwrap();
 
     assert_eq!(structure.cell_offsets.len(),n_uc);
 
@@ -730,8 +726,8 @@ mod tests{
   #[test]
   fn test_build_extended_structure_tempo_3gly_1npr(){
     let filename = "./assets/TEMPO_3gly_1npr_50A.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
-    assert_eq!(structures[0].bath_particles.len(),13891);
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
+    assert_eq!(structure.bath_particles.len(),13891);
 
     let mut particle_configs =vec![
       ParticleConfig::new("exchangeable_hydrogens".to_string()),
@@ -770,12 +766,11 @@ mod tests{
 
 
     config.set_defaults();
-    structures[0].build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&config).unwrap();
 
     let mut rng =  ChaCha20Rng::from_entropy();
 
-    let mut structure = structures[0].clone();
-    structure.build_extended_structure(&mut rng, &config);
+    structure.build_extended_structure(&mut rng, &config).unwrap();
 
     // Test: set_cell_shifts().
     assert_eq!(structure.cell_offsets.len(),n_uc);

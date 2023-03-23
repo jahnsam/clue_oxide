@@ -40,9 +40,11 @@ pub struct Config{
   //pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
   //pub particles: Option<Vec::<ParticleConfig>>, // TODO: why in Option?
+  pub pdb_model_index: Option<usize>,
   pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
   pub load_geometry: Option<LoadGeometry>,
   pub structure_file: Option<String>,
+  pub write_structure_pdb: Option<bool>,
 }
 /*
 impl Default for Config{
@@ -98,6 +100,9 @@ impl Config{
     }
     if self.load_geometry == None{
       self.load_geometry = Some(LoadGeometry::Sphere);
+    }
+    if self.pdb_model_index == None{
+      self.pdb_model_index = Some(0);
     }
   }
   //----------------------------------------------------------------------------

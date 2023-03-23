@@ -84,21 +84,24 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
-  pub fn build_structures(rng: &mut ChaCha20Rng, config: &Config) 
-    -> Result<Vec::<Self>,CluEError>
+  pub fn build_structure(rng: &mut ChaCha20Rng, config: &Config) 
+    -> Result<Self,CluEError>
   {
 
     let Some(filename) = &config.structure_file else{
       return Err(CluEError::NoStructureFile);
     };
-    let mut structures = pdb::parse_pdb(filename)?;
 
-    for structure in structures.iter_mut(){
-       structure.build_primary_structure(config)?;
-       structure.build_extended_structure(rng, config)?;
-    }
+    let Some(model_idx) = config.pdb_model_index else{
+      return Err(CluEError::NoModelIndex);
+    };
 
-    Ok(structures)
+    let mut structure = pdb::parse_pdb(filename,model_idx)?;
+
+    structure.build_primary_structure(config)?;
+    structure.build_extended_structure(rng, config)?;
+
+    Ok(structure)
   }
   //----------------------------------------------------------------------------
   pub fn number(&self) -> usize{

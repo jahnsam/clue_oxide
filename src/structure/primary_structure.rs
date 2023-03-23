@@ -425,11 +425,10 @@ mod tests{
   #[test]
   fn test_find_cosubstitution_groups(){
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
-    let structure = &mut structures[0];
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
@@ -469,33 +468,33 @@ mod tests{
   #[test]
   fn test_build_primary_structure_water(){
     let filename = "./assets/water.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
     config.set_defaults();
-    structures[0].build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&config).unwrap();
 
   
-    assert_eq!(structures[0].molecules.len(),1);
-    assert_eq!(structures[0].molecules[0],vec![0,1,2]);
-    assert_eq!(structures[0].molecule_ids,vec![0,0,0]);
+    assert_eq!(structure.molecules.len(),1);
+    assert_eq!(structure.molecules[0],vec![0,1,2]);
+    assert_eq!(structure.molecule_ids,vec![0,0,0]);
   }
   //----------------------------------------------------------------------------
   #[test]
   fn test_build_primary_structure_tempo(){
     let filename = "./assets/TEMPO.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
 
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
     config.set_defaults();
-    structures[0].build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&config).unwrap();
 
-    assert_eq!(structures[0].bath_particles
+    assert_eq!(structure.bath_particles
         .iter().filter(|p| (*p).active).count(), 19);
-    let exchange_group_manager = structures[0].exchange_groups
+    let exchange_group_manager = structure.exchange_groups
                                  .as_ref().unwrap();
     assert_eq!(exchange_group_manager.exchange_groups.len(), 4);
 
@@ -536,22 +535,22 @@ mod tests{
     let n_gly = 1500;
 
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
     config.set_defaults();
-    structures[0].build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&config).unwrap();
     
-    assert_eq!(structures[0].molecules.len(), 1 + n_wat + n_gly);
+    assert_eq!(structure.molecules.len(), 1 + n_wat + n_gly);
 
-    assert_eq!(structures[0].molecules[0].len(),29);
+    assert_eq!(structure.molecules[0].len(),29);
     for ii in 1..=1500{
-      assert_eq!(structures[0].molecules[ii].len(),14);
+      assert_eq!(structure.molecules[ii].len(),14);
     }
-    for ii in 1501..structures[0].molecules.len(){
-      assert_eq!(structures[0].molecules[ii].len(),3);
+    for ii in 1501..structure.molecules.len(){
+      assert_eq!(structure.molecules[ii].len(),3);
     }
   }
 }

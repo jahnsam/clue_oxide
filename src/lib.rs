@@ -34,7 +34,11 @@ pub fn run(config: Config) -> Result<(),CluEError>{
     None => rng = ChaCha20Rng::from_entropy(),
   }
 
-  let structures = Structure::build_structures(&mut rng,&config);
+  let structure = Structure::build_structure(&mut rng,&config)?;
+  
+  if config.write_structure_pdb == Some(true){
+    structure.write_pdb("out.pdb")?;
+  }
 
   Ok(())
 }

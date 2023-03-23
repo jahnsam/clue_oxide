@@ -18,6 +18,7 @@ pub enum CluEError{
   CannotPowTokens,
   CannotSampleBinomialDistribution(usize,f64),
   CannotSubTokens,
+  CannotWriteFile(String),
   ConfigModeNotRecognized(String),
   EmptyVector(usize),
   ExpectedEquality(usize),
@@ -42,6 +43,7 @@ pub enum CluEError{
   NoClustersOfSize(usize),
   NoInputFile,
   NoLoadGeometry,
+  NoModelIndex,
   NoRadius,
   NoRelationalOperators(usize),
   NoRHS(usize),
@@ -109,6 +111,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotConvertToVector(line_number) => write!(f,
           "{}: cannot find vector", line_number),
+
+      CluEError::CannotWriteFile(file) => write!(f,
+          "cannot write to \"{}\"", file),
 
       CluEError::ConfigModeNotRecognized(mode) => write!(f,
           "#[{}] is not recognized",mode),
@@ -185,6 +190,9 @@ impl fmt::Display for CluEError{
       CluEError::NoLoadGeometry => write!(f,
           "geometry for loading in the system was not defined"),
       
+      CluEError::NoModelIndex => write!(f,
+          "PDB model not selected"),
+
       CluEError::NoRadius => write!(f,
           "system radius not set"),
 

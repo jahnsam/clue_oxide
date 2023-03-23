@@ -280,106 +280,104 @@ mod tests{
   #[test]
   fn test_augment_filter(){
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
-    let structure = &mut structures[0];
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
 
     let mut filter = ParticleFilter::new();
     filter.augment_filter(43,
-        &SecondaryParticleFilter::Bonded,structure)
+        &SecondaryParticleFilter::Bonded,&structure)
       .unwrap();
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.elements = vec![Element::Hydrogen];
     filter.augment_filter(28,
-        &SecondaryParticleFilter::SameMolecule,structure)
+        &SecondaryParticleFilter::SameMolecule,&structure)
       .unwrap();
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
 
     let mut filter = ParticleFilter::new();
     filter.elements = vec![Element::Hydrogen];
     filter.augment_filter(28,
-        &SecondaryParticleFilter::SameMolecule,structure)
+        &SecondaryParticleFilter::SameMolecule,&structure)
       .unwrap();
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
   }
   //----------------------------------------------------------------------------
   #[test]
   fn test_filter(){
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
-    let mut structures = pdb::parse_pdb(&filename).unwrap();
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
-    let structure = &mut structures[0];
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
   
     let mut filter = ParticleFilter::new();
     filter.elements = vec![Element::Oxygen];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![28,32,36,41,43]);
 
     let mut filter = ParticleFilter::new();
     filter.not_elements = vec![Element::Hydrogen,Element::Carbon];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![27,28,32,36,41,43]);
 
     let mut filter = ParticleFilter::new();
     filter.serials = vec![28,29];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![27,28]);
 
     let mut filter = ParticleFilter::new();
     filter.bonded_elements = vec![Element::Oxygen];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![27,29,33,34,37,38,42,44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.not_bonded_elements = vec![Element::Carbon];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![28,33,37,42,43,44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.residues = vec!["SOL".to_string()];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![43,44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.not_residues = vec!["TEM".to_string(),"MGL".to_string()];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![43,44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.residue_sequence_numbers = vec![1502];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![43,44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.not_residue_sequence_numbers = vec![1,2];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![43,44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.elements = vec![Element::Hydrogen];
     filter.bonded_elements = vec![Element::Oxygen];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices,vec![33,37,42,44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.elements = vec![Element::Hydrogen];
     filter.not_bonded_elements = vec![Element::Oxygen];
-    let indices = filter.filter(structure);
+    let indices = filter.filter(&structure);
     assert_eq!(indices.len(),23);
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26,
     30,31,35,39,40]);
