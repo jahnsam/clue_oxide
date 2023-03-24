@@ -23,10 +23,6 @@ fn is_numeric(token: &Token) -> bool{
 pub fn basic_token_algebraic_operations(tokens: [Token;3],line_number: usize) 
  ->Result<Token,CluEError>{
 
-  if tokens.len() != 3{
-    return Err(CluEError::WrongVectorLength(line_number, 3, tokens.len()));
-  }
-
   match tokens[1] {
     Token::Plus  => tokens[0].clone()  + tokens[2].clone(),
     Token::Minus  => tokens[0].clone() - tokens[2].clone(),
@@ -53,34 +49,63 @@ pub fn contract_operator_inverse_operator_tokens(
     return Ok(tokens);
   }
 
-  out.push(tokens[0].clone());
+  let start_idx: usize;
+  if tokens[0] == Token::Minus{
+    let next_token = tokens[1].clone();
+    if !is_numeric(&next_token){ 
+      return Err(CluEError::ExpectedNumber(line_number));
+    }
+    let neg_first_token = basic_token_algebraic_operations(
+         [next_token, Token::Times,Token::Int(-1)], line_number)?;
+    out.push(neg_first_token);
+    start_idx = 2;
+  }else{
+    out.push(tokens[0].clone());
+    start_idx = 1;
+  }
 
-  let mut skip_next = false;
+  let mut skip_next = 0;
 
-  for ii in 1..tokens.len()-1 {
+  for ii in start_idx..tokens.len()-1 {
 
-    if skip_next{
-      skip_next = false;
+    if skip_next > 0{
+      skip_next -= 1;
       continue;
     }
 
     if (tokens[ii] == op || tokens[ii] == inv_op) 
-      && is_numeric(&out[out.len()-1]) && is_numeric(&tokens[ii+1]){
+      && is_numeric(&out[out.len()-1]) {
+    
+      let mut next_token = tokens[ii+1].clone();
+      if next_token == Token::Minus{
+        skip_next += 1;
+        next_token = tokens[ii+2].clone();
+        if !is_numeric(&next_token){ 
+          return Err(CluEError::ExpectedNumber(line_number));
+        }
+        next_token = basic_token_algebraic_operations(
+         [next_token, Token::Times,Token::Int(-1)],
+         line_number)?;
+
+      }
+      if !is_numeric(&next_token){ 
+        continue;
+      }
 
       let new_token = basic_token_algebraic_operations(
-       [out[out.len()-1].clone(), tokens[ii].clone(), tokens[ii+1].clone()],
+       [out[out.len()-1].clone(), tokens[ii].clone(), next_token],
        line_number)?;
 
       let idx = out.len() - 1;
       out[idx] = new_token;
-      skip_next = true;
+      skip_next += 1;
 
     }else{
       out.push(tokens[ii].clone());
     }
 
   }
-  if !skip_next{
+  if skip_next==0{
     out.push(tokens[tokens.len()-1].clone());
   }
   
@@ -435,6 +460,17 @@ mod tests{
     assert_eq!(tokens.len(), 1);
     assert_eq!(tokens, vec![Token::Float(6.0*2.0/3.0*5.0)]);
 
+    let tokens = vec![Token::Float(2.0), Token::Times, Token::Minus,
+        Token::Float(3.0)];
+
+    let tokens = contract_multiply_divide_tokens(tokens,0).unwrap();
+    assert_eq!(tokens, vec![Token::Float(-6.0)]);
+
+    let tokens = vec![Token::Minus, Token::Float(2.0), Token::Times, 
+        Token::Minus, Token::Float(3.0)];
+
+    let tokens = contract_multiply_divide_tokens(tokens,0).unwrap();
+    assert_eq!(tokens, vec![Token::Float(6.0)]);
   }
   //----------------------------------------------------------------------------
   #[test]
@@ -660,6 +696,30 @@ mod tests{
 
     let result = to_f64_token(tokens,0).unwrap();
     assert_eq!(result, Token::VectorF64(vec![1.0,-1.0]));    
+
+    let tokens = vec![Token::UserInputValue("12".to_string()), Token::Times, 
+        Token::UserInputValue("10".to_string()), Token::Hat,  
+        Token::UserInputValue("1".to_string())  ];
+
+    let result = to_f64_token(tokens,0).unwrap();
+    assert_eq!(result, Token::Float(120.0) );    
+
+    let tokens = vec![Token::UserInputValue("12".to_string()), Token::Times, 
+        Token::UserInputValue("10".to_string()), Token::Hat, Token::Minus, 
+        Token::UserInputValue("1".to_string())  ];
+
+    let Token::Float(result) = to_f64_token(tokens,0).unwrap() else{
+      panic!("Expected a float.");
+    };
+    assert!( (result-1.2).abs()<1e-12 );    
+
+    let tokens = vec![Token::UserInputValue("80e".to_string()), Token::Minus, 
+        Token::UserInputValue("10".to_string())  ];
+
+    let Token::Float(result) = to_f64_token(tokens,0).unwrap() else{
+      panic!("Expected a float.");
+    };
+    assert!( (result-80e-10).abs()<1e-12 );    
   }
   //----------------------------------------------------------------------------
   #[test]

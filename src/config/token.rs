@@ -4,6 +4,8 @@ use std::ops::{Add,Sub,Mul,Div};
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token{
  Bang,
+ BondedElements,                                               
+ BondedIndices,                                                     
  BlockCommentEnd, 
  BlockCommentStart, 
  Clusters,
@@ -11,7 +13,9 @@ pub enum Token{
  Config,
  CurlyBracketClose,
  CurlyBracketOpen,
+ DoubleQuote,
  Element,
+ Elements,                                                    
  EOL,
  Equals,
  Filter,
@@ -20,6 +24,8 @@ pub enum Token{
  GreaterThanEqualTo,
  Hat,
  In,
+ Indices,                                                      
+ InputStructureFile,
  Int(i32),
  Label,
  LessThan,
@@ -37,8 +43,11 @@ pub enum Token{
  Plus,
  Radius,
  Residue,
+ Residues,                                                     
+ ResSeqNums,                                                   
  RNGSeed,
  Semicolon,
+ Serials,                                                      
  Sharp,
  Slash,
  Spins,
@@ -55,25 +64,13 @@ pub enum Token{
  VectorString(Vec::<String>),
  Whitespace,
  WriteStructurePDB,
- Indices,                                                      
- //NotIndices,                                                   
- Elements,                                                    
- //NotElements,                                                  
- Serials,                                                      
- //NotSerials,                                                   
- Residues,                                                     
- //NotResidues,                                                  
- ResSeqNums,                                                   
- //NotResSeqNums,                                                
- BondedIndices,                                                     
- //NotBondedIndices,                                                  
- BondedElements,                                               
- //NotBondedElements,
 }
 impl Token{
   pub fn to_string(&self) -> String{
     match self{
       Token::Bang => "!".to_string(), 
+      Token::BondedIndices => "bonded_indices".to_string(),
+      Token::BondedElements => "bonded_elements".to_string(),
       Token::BlockCommentEnd => "*/".to_string(), 
       Token::BlockCommentStart => "/*".to_string(), 
       Token::Clusters => "clusters".to_string(),
@@ -81,7 +78,9 @@ impl Token{
       Token::Config => "config".to_string(),
       Token::CurlyBracketClose => "}".to_string(),
       Token::CurlyBracketOpen => "{".to_string(),
+      Token::DoubleQuote => "\"".to_string(),
       Token::Element => "element".to_string(),
+      Token::Elements => "elements".to_string(),
       Token::EOL => "\n".to_string(),
       Token::Equals => "=".to_string(),
       Token::Filter => "filter".to_string(),
@@ -90,6 +89,8 @@ impl Token{
       Token::GreaterThanEqualTo => ">=".to_string(),
       Token::Hat => "^".to_string(),
       Token::In => "in".to_string(),
+      Token::Indices => "indices".to_string(),
+      Token::InputStructureFile => "input_structure_file".to_string(),
       Token::Int(n) => n.to_string(),
       Token::Label => "label".to_string(),
       Token::LessThan => "<".to_string(),
@@ -107,8 +108,11 @@ impl Token{
       Token::Plus => "+".to_string(),
       Token::Radius => "radius".to_string(),
       Token::Residue => "residue".to_string(),
+      Token::Residues => "residues".to_string(),
+      Token::ResSeqNums => "residue_sequence_numbers".to_string(),
       Token::RNGSeed => "rng_seed".to_string(),
       Token::Semicolon => ";".to_string(),
+      Token::Serials => "serials".to_string(),
       Token::Sharp => "#".to_string(),
       Token::Slash => "/".to_string(),
       Token::Spins => "spins".to_string(),
@@ -125,13 +129,6 @@ impl Token{
       Token::VectorString(v) => format!("{:?}",v), 
       Token::Whitespace => " ".to_string(),
       Token::WriteStructurePDB => "write_structure_pdb".to_string(),
-      Token::Indices => "indices".to_string(),
-      Token::Elements => "elements".to_string(),
-      Token::Serials => "serials".to_string(),
-      Token::Residues => "residues".to_string(),
-      Token::ResSeqNums => "residue_sequence_numbers".to_string(),
-      Token::BondedIndices => "bonded_indices".to_string(),
-      Token::BondedElements => "bonded_elements".to_string(),
     }
   }
 }
@@ -139,6 +136,8 @@ impl Token{
 pub fn identify_token(word: &str) -> Option<Token>{
   match word{
     "!" => Some(Token::Bang),
+    "bonded_indices" => Some(Token::BondedIndices),
+    "bonded_elements" => Some(Token::BondedElements),
     "*/" => Some(Token::BlockCommentEnd),
     "/*" => Some(Token::BlockCommentStart),
     "clusters" => Some(Token::Clusters),
@@ -146,13 +145,17 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "config" => Some(Token::Config),
     "}" => Some(Token::CurlyBracketClose),
     "{" => Some(Token::CurlyBracketOpen),
+    "\"" => Some(Token::DoubleQuote),
     "element" => Some(Token::Element),
+    "elements" => Some(Token::Elements), 
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
     "filter" => Some(Token::Filter),
     ">" => Some(Token::GreaterThan),
     ">=" => Some(Token::GreaterThanEqualTo),
     "in" => Some(Token::In),
+    "input_structure_file" => Some(Token::InputStructureFile),
+    "indices" => Some(Token::Indices), 
     "label" => Some(Token::Label),
     "^" => Some(Token::Hat),
     "<" => Some(Token::LessThan),
@@ -169,8 +172,11 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "+" => Some(Token::Plus),
     "radius" => Some(Token::Radius),
     "residue" => Some(Token::Residue),
+    "residues" => Some(Token::Residues),
+    "residue_sequence_numbers" => Some(Token::ResSeqNums),
     "rng_seed" => Some(Token::RNGSeed),
     ";" => Some(Token::Semicolon),
+    "serials" => Some(Token::Serials), 
     "#" => Some(Token::Sharp),
     "/" => Some(Token::Slash),
     "spins" => Some(Token::Spins),
@@ -183,13 +189,6 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "type" => Some(Token::Type),
     " " => Some(Token::Whitespace),
     "write_structure_pdb" => Some(Token::WriteStructurePDB),
-    "indices" => Some(Token::Indices), 
-    "elements" => Some(Token::Elements), 
-    "serials" => Some(Token::Serials), 
-    "residues" => Some(Token::Residues),
-    "residue_sequence_numbers" => Some(Token::ResSeqNums),
-    "bonded_indices" => Some(Token::BondedIndices),
-    "bonded_elements" => Some(Token::BondedElements),
     _ => None
   }
 }
@@ -739,6 +738,7 @@ mod tests{
     assert_eq!(identify_token("config").unwrap(), Token::Config);
     assert_eq!(identify_token("}").unwrap(), Token::CurlyBracketClose);
     assert_eq!(identify_token("{").unwrap(), Token::CurlyBracketOpen);
+    assert_eq!(identify_token("\"").unwrap(), Token::DoubleQuote);
     assert_eq!(identify_token("element").unwrap(), Token::Element);
     assert_eq!(identify_token("\n").unwrap(), Token::EOL);
     assert_eq!(identify_token("=").unwrap(), Token::Equals);
@@ -747,6 +747,8 @@ mod tests{
     assert_eq!(identify_token(">=").unwrap(), Token::GreaterThanEqualTo);
     assert_eq!(identify_token("^").unwrap(), Token::Hat);
     assert_eq!(identify_token("in").unwrap(), Token::In);
+    assert_eq!(identify_token("input_structure_file").unwrap(), 
+        Token::InputStructureFile);
     assert_eq!(identify_token("label").unwrap(), Token::Label);
     assert_eq!(identify_token("<").unwrap(), Token::LessThan);
     assert_eq!(identify_token("<=").unwrap(), Token::LessThanEqualTo);

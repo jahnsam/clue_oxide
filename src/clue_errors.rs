@@ -25,6 +25,7 @@ pub enum CluEError{
   ExpectedFloatRHS(usize),
   ExpectedIntRHS(usize),
   ExpectedVecOfNFloatsRHS(usize,usize),
+  ExpectedNumber(usize),
   IncorrectNumberOfAxes(usize,usize),
   IndexOutOfBounds(usize,usize,usize),
   InvalidConfigFile(String),
@@ -129,6 +130,9 @@ impl fmt::Display for CluEError{
 
       CluEError::ExpectedIntRHS(line_number) => write!(f,
           "{}: expected an integer on the right hand side",line_number),
+
+      CluEError::ExpectedNumber(line_number) => write!(f,
+          "{}: expected a number",line_number),
 
       CluEError::ExpectedVecOfNFloatsRHS(line_number,n) => write!(f,
           "{}: expected a vector of {} floats on the right hand side",

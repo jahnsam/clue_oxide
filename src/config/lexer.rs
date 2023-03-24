@@ -29,7 +29,8 @@ pub fn get_tokens_from_line(input: &str)
 {
 
     let input = str::replace(input, ";", ";\n");
-    let lexer = Lexer{input, position: 0, line_number: 0};
+    let lexer = Lexer{input, position: 0, line_number: 0, 
+      quoting: false};
     let tokens = parse_tokens(lexer)?;
     let tokens = find_comments(tokens);
     let (tokens,line_numbers) = prune_tokens(tokens)?;
@@ -105,6 +106,7 @@ struct Lexer{
   input: String,
   position: usize,
   line_number: usize,
+  quoting: bool,
 }
 
 impl Lexer{
@@ -112,7 +114,8 @@ impl Lexer{
   // This function instantiates a ner lexer from a file.
   fn new(filename: &str) -> Result<Self,CluEError>{
     if let Ok(input) = std::fs::read_to_string(filename){
-      return Ok(Lexer{input, position: 0, line_number: 1});
+      return Ok(Lexer{input, position: 0, line_number: 1, 
+          quoting: false,});
     }
     Err(CluEError::InvalidConfigFile(filename.to_string()))
   }
@@ -123,14 +126,20 @@ impl Lexer{
 
     let idx = self.position;
     
+    // Check for single character tokens.
     if let Some(token) = identify_token(self.input.substring(idx,idx+1)){
-      self.position += 1;
-      return token;
+      if !self.quoting || token == Token::DoubleQuote{
+        self.position += 1;
+        return token;
+      }
     }
 
+    // Find multi-character tokens.
     for read_to in idx+1..self.input.len() {
 
-      if !is_token_over(self.input.substring(read_to,read_to+1)){ continue; }
+      if !is_token_over(self.input.substring(read_to,read_to+1), self.quoting){ 
+        continue; 
+      }
         
       self.position = read_to;
 
@@ -157,10 +166,13 @@ impl Lexer{
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // This function reports on whether the inpur character ends a token.
-fn is_token_over(word: &str) -> bool{
+fn is_token_over(word: &str,is_within_quote: bool) -> bool{
+  if is_within_quote{
+    return word == "\"";
+  }
   match word{
     "\n" | " " | "," |"[" | "]" | "{" | "}" |"(" | ")" | "<" | ">" | ";" 
-      | "=" | "+" | "-" | "*" | "/" | "^" | "!" => true,
+      | "=" | "+" | "-" | "*" | "/" | "^" | "!" | "\"" => true,
       _ => false,
   }
 }
@@ -176,7 +188,10 @@ fn parse_tokens(mut lexer: Lexer) -> Result<Vec::<Token>, CluEError>{
     
     let token = lexer.next_token();
     
-    if token == Token::EOL {
+    if token == Token::DoubleQuote{
+      lexer.quoting = !lexer.quoting;
+      continue;
+    }else if token == Token::EOL {
       lexer.line_number += 1;
     }
 
@@ -519,6 +534,7 @@ mod tests{
 tunnel_splitting = 80e3; // Hz"),
       position: 0, 
       line_number: 0,
+      quoting: false
     };
 
     let ref_tokens = vec![Token::Element, Token::Whitespace, Token::In,
@@ -550,6 +566,7 @@ tunnel_splitting = 80e3; // Hz"),
 tunnel_splitting = 80e3; // Hz"),
       position: 0, 
       line_number: 0,
+      quoting: false
     };
     let ref_tokens = vec![ Token::BlockCommentStart,
      Token::Element, Token::Whitespace, Token::In,
@@ -584,6 +601,7 @@ tunnel_splitting = 80e3; // Hz
 magnetic_field = 1.2; // T"),
       position: 0, 
       line_number: 0,
+      quoting: false
     };
     let ref_tokens = vec![ 
      Token::TunnelSplitting, 
@@ -616,6 +634,7 @@ tunnel_splitting = 80e3; // Hz
 magnetic_field = 1.2; // T"),
       position: 0, 
       line_number: 0,
+      quoting: false
     };
     let ref_statements = vec![ 
      vec![Token::TunnelSplitting, 

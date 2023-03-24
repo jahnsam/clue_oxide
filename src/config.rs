@@ -30,19 +30,20 @@ pub struct Config{
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
   pub detected_spin_identity: Option<Isotope>,
-  pub radius: Option<f64>,
-  pub rng_seed: Option<u64>,
+  pub input_structure_file: Option<String>,
+  pub load_geometry: Option<LoadGeometry>,
+  pub magnetic_field: Option<Vector3D>,
   //pub inner_radius: Option<f64>,
   //max_number_of_cells: usize,
   //pbc_style: PBCStyle,
   //error_tolerance: f64,
-  pub magnetic_field: Option<Vector3D>,
   //pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
   //pub particles: Option<Vec::<ParticleConfig>>, // TODO: why in Option?
   pub pdb_model_index: Option<usize>,
   pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
-  pub load_geometry: Option<LoadGeometry>,
+  pub radius: Option<f64>,
+  pub rng_seed: Option<u64>,
   pub structure_file: Option<String>,
   pub write_structure_pdb: Option<String>,
 }
@@ -207,6 +208,7 @@ impl Config{
     CluEError::OptionAlreadySet(
         expression.line_number, expression.lhs[0].to_string()) };
 
+    println!("DB: {:?}",expression);
     match expression.lhs[0]{
       Token::MagneticField => {
   

@@ -1,6 +1,7 @@
 use crate::clue_errors::*;
 use crate::config::token::*;
 use crate::config::token_expressions::*;
+use substring::Substring;
 
 //------------------------------------------------------------------------------
 // The function takes a Vec::<Token> and inserts a token at the specified index.
@@ -145,12 +146,26 @@ pub fn read_strings_as_floats(tokens: Vec::<Token>, line_number: usize)
     
     match token{
     
-      Token::UserInputValue(val) => {
+      Token::UserInputValue(val0) => {
     
+        let mut val = val0.to_string();
+
+        let push_time_ten_hat: bool;
+        if val.len() >= 2 && val.substring( val.len()-1,val.len())=="e"{
+          val = val.substring(0, val.len()-1).to_string();
+          push_time_ten_hat = true;
+        }else{
+          push_time_ten_hat = false;
+        }
         match val.parse(){
           Ok(x) => out.push(Token::Float(x)),
           Err(_) => return Err(CluEError::CannotConvertToFloat(
                 line_number,val.to_string() )),
+        }
+        if push_time_ten_hat{
+          out.push(Token::Times);
+          out.push(Token::Float(10.0));
+          out.push(Token::Hat);
         }
       }, 
     
@@ -176,12 +191,26 @@ pub fn read_strings_as_integers(tokens: Vec::<Token>, line_number: usize)
     
     match token{
     
-      Token::UserInputValue(val) => {
+      Token::UserInputValue(val0) => {
+        let mut val = val0.to_string();
+
+        let push_time_ten_hat: bool;
+        if val.len() >= 2 && val.substring( val.len()-1,val.len())=="e"{
+          val = val.substring(0, val.len()-1).to_string();
+          push_time_ten_hat = true;
+        }else{
+          push_time_ten_hat = false;
+        }
     
         match val.parse(){
           Ok(a) => out.push(Token::Int(a)),
           Err(_) => return Err(CluEError::CannotConvertToFloat(
                 line_number,val.to_string() )),
+        }
+        if push_time_ten_hat{
+          out.push(Token::Times);
+          out.push(Token::Int(10));
+          out.push(Token::Hat);
         }
       }, 
     
