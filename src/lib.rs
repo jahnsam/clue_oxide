@@ -36,8 +36,8 @@ pub fn run(config: Config) -> Result<(),CluEError>{
 
   let structure = Structure::build_structure(&mut rng,&config)?;
   
-  if config.write_structure_pdb == Some(true){
-    structure.write_pdb("out.pdb")?;
+  if let Some(filename) = config.write_structure_pdb{
+    structure.write_pdb(&format!("{}.pdb",filename))?;
   }
 
   Ok(())

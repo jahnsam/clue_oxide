@@ -44,7 +44,7 @@ pub struct Config{
   pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
   pub load_geometry: Option<LoadGeometry>,
   pub structure_file: Option<String>,
-  pub write_structure_pdb: Option<bool>,
+  pub write_structure_pdb: Option<String>,
 }
 /*
 impl Default for Config{

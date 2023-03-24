@@ -54,6 +54,7 @@ pub enum Token{
  VectorI32(Vec::<i32>),
  VectorString(Vec::<String>),
  Whitespace,
+ WriteStructurePDB,
  Indices,                                                      
  //NotIndices,                                                   
  Elements,                                                    
@@ -123,6 +124,7 @@ impl Token{
       Token::VectorI32(v) => format!("{:?}",v), 
       Token::VectorString(v) => format!("{:?}",v), 
       Token::Whitespace => " ".to_string(),
+      Token::WriteStructurePDB => "write_structure_pdb".to_string(),
       Token::Indices => "indices".to_string(),
       Token::Elements => "elements".to_string(),
       Token::Serials => "serials".to_string(),
@@ -180,6 +182,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     "type" => Some(Token::Type),
     " " => Some(Token::Whitespace),
+    "write_structure_pdb" => Some(Token::WriteStructurePDB),
     "indices" => Some(Token::Indices), 
     "elements" => Some(Token::Elements), 
     "serials" => Some(Token::Serials), 
@@ -773,6 +776,8 @@ mod tests{
         Token::TunnelSplitting);
     assert_eq!(identify_token("type").unwrap(), Token::Type);
     assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
+    assert_eq!(identify_token("write_structure_pdb").unwrap(), 
+        Token::WriteStructurePDB);
     assert_eq!(identify_token("indices").unwrap(), Token::Indices); 
     assert_eq!(identify_token("elements").unwrap(), Token::Elements); 
     assert_eq!(identify_token("serials").unwrap(), Token::Serials); 
