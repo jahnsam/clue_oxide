@@ -443,11 +443,11 @@ fn get_detected_particle_pdb_string(&self)
     let r = detected_particle.weighted_coordinates.mean();
     let r0 = &self.pdb_origin;
     let x = format!("{: >8}",
-      ((r[0] -r0.x())/ANGSTROM).to_string().substring(0,8));
+      ((r[0] -r0.x())/ANGSTROM).to_string().substring(0,7));
     let y = format!("{: >8}",
-      ((r[1]-r0.y())/ANGSTROM).to_string().substring(0,8));
+      ((r[1]-r0.y())/ANGSTROM).to_string().substring(0,7));
     let z = format!("{: >8}",
-      ((r[2]-r0.z())/ANGSTROM).to_string().substring(0,8));
+      ((r[2]-r0.z())/ANGSTROM).to_string().substring(0,7));
     let occupancy = "  1.00";
     let temp_factor = "  0.00";
     let element = format!("          {: >2}",
@@ -488,11 +488,11 @@ fn set_bath_particle_pdb_string(&self, line: &mut String, particle: &Particle,
   let icode = "    ".to_string();
   let r = &particle.coordinates - &self.pdb_origin;
   let x = format!("{: >8}",
-      (r.x()/ANGSTROM).to_string().substring(0,8));
+      (r.x()/ANGSTROM).to_string().substring(0,7));
   let y = format!("{: >8}",
-      (r.y()/ANGSTROM).to_string().substring(0,8));
+      (r.y()/ANGSTROM).to_string().substring(0,7));
   let z = format!("{: >8}",
-      (r.z()/ANGSTROM).to_string().substring(0,8));
+      (r.z()/ANGSTROM).to_string().substring(0,7));
 
   let occupancy = "  1.00";
   let temp_factor = "  0.00";
@@ -617,14 +617,14 @@ mod tests {
     let structure = parse_pdb(&filename,0).unwrap();
     let pdb_str = structure.to_string_pdb().unwrap();
     let answer = "\
-HETATM    1 C    TEM     1    37.69999   36.15   37.34  1.00  0.00           C
+HETATM    1 C    TEM     1     37.6999   36.15   37.34  1.00  0.00           C
 HETATM    2 C    TEM     1       38.19   36.29   38.76  1.00  0.00           C
 HETATM    3 H    TEM     1       38.97   35.51    38.8  1.00  0.00           H
 HETATM    4 H    TEM     1       37.38   36.13    39.5  1.00  0.00           H
 HETATM    5 H    TEM     1        38.8   37.18   39.01  1.00  0.00           H
 HETATM    6 C    TEM     1       37.56   34.69   37.01  1.00  0.00           C
 HETATM    7 H    TEM     1       37.11   34.14   37.86  1.00  0.00           H
-HETATM    8 H    TEM     1    38.56000   34.21   37.06  1.00  0.00           H
+HETATM    8 H    TEM     1     38.5600   34.21   37.06  1.00  0.00           H
 HETATM    9 H    TEM     1       37.06   34.52   36.03  1.00  0.00           H
 HETATM   10 C    TEM     1       38.75   36.51   36.33  1.00  0.00           C
 HETATM   11 H    TEM     1       39.67   35.93   36.54  1.00  0.00           H
@@ -633,17 +633,17 @@ HETATM   13 C    TEM     1       39.06   37.98   36.16  1.00  0.00           C
 HETATM   14 H    TEM     1       39.87   38.14   35.41  1.00  0.00           H
 HETATM   15 H    TEM     1       39.48   38.27   37.15  1.00  0.00           H
 HETATM   16 C    TEM     1       37.75   38.77   35.97  1.00  0.00           C
-HETATM   17 H    TEM     1       37.5638.53000    34.9  1.00  0.00           H
+HETATM   17 H    TEM     1       37.56 38.5300    34.9  1.00  0.00           H
 HETATM   18 H    TEM     1       37.81   39.88   36.01  1.00  0.00           H
 HETATM   19 C    TEM     1       36.61   38.38   36.85  1.00  0.00           C
 HETATM   20 C    TEM     1       36.65   39.17   38.23  1.00  0.00           C
-HETATM   21 H    TEM     1       37.5738.86999   38.78  1.00  0.00           H
-HETATM   22 H    TEM     1       35.8438.86999   38.94  1.00  0.00           H
+HETATM   21 H    TEM     1       37.57 38.8699   38.78  1.00  0.00           H
+HETATM   22 H    TEM     1       35.84 38.8699   38.94  1.00  0.00           H
 HETATM   23 H    TEM     1       36.85   40.26   38.12  1.00  0.00           H
 HETATM   24 C    TEM     1       35.34   38.82   36.15  1.00  0.00           C
 HETATM   25 H    TEM     1       35.26   38.37   35.14  1.00  0.00           H
 HETATM   26 H    TEM     1       35.27   39.92   36.06  1.00  0.00           H
-HETATM   27 H    TEM     1       34.5338.46999   36.82  1.00  0.00           H
+HETATM   27 H    TEM     1       34.53 38.4699   36.82  1.00  0.00           H
 HETATM   28 N    TEM     1       36.44    36.9    37.1  1.00  0.00           N
 HETATM   29 O    TEM     1       35.29   36.43   37.81  1.00  0.00           O
 ".to_string();

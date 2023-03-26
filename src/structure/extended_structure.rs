@@ -284,9 +284,10 @@ Periodic boudary conditions will not be applied.");
       return Err(CluEError::IncorrectNumberOfAxes(cell_edges.len(),3));
     }
 
-    self.cell_offsets = Structure::build_cell_shifts(cell_edges, config)?;
+    self.cell_offsets = build_cell_shifts(cell_edges, config)?;
     Ok(())
   }
+}
   //----------------------------------------------------------------------------
   fn build_cell_shifts(cell_edges: Vec::<Vector3D>, config: &Config) 
     -> Result<Vec::<Vector3D>,CluEError>
@@ -349,7 +350,6 @@ Periodic boudary conditions will not be applied.");
     Ok(cell_offsets)
   }
 
-}
 
 
 
@@ -367,6 +367,67 @@ mod tests{
 
   use crate::config::LoadGeometry;
   
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_build_cell_shifts(){
+    let cell_edges = vec![
+      Vector3D::from([1.0, 0.0, 0.0]),
+      Vector3D::from([0.0, 0.5, 0.0]),
+      Vector3D::from([0.0, 0.0, 2.0]),
+    ];
+    let mut config = Config::new();
+    config.radius = Some(1.0);
+    let cell_shifts = build_cell_shifts(cell_edges, &config).unwrap(); 
+    assert_eq!(cell_shifts.len(), 3*5*3);
+    assert_eq!(cell_shifts, vec![
+      Vector3D::from([0.0, 0.0, 0.0]),
+      Vector3D::from([0.0, -0.5, 0.0]),
+      Vector3D::from([0.0, 0.5, 0.0]),
+      Vector3D::from([-1.0, 0.0, 0.0]),
+      Vector3D::from([0.0, -1.0, 0.0]),
+      Vector3D::from([0.0, 1.0, 0.0]),
+      Vector3D::from([1.0, 0.0, 0.0]),
+      Vector3D::from([-1.0, -0.5, 0.0]),
+      Vector3D::from([-1.0, 0.5, 0.0]),
+      Vector3D::from([1.0, -0.5, 0.0]),
+      Vector3D::from([1.0, 0.5, 0.0]),
+      Vector3D::from([-1.0, -1.0, 0.0]),
+      Vector3D::from([-1.0, 1.0, 0.0]),
+      Vector3D::from([1.0, -1.0, 0.0]),
+      Vector3D::from([1.0, 1.0, 0.0]),
+      Vector3D::from([0.0, 0.0, -2.0]),
+      Vector3D::from([0.0, 0.0, 2.0]),
+      Vector3D::from([0.0, -0.5, -2.0]),
+      Vector3D::from([0.0, -0.5, 2.0]),
+      Vector3D::from([0.0, 0.5, -2.0]),
+      Vector3D::from([0.0, 0.5, 2.0]),
+      Vector3D::from([-1.0, 0.0, -2.0]),
+      Vector3D::from([-1.0, 0.0, 2.0]),
+      Vector3D::from([0.0, -1.0, -2.0]),
+      Vector3D::from([0.0, -1.0, 2.0]),
+      Vector3D::from([0.0, 1.0, -2.0]),
+      Vector3D::from([0.0, 1.0, 2.0]),
+      Vector3D::from([1.0, 0.0, -2.0]),
+      Vector3D::from([1.0, 0.0, 2.0]),
+      Vector3D::from([-1.0, -0.5, -2.0]),
+      Vector3D::from([-1.0, -0.5, 2.0]),
+      Vector3D::from([-1.0, 0.5, -2.0]),
+      Vector3D::from([-1.0, 0.5, 2.0]),
+      Vector3D::from([1.0, -0.5, -2.0]),
+      Vector3D::from([1.0, -0.5, 2.0]),
+      Vector3D::from([1.0, 0.5, -2.0]),
+      Vector3D::from([1.0, 0.5, 2.0]),
+      Vector3D::from([-1.0, -1.0, -2.0]),
+      Vector3D::from([-1.0, -1.0, 2.0]),
+      Vector3D::from([-1.0, 1.0, -2.0]),
+      Vector3D::from([-1.0, 1.0, 2.0]),
+      Vector3D::from([1.0, -1.0, -2.0]),
+      Vector3D::from([1.0, -1.0, 2.0]),
+      Vector3D::from([1.0, 1.0, -2.0]),
+      Vector3D::from([1.0, 1.0, 2.0]),
+    ]);
+
+  }
   //----------------------------------------------------------------------------
   #[test]
   fn test_build_extended_structure_lone_tempo(){
