@@ -6,6 +6,7 @@ use crate::config::token_algebra::*;
 use crate::space_3d::Vector3D;
 use crate::config::to_i32_token;
 use crate::physical_constants::Element;
+use crate::config::token_stream::find_outermost_parentheses;
 
 // TokenExpression holds a line of input, organized for easy parsing.
 #[derive(Debug,Clone,Default,PartialEq)]
@@ -108,11 +109,8 @@ pub fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression)
   let tokens = token_stream::extract_rhs(expression)?;
 
   let value_token = to_f64_token(tokens, expression.line_number)?;
-  if let Token::VectorF64(vec) = value_token {
-    if vec.len() != 1{
-      return Err(CluEError::ExpectedFloatRHS(expression.line_number));
-    }
-    *target = Some(vec[0]);
+  if let Token::Float(x) = value_token {
+    *target = Some(x);
   }else{
     return Err(CluEError::NoRHS(expression.line_number));
   }
@@ -129,13 +127,35 @@ pub fn set_to_some_i32(target: &mut Option<i32>, expression: &TokenExpression)
   let tokens = token_stream::extract_rhs(expression)?;
 
   let value_token = to_i32_token(tokens, expression.line_number)?;
-  if let Token::VectorI32(vec) = value_token {
-    if vec.len() != 1{
-      return Err(CluEError::ExpectedIntRHS(expression.line_number));
-    }
-    *target = Some(vec[0]);
+  if let Token::Int(a) = value_token {
+    *target = Some(a);
   }else{
     return Err(CluEError::NoRHS(expression.line_number));
+  }
+
+  Ok(())
+}
+//------------------------------------------------------------------------------
+pub fn set_to_some_string(target: &mut Option<String>, expression: &TokenExpression)
+  -> Result<(),CluEError>
+{
+
+  check_target(target,expression)?;
+
+  let Some(rhs) = &expression.rhs else {
+    return Err(CluEError::NoRHS(expression.line_number));
+  };
+
+  if rhs.is_empty(){
+    return Err(CluEError::NoRHS(expression.line_number));
+  }else if rhs.len()>1{
+    return Err(CluEError::TooManyRHSArguments(expression.line_number));
+  }
+
+  if let Token::UserInputValue(value) = &rhs[0]{
+    *target = Some(value.clone());
+  }else{
+    return Err(CluEError::CannotParseRHS(expression.line_number));
   }
 
   Ok(())
@@ -195,6 +215,23 @@ pub fn vec_tokens_to_vec_elements(tokens: Vec::<Token>)
   }
 
   Ok(value_token)
+}
+//------------------------------------------------------------------------------
+pub fn get_function_arguments(tokens: &Vec::<Token>,line_number: usize) 
+  -> Result<Vec::<Token>,CluEError>
+{
+  let parentheses = find_outermost_parentheses(tokens,line_number)?;
+  let Some((arg_start,arg_end)) = parentheses else{
+    return Err(CluEError::NoArgument(line_number));
+  };
+
+  let arg_length = arg_end - arg_start - 1;
+  let mut arg_tokens = Vec::<Token>::with_capacity(arg_length);
+  for ii in arg_start+1..arg_end{
+    arg_tokens.push(tokens[ii].clone());
+  }
+
+  Ok(arg_tokens)
 }
 //------------------------------------------------------------------------------
 

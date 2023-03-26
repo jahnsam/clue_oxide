@@ -60,11 +60,13 @@ fn main() {
 
 
   // Parse input files.
-  let config = Config::read_input(input).unwrap_or_else(
+  let mut config = Config::read_input(input).unwrap_or_else(
       |err| {
         eprintln!("CluE Error:\n  {}.",err.to_string());
         std::process::exit(1);
       });
+
+  config.set_defaults();
 
   // Run simulations.
   clue_oxide::run(config).unwrap_or_else(

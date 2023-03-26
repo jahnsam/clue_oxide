@@ -283,7 +283,7 @@ mod tests{
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
@@ -318,7 +318,7 @@ mod tests{
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 

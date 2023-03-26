@@ -8,11 +8,13 @@ pub enum Token{
  BondedIndices,                                                     
  BlockCommentEnd, 
  BlockCommentStart, 
+ CentroidOverSerials,
  Clusters,
  Comma,
  Config,
  CurlyBracketClose,
  CurlyBracketOpen,
+ DetectedSpinPosition,
  DoubleQuote,
  Element,
  Elements,                                                    
@@ -73,11 +75,13 @@ impl Token{
       Token::BondedElements => "bonded_elements".to_string(),
       Token::BlockCommentEnd => "*/".to_string(), 
       Token::BlockCommentStart => "/*".to_string(), 
+      Token::CentroidOverSerials => "centroid_over_serials".to_string(),
       Token::Clusters => "clusters".to_string(),
       Token::Comma => ",".to_string(),
       Token::Config => "config".to_string(),
       Token::CurlyBracketClose => "}".to_string(),
       Token::CurlyBracketOpen => "{".to_string(),
+      Token::DetectedSpinPosition => "detected_spin_position".to_string(),
       Token::DoubleQuote => "\"".to_string(),
       Token::Element => "element".to_string(),
       Token::Elements => "elements".to_string(),
@@ -140,11 +144,13 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "bonded_elements" => Some(Token::BondedElements),
     "*/" => Some(Token::BlockCommentEnd),
     "/*" => Some(Token::BlockCommentStart),
+    "centroid_over_serials" => Some(Token::CentroidOverSerials),
     "clusters" => Some(Token::Clusters),
     "," => Some(Token::Comma),
     "config" => Some(Token::Config),
     "}" => Some(Token::CurlyBracketClose),
     "{" => Some(Token::CurlyBracketOpen),
+    "detected_spin_position" => Some(Token::DetectedSpinPosition),
     "\"" => Some(Token::DoubleQuote),
     "element" => Some(Token::Element),
     "elements" => Some(Token::Elements), 
@@ -733,11 +739,15 @@ mod tests{
     assert_eq!(identify_token("!").unwrap(), Token::Bang);
     assert_eq!(identify_token("*/").unwrap(), Token::BlockCommentEnd);
     assert_eq!(identify_token("/*").unwrap(), Token::BlockCommentStart);
+    assert_eq!(identify_token("centroid_over_serials").unwrap(), 
+        Token::CentroidOverSerials);
     assert_eq!(identify_token("clusters").unwrap(), Token::Clusters);
     assert_eq!(identify_token(",").unwrap(), Token::Comma);
     assert_eq!(identify_token("config").unwrap(), Token::Config);
     assert_eq!(identify_token("}").unwrap(), Token::CurlyBracketClose);
     assert_eq!(identify_token("{").unwrap(), Token::CurlyBracketOpen);
+    assert_eq!(identify_token("detected_spin_position").unwrap(), 
+        Token::DetectedSpinPosition);
     assert_eq!(identify_token("\"").unwrap(), Token::DoubleQuote);
     assert_eq!(identify_token("element").unwrap(), Token::Element);
     assert_eq!(identify_token("\n").unwrap(), Token::EOL);

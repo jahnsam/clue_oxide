@@ -15,6 +15,7 @@ pub enum CluEError{
   CannotOpenFile(String),
   CannotParseElement(String),
   CannotParseLine(String),
+  CannotParseRHS(usize),
   CannotPowTokens,
   CannotSampleBinomialDistribution(usize,f64),
   CannotSubTokens,
@@ -28,6 +29,7 @@ pub enum CluEError{
   ExpectedNumber(usize),
   IncorrectNumberOfAxes(usize,usize),
   IndexOutOfBounds(usize,usize,usize),
+  InvalidArgument(usize,String),
   InvalidConfigFile(String),
   InvalidToken(usize,String),
   MissingFilter(String),
@@ -38,6 +40,7 @@ pub enum CluEError{
   ModeAttributeWrongOption(String),
   ModeAttributeWrongSharp,
   MultipleCosubstitutionGroups(usize),
+  NoArgument(usize),
   NoCentralSpinCoor,
   NoCentralSpinIdentity,
   NoCentralSpinTransition,
@@ -54,6 +57,7 @@ pub enum CluEError{
   UnmatchedBlockComment(usize),
   UnmatchedDelimiter(usize),
   TooManyRelationalOperators(usize),
+  TooManyRHSArguments(usize),
   UnassignedCosubstitutionGroup(usize),
   UnrecognizedOption(String),
   WrongVectorLength(usize,usize,usize)
@@ -74,7 +78,7 @@ impl fmt::Display for CluEError{
          secondary_filter,index),
 
       CluEError::CannotCombineTokens(line_number) => write!(f,
-          "{}: cannot combine tokens meaningfully", line_number),
+          "line {}, cannot combine tokens meaningfully", line_number),
 
       CluEError::CannotConvertSerialToIndex(serial) => write!(f,
           "cannot convert serial id, {}, to an index",serial),
@@ -97,6 +101,9 @@ impl fmt::Display for CluEError{
       CluEError::CannotParseLine(line) => write!(f,
           "cannot parse line \"{}\"", line),
 
+      CluEError::CannotParseRHS(line_number) => write!(f,
+          "line {}, cannot parse line righ hand side", line_number),
+
       CluEError::CannotSampleBinomialDistribution(n,p) => write!(f,
           "cannot sample from the binomial distribution B(n={},p={})",
           n,p),
@@ -108,10 +115,10 @@ impl fmt::Display for CluEError{
           "cannot do token^token meaningfully"),
 
       CluEError::CannotConvertToFloat(line_number, token) => write!(f,
-          "{}: cannot convert \"{}\" to type float", line_number,token),
+          "line {}, cannot convert \"{}\" to type float", line_number,token),
 
       CluEError::CannotConvertToVector(line_number) => write!(f,
-          "{}: cannot find vector", line_number),
+          "line {}, cannot find vector", line_number),
 
       CluEError::CannotWriteFile(file) => write!(f,
           "cannot write to \"{}\"", file),
@@ -120,48 +127,51 @@ impl fmt::Display for CluEError{
           "#[{}] is not recognized",mode),
 
       CluEError::EmptyVector(line_number) => write!(f,
-          "{}: supplied vector is emptry", line_number),
+          "line {}, supplied vector is emptry", line_number),
 
       CluEError::ExpectedEquality(line_number) => write!(f,
-          "{}: expected an equaliy",line_number),
+          "line {}, expected an equaliy",line_number),
 
       CluEError::ExpectedFloatRHS(line_number) => write!(f,
-          "{}: expected a float on the right hand side",line_number),
+          "line {}, expected a float on the right hand side",line_number),
 
       CluEError::ExpectedIntRHS(line_number) => write!(f,
-          "{}: expected an integer on the right hand side",line_number),
+          "line {}, expected an integer on the right hand side",line_number),
 
       CluEError::ExpectedNumber(line_number) => write!(f,
-          "{}: expected a number",line_number),
+          "line {}, expected a number",line_number),
 
       CluEError::ExpectedVecOfNFloatsRHS(line_number,n) => write!(f,
-          "{}: expected a vector of {} floats on the right hand side",
+          "line {}, expected a vector of {} floats on the right hand side",
           line_number,n),
 
       CluEError::IncorrectNumberOfAxes(n,n_ref)=> write!(f,
           "expected {} axes, but {} were provided",n_ref, n),
 
       CluEError::IndexOutOfBounds(line_number,idx, len) => write!(f,
-          "{}: cannot access element {} from array of length {}", 
+          "line {}, cannot access element {} from array of length {}", 
           line_number, idx, len),
+
+      CluEError::InvalidArgument(line_number,expected_arg) => write!(f,
+          "line {}, argument should be a(n) {}",line_number, expected_arg),
 
       CluEError::InvalidConfigFile(filename) => write!(f,
           "cannot not read config file \"{}\"", filename),
 
       CluEError::InvalidToken(line_number,err_token) => write!(f,
-          "{}: invalid token \"{}\"",line_number, err_token),
+          "line {}, invalid token \"{}\"",line_number, err_token),
 
       CluEError::MissingFilter(label) => write!(f,
           "no filter with label \"{}\"",label),
 
       CluEError::MissingFilterLabel(line_number) => write!(f,
-          "{}: missing label in filter",line_number),
+          "line {}, missing label in filter",line_number),
 
       CluEError::MissingProperties(label) => write!(f,
           "no properties with label \"{}\"",label),
 
       CluEError::MissingPropertiesLabel(line_number) => write!(f,
-          "{}: missing label in properties",line_number),
+          "line {}, missing label in properties",line_number),
 
       CluEError::ModeAttributeWrongBrackets => write!(f,
           "modes details should with square brackets"),
@@ -175,6 +185,9 @@ impl fmt::Display for CluEError{
 
       CluEError::ModeAttributeWrongSharp => write!(f,
           "modes are specified with a single '#' at the start"),
+
+      CluEError::NoArgument(line_number) => write!(f,
+          "line {}, expected a function argument",line_number),
 
       CluEError::NoCentralSpinCoor => write!(f,
           "coordinates for the detected spin were not defined"),
@@ -201,29 +214,33 @@ impl fmt::Display for CluEError{
           "system radius not set"),
 
       CluEError::NoRelationalOperators(line_number) => write!(f,
-          "{}: no relational operators (=, <, >, in, ...), are present", 
+          "line {}, no relational operators (=, <, >, in, ...), are present", 
           line_number),
 
       CluEError::NotAnOperator(line_number, token) => write!(f,
-          "{}: cannot interpret \"{}\" as an operator", line_number,token),
+          "line {}, cannot interpret \"{}\" as an operator", line_number,token),
 
       CluEError::NoRHS(line_number) => write!(f,
-          "{}: cannot read right hand side",line_number),
+          "line {}, cannot read right hand side",line_number),
 
       CluEError::NoStructureFile => write!(f,
           "no structure file defined"),
 
       CluEError::OptionAlreadySet(line_number,err_token) => write!(f,
-          "{}: \"{}\" has already been set",line_number, err_token),
+          "line {}, \"{}\" has already been set",line_number, err_token),
 
       CluEError::UnmatchedBlockComment(line_number) => write!(f,
-          "{}: unmatched \"*/\"", line_number),
+          "line {}, unmatched \"*/\"", line_number),
 
       CluEError::UnmatchedDelimiter(line_number) => write!(f,
-          "{}: unmatched delimiter", line_number),
+          "line {}, unmatched delimiter", line_number),
 
       CluEError::TooManyRelationalOperators(line_number) => write!(f,
-          "{}: too many relational operators (=, <, >, in, ...), are present", 
+          "line {}, too many relational operators (=, <, >, in, ...), are present", 
+          line_number),
+
+      CluEError::TooManyRHSArguments(line_number) => write!(f,
+          "line {}, too many arguments on the right hand side", 
           line_number),
 
       CluEError::UnassignedCosubstitutionGroup(index)=> write!(f,
@@ -234,7 +251,7 @@ impl fmt::Display for CluEError{
           "unrecognized option \"{}\"",option),
 
       CluEError::WrongVectorLength(line_number, expected, actual) => write!(f,
-          "{}: expected vector of length {}, but recieved a length of {}", 
+          "line {}, expected vector of length {}, but recieved a length of {}", 
           line_number, expected,actual),
     }
   }

@@ -5,6 +5,7 @@ use crate::structure::{Structure, particle::Particle};
 use crate::space_3d::Vector3D;
 
 use std::io::BufRead;
+use std::io::BufWriter;
 use std::collections::HashMap;
 use substring::Substring;
 use std::fs::File;
@@ -333,12 +334,58 @@ impl Structure{
   pub fn write_pdb(&self,filename: &str) -> Result<(),CluEError>{
     let pdb_str = self.to_string_pdb()?;
 
-    let Ok(mut file) = File::create(filename) else {
+
+    let n_active = self.number_active();
+
+    let pdb_chars_per_line = 80;
+    let bytes_per_char = 32;
+    let n_bytes = (n_active +1)*pdb_chars_per_line*bytes_per_char;
+
+
+
+    /*  
+    let Ok(mut file) = std::fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(filename) 
+
+    */
+    let Ok(file) = File::create(filename)
+    else {
       return Err(CluEError::CannotOpenFile(filename.to_string()) );
     };
-    if let Err(_) = file.write(&pdb_str.as_bytes()){
+    //let file = LineWriter::with_capacity(
+    let mut stream = BufWriter::with_capacity(n_bytes,file);
+
+    let pdb_det_str = self.get_detected_particle_pdb_string()?;
+
+    //if let Err(_) = writeln!(file, "{}",pdb_str) {
+    if let Err(_) = stream.write(pdb_det_str.as_bytes()){
       return Err(CluEError::CannotWriteFile(filename.to_string()) );
     }
+
+    let mut serial_num = 1;
+    let mut line  = String::new();
+    for particle in self.bath_particles.iter(){
+      if !particle.active {continue;}
+      self.set_bath_particle_pdb_string(&mut line, particle, &mut serial_num)?;
+
+      //if let Err(_) = writeln!(file, "{}",pdb_str) {
+
+      
+      let stream_result = stream.write(line.as_bytes());
+      if let Err(_) = stream_result{
+        return Err(CluEError::CannotWriteFile(filename.to_string()) );
+      }
+      
+
+    }
+
+    let stream_result = stream.flush();
+    if let Err(_) = stream_result{
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }
+
     Ok(())
   }
 //------------------------------------------------------------------------------
@@ -365,8 +412,24 @@ pub fn to_string_pdb(&self)
   -> Result<String,CluEError>
 {
 
-  let mut pdb_str = String::new();
+  let mut pdb_str = self.get_detected_particle_pdb_string()?;
 
+  let mut serial_num = 1;
+  let mut line = String::new();
+  for particle in self.bath_particles.iter(){
+    if !particle.active {continue;}
+  
+    self.set_bath_particle_pdb_string(&mut line,particle, &mut serial_num)?;
+
+    pdb_str = format!("{}{}",pdb_str,line);
+  }
+  Ok(pdb_str)
+}
+//------------------------------------------------------------------------------
+fn get_detected_particle_pdb_string(&self) 
+  -> Result<String,CluEError>
+{
+  let pdb_str: String;
 
   // Write coordinate lines.
   if let Some(detected_particle) = &self.detected_particle{
@@ -378,68 +441,72 @@ pub fn to_string_pdb(&self)
     let res_seq = format!("{: >4}",0);
     let icode = "    ".to_string();
     let r = detected_particle.weighted_coordinates.mean();
+    let r0 = &self.pdb_origin;
     let x = format!("{: >8}",
-      (r[0]/ANGSTROM).to_string().substring(0,8));
+      ((r[0] -r0.x())/ANGSTROM).to_string().substring(0,8));
     let y = format!("{: >8}",
-      (r[1]/ANGSTROM).to_string().substring(0,8));
+      ((r[1]-r0.y())/ANGSTROM).to_string().substring(0,8));
     let z = format!("{: >8}",
-      (r[2]/ANGSTROM).to_string().substring(0,8));
+      ((r[2]-r0.z())/ANGSTROM).to_string().substring(0,8));
     let occupancy = "  1.00";
     let temp_factor = "  0.00";
     let element = format!("          {: >2}",
         detected_particle.isotope.to_string());
-    let line = format!("HETATM{}{}{}{}{}{}{}{}{}{}{}{}{}\n"
+    pdb_str = format!("HETATM{}{}{}{}{}{}{}{}{}{}{}{}{}\n"
         ,serial, name, alt_loc, res_name, chain_id,
         res_seq, icode, x, y, z,
         occupancy, temp_factor, element);
 
-    pdb_str = format!("{}{}",pdb_str,line);
     
+  }else{
+    pdb_str = String::new();
   }
-
-  let mut serial_num = 1;
-  for particle in self.bath_particles.iter(){
-    if !particle.active {continue; }
-    
-    let serial = format!("{: >5}", serial_num.to_string());
-    let name = format!(" {: <4}",particle.element.to_string());
-    let alt_loc = " ".to_string();
-    let res_name: String;
-    if let Some(res) = &particle.residue{
-      res_name = format!("{: >3}",res);
-    }else{
-      res_name = "UNK".to_string();
-    }
-    let chain_id = "  ".to_string();
-    let res_seq: String;
-    if let Some(res_seq_num) = particle.residue_sequence_number{
-      res_seq = format!("{: >4}",res_seq_num);
-    }else{
-      res_seq = "   0".to_string();
-    }
-    let icode = "    ".to_string();
-    let x = format!("{: >8}",
-        (particle.coordinates.x()/ANGSTROM).to_string().substring(0,8));
-    let y = format!("{: >8}",
-        (particle.coordinates.y()/ANGSTROM).to_string().substring(0,8));
-    let z = format!("{: >8}",
-        (particle.coordinates.z()/ANGSTROM).to_string().substring(0,8));
-
-    let occupancy = "  1.00";
-    let temp_factor = "  0.00";
-    let element = format!("          {: >2}",particle.element.to_string());
-
-    let line = format!("HETATM{}{}{}{}{}{}{}{}{}{}{}{}{}\n"
-        ,serial, name, alt_loc, res_name, chain_id,
-        res_seq, icode, x, y, z,
-        occupancy, temp_factor, element);
-
-    pdb_str = format!("{}{}",pdb_str,line);
-    serial_num += 1;
-
-  }
-
   Ok(pdb_str)
+}  
+//------------------------------------------------------------------------------
+fn set_bath_particle_pdb_string(&self, line: &mut String, particle: &Particle, 
+    serial_num: &mut usize) 
+  -> Result<(),CluEError>
+{
+
+  let serial = format!("{: >5}", serial_num.to_string());
+  let name = format!(" {: <4}",particle.element.to_string());
+  let alt_loc = " ".to_string();
+  let res_name: String;
+  if let Some(res) = &particle.residue{
+    res_name = format!("{: >3}",res);
+  }else{
+    res_name = "UNK".to_string();
+  }
+  let chain_id = "  ".to_string();
+  let res_seq: String;
+  if let Some(res_seq_num) = particle.residue_sequence_number{
+    res_seq = format!("{: >4}",res_seq_num);
+  }else{
+    res_seq = "   0".to_string();
+  }
+  let icode = "    ".to_string();
+  let r = &particle.coordinates - &self.pdb_origin;
+  let x = format!("{: >8}",
+      (r.x()/ANGSTROM).to_string().substring(0,8));
+  let y = format!("{: >8}",
+      (r.y()/ANGSTROM).to_string().substring(0,8));
+  let z = format!("{: >8}",
+      (r.z()/ANGSTROM).to_string().substring(0,8));
+
+  let occupancy = "  1.00";
+  let temp_factor = "  0.00";
+  let element = format!("          {: >2}",particle.element.to_string());
+
+  *line = format!("HETATM{}{}{}{}{}{}{}{}{}{}{}{}{}\n"
+      ,serial, name, alt_loc, res_name, chain_id,
+      res_seq, icode, x, y, z,
+      occupancy, temp_factor, element);
+
+  *serial_num += 1;
+
+
+  Ok(())
 }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

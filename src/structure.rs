@@ -88,7 +88,7 @@ impl Structure{
     -> Result<Self,CluEError>
   {
 
-    let Some(filename) = &config.structure_file else{
+    let Some(filename) = &config.input_structure_file else{
       return Err(CluEError::NoStructureFile);
     };
 
@@ -106,6 +106,14 @@ impl Structure{
   //----------------------------------------------------------------------------
   pub fn number(&self) -> usize{
     self.bath_particles.len()
+  }
+  //----------------------------------------------------------------------------
+  pub fn number_active(&self) -> usize{
+    let mut n_active = 0;
+    for particle in self.bath_particles.iter(){
+      if particle.active{ n_active += 1;}
+    }
+    n_active
   }
   //----------------------------------------------------------------------------
   pub fn find<'a>(&'a self, particle_filter: &ParticleFilter)

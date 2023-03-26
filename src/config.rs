@@ -14,6 +14,7 @@ use crate::physical_constants::Isotope;
 use crate::space_3d::Vector3D;
 use crate::integration_grid::IntegrationGrid;
 
+
 pub mod lexer;
 pub mod token;
 pub mod token_algebra;
@@ -44,7 +45,6 @@ pub struct Config{
   pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
-  pub structure_file: Option<String>,
   pub write_structure_pdb: Option<String>,
 }
 /*
@@ -146,7 +146,7 @@ pub enum LoadGeometry{
 }
 #[derive(Debug,Clone,PartialEq)]
 pub enum DetectedSpinCoordinates{
-  MeanOverSerials(Vec::<u32>),
+  CentroidOverSerials(Vec::<u32>),
   XYZ(Vector3D),
   ProbabilityDistribution(IntegrationGrid),
 }
@@ -208,8 +208,48 @@ impl Config{
     CluEError::OptionAlreadySet(
         expression.line_number, expression.lhs[0].to_string()) };
 
-    println!("DB: {:?}",expression);
     match expression.lhs[0]{
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::DetectedSpinPosition =>{
+        if let Some(_value) = &self.detected_spin_position{
+          return Err(already_set());
+        }
+        let Some(rhs) = &expression.rhs else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }; 
+        if rhs.is_empty(){
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+
+        match rhs[0]{
+          Token::CentroidOverSerials =>{
+            let args = get_function_arguments(rhs,expression.line_number)?;
+
+            let mut serials = Vec::<u32>::new();
+            let value_token = to_i32_token(args, expression.line_number)?;
+            match value_token {
+              Token::Int(a) => serials.push(a as u32),
+              Token::VectorI32(v) => serials = v.iter().map(|&a| a as u32)
+                .collect(),  
+              _  => return Err(CluEError::InvalidArgument(expression.line_number,
+                    "list of positive integers".to_string())),
+            }
+            self.detected_spin_position = Some(
+                DetectedSpinCoordinates::CentroidOverSerials(serials));
+
+          },
+          _ => return Err(CluEError::InvalidToken(expression.line_number,
+                rhs[0].to_string())),
+        }
+      }
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::InputStructureFile => {
+        if let Some(_value) = &self.input_structure_file{
+          return Err(already_set());
+        }
+        set_to_some_string(&mut self.input_structure_file, expression)?;
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::MagneticField => {
   
         if let Some(_value) = &self.magnetic_field{
@@ -244,6 +284,13 @@ impl Config{
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteStructurePDB => {
+        if let Some(_value) = &self.write_structure_pdb{
+          return Err(already_set());
+        }
+        set_to_some_string(&mut self.write_structure_pdb, expression)?;
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       _ => return Err(CluEError::InvalidToken(expression.line_number,
             expression.lhs[0].to_string())),
     }
@@ -251,4 +298,33 @@ impl Config{
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+#[cfg(test)]
+mod tests{
+  use super::*;
+  #[test]
+  fn test_parse_config_line(){
+    let expressions = get_tokens_from_line("\
+        input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
+        radius = 80e-10;
+        detected_spin_position = centroid_over_serials([28,29]);
+        write_structure_pdb = out.pdb;
+        ").unwrap();
+
+    let mut config = Config::new();
+    for expression in expressions.iter(){
+      config.parse_config_line(expression).unwrap();
+    }
+
+
+    assert_eq!(config.input_structure_file, 
+         Some("../../assets/TEMPO_wat_gly_70A.pdb".to_string()));
+    
+    assert_eq!(config.radius, Some(80.0e-10));
+    assert_eq!(config.detected_spin_position, 
+        Some(DetectedSpinCoordinates::CentroidOverSerials(vec![28,29])));
+    assert_eq!(config.write_structure_pdb, Some("out.pdb".to_string()));
+    
+  }
+}
 

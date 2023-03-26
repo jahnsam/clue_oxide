@@ -82,6 +82,51 @@ pub fn count_delimiter_pairs(tokens: &[Token],
 }
 
 //------------------------------------------------------------------------------
+pub fn find_outermost_parentheses(tokens: &[Token], line_number: usize) 
+  -> Result<Option<(usize,usize)>, CluEError>
+{
+
+  let n_pairs = count_delimiter_pairs(tokens,
+      &Token::ParenthesisOpen, &Token::ParenthesisClose,
+      line_number)?;
+  
+  if n_pairs == 0{
+    return Ok(None);
+  }
+
+  let (depths, _max_depth) = get_delimiter_depths(tokens,line_number)?;
+
+  let mut found_open_of_depth_1 = false; 
+  let mut found_close_of_depth_1 = false; 
+  let mut idx_open = 0;
+  let mut idx_close = tokens.len() - 1;
+
+  for (ii, depth) in depths.iter().enumerate(){
+    if !found_open_of_depth_1{
+      if *depth == 1{
+        idx_open = ii;
+        found_open_of_depth_1 = true;
+      }
+    } else if !found_close_of_depth_1 && *depth < 1{
+      idx_close = ii;
+      found_close_of_depth_1 = true;
+    }  
+  }
+
+  if !found_open_of_depth_1 || !found_close_of_depth_1{
+    return Err(CluEError::UnmatchedDelimiter(line_number) ) 
+  }
+
+  let are_matched = are_delimiters_paired(
+      &tokens[idx_open], &tokens[idx_close],line_number)?;
+  
+  if !are_matched{
+    return Err(CluEError::UnmatchedDelimiter(line_number) ) 
+  }
+
+  Ok( Some( (idx_open,idx_close) ) )
+}
+//------------------------------------------------------------------------------
 // This function finds the first pair of delimiters that do not contain
 // other delimiters.
 pub fn find_deepest_parentheses(tokens: &[Token], line_number: usize) 

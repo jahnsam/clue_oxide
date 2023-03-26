@@ -47,7 +47,7 @@ impl Structure{
 
     let mut weighted_coordinates = IntegrationGrid::new(3);
     match detected_spin_position{
-      DetectedSpinCoordinates::MeanOverSerials(serials) => {
+      DetectedSpinCoordinates::CentroidOverSerials(serials) => {
         let mut filter = ParticleFilter::new();
         filter.serials = serials.clone();
         let indices = filter.filter(self);
@@ -56,7 +56,7 @@ impl Structure{
           let r = &self.bath_particles[idx].coordinates;
           r_ave = &r_ave + r;
         }
-        r_ave.scale(1.0/indices.len() as f64);
+        r_ave = r_ave.scale(1.0/(indices.len() as f64));
 
         weighted_coordinates.push(vec![r_ave.x(),r_ave.y(),r_ave.z()],1.0);
 
@@ -428,7 +428,7 @@ mod tests{
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
@@ -471,7 +471,7 @@ mod tests{
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
@@ -488,7 +488,7 @@ mod tests{
 
     let mut config = Config::new();
     config.detected_spin_position = Some(
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
 
@@ -539,7 +539,7 @@ mod tests{
     
     let mut config = Config::new();
     config.detected_spin_position = Some(
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults();
     structure.build_primary_structure(&config).unwrap();
     

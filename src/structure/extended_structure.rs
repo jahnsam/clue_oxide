@@ -392,7 +392,7 @@ mod tests{
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
     config.detected_spin_position = Some( 
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
 
 
     config.set_defaults();
@@ -487,7 +487,7 @@ mod tests{
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
     config.detected_spin_position = Some( 
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     let n_uc = 125;
 
 
@@ -761,7 +761,7 @@ mod tests{
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
     config.detected_spin_position = Some( 
-        DetectedSpinCoordinates::MeanOverSerials(vec![28,29]) );
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     let n_uc = 125;
 
 
