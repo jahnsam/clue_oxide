@@ -25,6 +25,8 @@ pub mod command_line_input;
 pub mod parse_filter;
 pub mod parse_properties;
 
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
@@ -39,12 +41,9 @@ pub struct Config{
   pub neighbor_cutoffs: Vec::<NeighborCutoff>,
   pub number_timepoints: Vec::<usize>,
   //pub inner_radius: Option<f64>,
-  //max_number_of_cells: usize,
   //pbc_style: PBCStyle,
   //error_tolerance: f64,
-  //pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
-  //pub particles: Option<Vec::<ParticleConfig>>, // TODO: why in Option?
   pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
@@ -56,43 +55,6 @@ pub struct Config{
 }
 
 
-/*
-impl Default for Config{
-  fn default() -> Self {
-    /*
-    let mut particles = Vec::<ParticleConfig>::new();
-    for element in Element::iter(){
-
-      let mut filter = ParticleFilter::new();
-      filter.elements.push(element);
-
-      let name: String = format!("default_{}",element.to_string());
-      let mut particle_config = ParticleConfig::new(name);
-      particle_config.filter = Some(filter);
-
-      let mut properties = ParticleProperties::new();
-      properties.isotopic_distribution.isotope_abundances.push(
-          IsotopeAbundance{
-            isotope: Isotope::most_common_for(&element),
-            abundance: 1.0,
-          });
-
-      particle_config.properties = Some(properties);
-
-      particles.push(particle_config);
-    }
-    */
-
-    Config{
-      radius: None,
-      //inner_radius: None,
-      magnetic_field: None,
-      central_spin_coordinates: None,
-      particles: None,
-    }
-  }
-}
-*/
 impl Config{
   pub fn new() -> Self{
     Default::default()
@@ -171,30 +133,9 @@ impl Config{
   }
   //----------------------------------------------------------------------------
 
-  /*
-  pub fn get_max_spin_multiplicity_for_any_isotope(&self, element: Element)
-    -> usize{
-
-      let mut target = SpecifiedParticle::new();
-      target.element = Some(element);
-
-      let found_configs = find_particle_configs(&target, &self.particles);
-
-      let mut max_spin_multiplicity = 1;
-
-      for particle_config in found_configs{
-        for iso_abu in &particle_config
-          .config.isotopic_distribution.isotope_abundances{
-
-          max_spin_multiplicity = max_spin_multiplicity.max(
-              iso_abu.isotope.spin_multiplicity() );
-        }
-      }
-
-      max_spin_multiplicity
-    }
-    */
 }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 #[derive(Debug,Clone,PartialEq)]
 pub enum LoadGeometry{
   Cube,
@@ -283,6 +224,26 @@ impl Config{
 
     match expression.lhs[0]{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::ClusterMethod => { 
+        if let Some(_value) = &self.cluster_method{
+          return Err(already_set());
+        }
+        let Some(rhs) = &expression.rhs else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }; 
+        if rhs.is_empty(){
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+        match rhs[0]{
+          Token::CCE => self.cluster_method = Some(ClusterMethod::CCE),
+          Token::R2CCE => self.cluster_method 
+            = Some(ClusterMethod::AnalyticRestricted2CCE),
+          _  => return Err(CluEError::InvalidArgument(expression.line_number,
+                "valid cluster method are \"CCE\" and \"r2CCE\"".to_string())),
+        }
+
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::DetectedSpinPosition =>{
         if let Some(_value) = &self.detected_spin_position{
           return Err(already_set());
@@ -316,12 +277,14 @@ impl Config{
         }
       }
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::InputStructureFile => {
-        if let Some(_value) = &self.input_structure_file{
-          return Err(already_set());
-        }
-        set_to_some_string(&mut self.input_structure_file, expression)?;
-      },
+      Token::MaxClusterSize 
+        => set_to_some_usize(&mut self.max_cluster_size, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NumberTimepoints 
+        => set_to_vec_usize(&mut self.number_timepoints, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::InputStructureFile 
+        => set_to_some_string(&mut self.input_structure_file, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::MagneticField => {
   
@@ -357,12 +320,11 @@ impl Config{
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::WriteStructurePDB => {
-        if let Some(_value) = &self.write_structure_pdb{
-          return Err(already_set());
-        }
-        set_to_some_string(&mut self.write_structure_pdb, expression)?;
-      },
+      Token::TimeIncrements 
+        => set_to_vec_f64(&mut self.time_increments, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteStructurePDB 
+        => set_to_some_string(&mut self.write_structure_pdb, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       _ => return Err(CluEError::InvalidToken(expression.line_number,
             expression.lhs[0].to_string())),
@@ -378,9 +340,13 @@ mod tests{
   #[test]
   fn test_parse_config_line(){
     let expressions = get_tokens_from_line("\
-        input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
-        radius = 80e-10;
+        cluster_method = CCE;
         detected_spin_position = centroid_over_serials([28,29]);
+        input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
+        max_cluster_size = 4;
+        number_timepoints = [40,60];
+        radius = 80e-10;
+        time_increments = [1e-9, 5e-7];
         write_structure_pdb = out.pdb;
         ").unwrap();
 
@@ -390,12 +356,16 @@ mod tests{
     }
 
 
+    assert_eq!(config.cluster_method,Some(ClusterMethod::CCE));
+    assert_eq!(config.detected_spin_position, 
+        Some(DetectedSpinCoordinates::CentroidOverSerials(vec![28,29])));
     assert_eq!(config.input_structure_file, 
          Some("../../assets/TEMPO_wat_gly_70A.pdb".to_string()));
     
+    assert_eq!(config.max_cluster_size, Some(4));
+    assert_eq!(config.number_timepoints, vec![40,60]);
     assert_eq!(config.radius, Some(80.0e-10));
-    assert_eq!(config.detected_spin_position, 
-        Some(DetectedSpinCoordinates::CentroidOverSerials(vec![28,29])));
+    assert_eq!(config.time_increments, vec![1e-9,5e-7]);
     assert_eq!(config.write_structure_pdb, Some("out.pdb".to_string()));
     
   }

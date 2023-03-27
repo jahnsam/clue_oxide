@@ -85,7 +85,7 @@ pub fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize)
 }
 
 //------------------------------------------------------------------------------
-pub fn check_target<T>(target: &Option<T>, expression: &TokenExpression)
+pub fn check_target_option<T>(target: &Option<T>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
   let already_set = ||{
@@ -100,11 +100,26 @@ pub fn check_target<T>(target: &Option<T>, expression: &TokenExpression)
 }
 
 //------------------------------------------------------------------------------
+pub fn check_target_vector<T>(target: &Vec<T>, expression: &TokenExpression)
+  -> Result<(),CluEError>
+{
+  let already_set = ||{
+    CluEError::OptionAlreadySet(
+        expression.line_number, expression.lhs[0].to_string()) };
+
+  if !target.is_empty(){
+    return Err(already_set());
+  }
+
+  Ok(())
+}
+
+//------------------------------------------------------------------------------
 pub fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
 
-  check_target(target,expression)?;
+  check_target_option(target,expression)?;
 
   let tokens = token_stream::extract_rhs(expression)?;
 
@@ -118,11 +133,28 @@ pub fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression)
   Ok(())
 }
 //------------------------------------------------------------------------------
+pub fn set_to_vec_f64(target: &mut Vec<f64>, 
+    expression: &TokenExpression)-> Result<(),CluEError>
+{
+
+  check_target_vector(target,expression)?;
+
+  let tokens = token_stream::extract_rhs(expression)?;
+  let value_token = to_f64_token(tokens, expression.line_number)?;
+  match value_token{
+    Token::VectorF64(vec) => *target = vec,
+    Token::Float(x) => *target = vec![x],
+    _ => return Err(CluEError::NoRHS(expression.line_number)),  
+  }
+
+  Ok(())
+}
+//------------------------------------------------------------------------------
 pub fn set_to_some_i32(target: &mut Option<i32>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
 
-  check_target(target,expression)?;
+  check_target_option(target,expression)?;
 
   let tokens = token_stream::extract_rhs(expression)?;
 
@@ -136,11 +168,64 @@ pub fn set_to_some_i32(target: &mut Option<i32>, expression: &TokenExpression)
   Ok(())
 }
 //------------------------------------------------------------------------------
+pub fn set_to_some_usize(target: &mut Option<usize>, 
+    expression: &TokenExpression)-> Result<(),CluEError>
+{
+
+  check_target_option(target,expression)?;
+
+  let tokens = token_stream::extract_rhs(expression)?;
+
+  let value_token = to_i32_token(tokens, expression.line_number)?;
+  if let Token::Int(a) = value_token {
+    if a < 0{
+      return Err(CluEError::ExpectedNonNegativeIntRHS(expression.line_number));
+    }
+    *target = Some(a as usize);
+  }else{
+    return Err(CluEError::NoRHS(expression.line_number));
+  }
+
+  Ok(())
+}
+//------------------------------------------------------------------------------
+pub fn set_to_vec_usize(target: &mut Vec<usize>, 
+    expression: &TokenExpression)-> Result<(),CluEError>
+{
+
+  check_target_vector(target,expression)?;
+
+  let tokens = token_stream::extract_rhs(expression)?;
+  let value_token = to_i32_token(tokens, expression.line_number)?;
+  match value_token{
+    Token::VectorI32(vec) => {
+      *target = Vec::<usize>::with_capacity(vec.len());
+      for &a in vec.iter(){
+        if a < 0{
+          return Err(
+              CluEError::ExpectedNonNegativeIntRHS(expression.line_number));
+        }
+        target.push(a as usize);
+      }
+    },
+    Token::Int(a) => {
+      if a < 0{
+        return Err(
+            CluEError::ExpectedNonNegativeIntRHS(expression.line_number));
+      }
+      *target = vec![a as usize];
+    },
+    _ => return Err(CluEError::NoRHS(expression.line_number)),  
+  }
+
+  Ok(())
+}
+//------------------------------------------------------------------------------
 pub fn set_to_some_string(target: &mut Option<String>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
 
-  check_target(target,expression)?;
+  check_target_option(target,expression)?;
 
   let Some(rhs) = &expression.rhs else {
     return Err(CluEError::NoRHS(expression.line_number));
@@ -166,7 +251,7 @@ pub fn set_to_some_vector3d(
   -> Result<(),CluEError>
 {
 
-  check_target(target,expression)?;
+  check_target_option(target,expression)?;
 
   let tokens = token_stream::extract_rhs(expression)?;
 

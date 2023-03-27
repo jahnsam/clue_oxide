@@ -25,6 +25,7 @@ pub enum CluEError{
   ExpectedEquality(usize),
   ExpectedFloatRHS(usize),
   ExpectedIntRHS(usize),
+  ExpectedNonNegativeIntRHS(usize),
   ExpectedVecOfNFloatsRHS(usize,usize),
   ExpectedNumber(usize),
   IncorrectNumberOfAxes(usize,usize),
@@ -147,6 +148,10 @@ impl fmt::Display for CluEError{
 
       CluEError::ExpectedIntRHS(line_number) => write!(f,
           "line {}, expected an integer on the right hand side",line_number),
+
+      CluEError::ExpectedNonNegativeIntRHS(line_number) => write!(f,
+          "line {}, expected a non-negative integer on the right hand side",
+          line_number),
 
       CluEError::ExpectedNumber(line_number) => write!(f,
           "line {}, expected a number",line_number),

@@ -11,6 +11,8 @@ pub struct Cluster{
   pub signal: Option<Signal>,
   pub auxiliary_signal: Option<Signal>,
 }
+
+//------------------------------------------------------------------------------
 impl Cluster{
   pub fn from(vertices: Vec::<usize>) -> Self{
     Cluster{
@@ -20,6 +22,7 @@ impl Cluster{
     }
   }
 }
+//------------------------------------------------------------------------------
 impl ToString for Cluster{
   fn to_string(&self) -> String {
     // "[1,2,3,4]"
@@ -37,6 +40,7 @@ impl ToString for Cluster{
     format!("{}]",string)
   }
 }
+//------------------------------------------------------------------------------
 impl Cluster{
   fn len(&self) -> usize{
     self.vertices.len()
@@ -66,6 +70,15 @@ impl Cluster{
     }
     false
   }
+  //----------------------------------------------------------------------------
+  /*
+  write(filename: &str) -> Result<(),CluEError>{
+    let Ok(file) = File::create(filename) else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()) );
+    }
+
+  }
+  */
   //----------------------------------------------------------------------------
   pub fn vertices(&self) -> &Vec::<usize>{
     &self.vertices

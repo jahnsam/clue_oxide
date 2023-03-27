@@ -8,7 +8,9 @@ pub enum Token{
  BondedIndices,                                                     
  BlockCommentEnd, 
  BlockCommentStart, 
+ CCE,
  CentroidOverSerials,
+ ClusterMethod,
  Clusters,
  Comma,
  Config,
@@ -34,15 +36,18 @@ pub enum Token{
  LessThanEqualTo,
  LineComment, 
  MagneticField,
+ MaxClusterSize,
  Minus,
  Mode(ModeAttribute),
  Not,
  NotEqual,
  NotIn,
+ NumberTimepoints,
  Path,
  ParenthesisClose,
  ParenthesisOpen,
  Plus,
+ R2CCE,
  Radius,
  Residue,
  Residues,                                                     
@@ -57,6 +62,7 @@ pub enum Token{
  SquareBracketOpen,
  Structures,
  Tensors,
+ TimeIncrements,
  Times,
  TunnelSplitting,
  Type,
@@ -75,7 +81,9 @@ impl Token{
       Token::BondedElements => "bonded_elements".to_string(),
       Token::BlockCommentEnd => "*/".to_string(), 
       Token::BlockCommentStart => "/*".to_string(), 
+      Token::CCE => "CCE".to_string(),
       Token::CentroidOverSerials => "centroid_over_serials".to_string(),
+      Token::ClusterMethod => "cluster_method".to_string(),
       Token::Clusters => "clusters".to_string(),
       Token::Comma => ",".to_string(),
       Token::Config => "config".to_string(),
@@ -101,15 +109,18 @@ impl Token{
       Token::LessThanEqualTo => "<=".to_string(),
       Token::LineComment => "//".to_string(), 
       Token::MagneticField => "magnetic_field".to_string(),
+      Token::MaxClusterSize => "max_cluster_size".to_string(),
       Token::Minus => "-".to_string(),
       Token::Mode(mode) => mode.to_string(),
       Token::Not => "not".to_string(),
       Token::NotEqual => "!=".to_string(),
       Token::NotIn => "not in".to_string(),
+      Token::NumberTimepoints => "*".to_string(),
       Token::Path => "path".to_string(),
       Token::ParenthesisClose => ")".to_string(),
       Token::ParenthesisOpen => "(".to_string(),
       Token::Plus => "+".to_string(),
+      Token::R2CCE => "r2CCE".to_string(),
       Token::Radius => "radius".to_string(),
       Token::Residue => "residue".to_string(),
       Token::Residues => "residues".to_string(),
@@ -124,6 +135,7 @@ impl Token{
       Token::SquareBracketOpen => "[".to_string(),
       Token::Structures => "structures".to_string(),
       Token::Tensors => "tensors".to_string(),
+      Token::TimeIncrements => "time_increments".to_string(),
       Token::Times => "*".to_string(),
       Token::TunnelSplitting => "tunnel_splitting".to_string(),
       Token::Type => "type".to_string(),
@@ -144,7 +156,9 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "bonded_elements" => Some(Token::BondedElements),
     "*/" => Some(Token::BlockCommentEnd),
     "/*" => Some(Token::BlockCommentStart),
+    "CCE" => Some(Token::CCE),
     "centroid_over_serials" => Some(Token::CentroidOverSerials),
+    "cluster_method" => Some(Token::ClusterMethod),
     "clusters" => Some(Token::Clusters),
     "," => Some(Token::Comma),
     "config" => Some(Token::Config),
@@ -168,14 +182,17 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "<=" => Some(Token::LessThanEqualTo),
     "//" => Some(Token::LineComment),
     "magnetic_field" => Some(Token::MagneticField),
+    "max_cluster_size" => Some(Token::MaxClusterSize),
     "-" => Some(Token::Minus),
     "not" => Some(Token::Not),
     "!=" => Some(Token::NotEqual),
     "not in" => Some(Token::NotIn),
+    "number_timepoints" => Some(Token::NumberTimepoints),
     "path" => Some(Token::Path),
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
     "+" => Some(Token::Plus),
+    "r2CCE" => Some(Token::R2CCE),
     "radius" => Some(Token::Radius),
     "residue" => Some(Token::Residue),
     "residues" => Some(Token::Residues),
@@ -191,6 +208,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "structures" => Some(Token::Structures),
     "tensors" => Some(Token::Tensors),
     "*" => Some(Token::Times),
+    "time_increments" => Some(Token::TimeIncrements),
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     "type" => Some(Token::Type),
     " " => Some(Token::Whitespace),
@@ -739,8 +757,10 @@ mod tests{
     assert_eq!(identify_token("!").unwrap(), Token::Bang);
     assert_eq!(identify_token("*/").unwrap(), Token::BlockCommentEnd);
     assert_eq!(identify_token("/*").unwrap(), Token::BlockCommentStart);
+    assert_eq!(identify_token("CCE").unwrap(), Token::CCE);
     assert_eq!(identify_token("centroid_over_serials").unwrap(), 
         Token::CentroidOverSerials);
+    assert_eq!(identify_token("cluster_method").unwrap(), Token::ClusterMethod);
     assert_eq!(identify_token("clusters").unwrap(), Token::Clusters);
     assert_eq!(identify_token(",").unwrap(), Token::Comma);
     assert_eq!(identify_token("config").unwrap(), Token::Config);
@@ -764,10 +784,13 @@ mod tests{
     assert_eq!(identify_token("<=").unwrap(), Token::LessThanEqualTo);
     assert_eq!(identify_token("//").unwrap(), Token::LineComment);
     assert_eq!(identify_token("magnetic_field").unwrap(), Token::MagneticField);
+    assert_eq!(identify_token("max_cluster_size").unwrap(), Token::MaxClusterSize);
     assert_eq!(identify_token("-").unwrap(), Token::Minus);
     assert_eq!(identify_token("not").unwrap(), Token::Not);
     assert_eq!(identify_token("!=").unwrap(), Token::NotEqual);
     assert_eq!(identify_token("not in").unwrap(), Token::NotIn);
+    assert_eq!(identify_token("number_timepoints").unwrap(), 
+        Token::NumberTimepoints);
     assert_eq!(identify_token("path").unwrap(), Token::Path);
     assert_eq!(identify_token(")").unwrap(), Token::ParenthesisClose);
     assert_eq!(identify_token("(").unwrap(), Token::ParenthesisOpen);
@@ -783,6 +806,8 @@ mod tests{
     assert_eq!(identify_token("[").unwrap(), Token::SquareBracketOpen);
     assert_eq!(identify_token("structures").unwrap(), Token::Structures);
     assert_eq!(identify_token("tensors").unwrap(), Token::Tensors);
+    assert_eq!(identify_token("time_increments").unwrap(), 
+        Token::TimeIncrements);
     assert_eq!(identify_token("*").unwrap(), Token::Times);
     assert_eq!(identify_token("tunnel_splitting").unwrap(), 
         Token::TunnelSplitting);
@@ -793,6 +818,7 @@ mod tests{
     assert_eq!(identify_token("indices").unwrap(), Token::Indices); 
     assert_eq!(identify_token("elements").unwrap(), Token::Elements); 
     assert_eq!(identify_token("serials").unwrap(), Token::Serials); 
+    assert_eq!(identify_token("r2CCE").unwrap(), Token::R2CCE);
     assert_eq!(identify_token("residues").unwrap(), Token::Residues);
     assert_eq!(identify_token("residue_sequence_numbers").unwrap(), 
         Token::ResSeqNums);
