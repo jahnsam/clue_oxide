@@ -16,10 +16,10 @@ pub fn parse_pdb(filename: &str,target_model: usize)
   -> Result< Structure, CluEError>
 {
 
-   let (n_atoms, n_models) = count_pdb_atoms(filename)?;
+   let (n_atoms, _n_models) = count_pdb_atoms(filename)?;
    
    let (bath_particles, serial_to_index) 
-     = parse_atoms(filename, n_atoms,n_models, target_model)?;
+     = parse_atoms(filename, n_atoms, target_model)?;
 
    let connections = parse_connections(filename,n_atoms,serial_to_index)?;
 
@@ -97,8 +97,7 @@ fn parse_connections(filename: &str ,n_atoms: usize,
    Ok(connections)
 }
 //------------------------------------------------------------------------------
-fn parse_atoms(filename: &str,n_atoms: usize, 
-    n_models: usize, target_model:usize) 
+fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize) 
   -> Result<(Vec::<Particle>, HashMap::<u32,Option<usize>>),CluEError>
 {
    let mut serial_to_index = HashMap::<u32,Option<usize>>::new(); 

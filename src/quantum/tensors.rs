@@ -1,7 +1,11 @@
 use crate::symmetric_list_2d::SymList2D;
-use crate::space_3d::SymmetricTensor3D;
+use crate::space_3d::{SymmetricTensor3D,Vector3D};
 
-//use super::phys;
+use crate::clue_errors::CluEError;
+use crate::structure::Structure;
+use crate::config::Config;
+
+use crate::physical_constants::{HBAR, JOULES_TO_HERTZ,MU0,PI};
 
 //use std::fs;
 //use std::fs::File;
@@ -9,38 +13,119 @@ use crate::space_3d::SymmetricTensor3D;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct HamiltonianTensors{
-  spin_field: SpinFieldTensors,
-  spin_spin: SpinSpinTensors,
+  pub spin1_tensors: Spin1Tensors, // O(S)
+  pub spin2_tensors: Spin2Tensors, // O(S^2)
 
+}
+impl HamiltonianTensors{
+  //----------------------------------------------------------------------------
+  pub fn len(&self) -> usize{
+    self.spin1_tensors.len()
+  }
+  //----------------------------------------------------------------------------
+  pub fn generate(structure: &Structure, config: &Config) 
+    -> Result<Self,CluEError>
+  {
+    let n_spins = structure.number_active() + 1;
+    let mut spin1_tensors = Spin1Tensors::new(n_spins);
+    let mut spin2_tensors = Spin2Tensors::new(n_spins);
+
+    let Some(magnetic_field) = &config.magnetic_field else{
+      return Err(CluEError::NoMagneticField);
+    };
+
+    let Some(detected_particle) = &structure.detected_particle else {
+      return Err(CluEError::NoCentralSpin);
+    };
+
+    let eye = SymmetricTensor3D::eye();
+    let gamma_e = detected_particle.isotope.gyromagnetic_ratio();
+
+
+    spin1_tensors.set(0,
+        construct_zeeman_tensor(&(gamma_e*&eye),magnetic_field));
+
+    let mut idx0 = 0;
+    for particle0 in structure.bath_particles.iter(){
+
+      if !particle0.active {continue;}
+      idx0 += 1;
+
+      let gamma0 = particle0.isotope.gyromagnetic_ratio();
+
+      // nuclear Zeeman
+      spin1_tensors.set(idx0, 
+          construct_zeeman_tensor(&(gamma0*&eye),magnetic_field));
+
+      // hyperfine
+      let mut hf_ten = SymmetricTensor3D::zeros();
+      for ii in 0..detected_particle.weighted_coordinates.len(){
+        let delta_r = &detected_particle.weighted_coordinates.xyz(ii) 
+          - &particle0.coordinates;
+        let w = detected_particle.weighted_coordinates.weight(ii);
+        
+        let ten = construct_point_dipole_dipole_tensor(gamma_e,gamma0,&delta_r);
+        
+        hf_ten = &hf_ten + &(w*&ten);
+      }
+      spin2_tensors.set(0,idx0, hf_ten);
+
+
+      // nucleus-nucleus dipole-dipole
+      let mut idx1 = 0;
+      for particle1 in structure.bath_particles.iter(){
+        if !particle1.active {continue;}
+         idx1 += 1;
+         if idx1 == idx0 {break;}
+
+         let gamma1 = particle1.isotope.gyromagnetic_ratio();
+
+         let delta_r01 = &particle0.coordinates - &particle1.coordinates;
+
+         let dd_ten = construct_point_dipole_dipole_tensor(gamma1,gamma0,
+              &delta_r01);
+
+         spin2_tensors.set(idx1,idx0, dd_ten);
+      }
+
+
+    }
+
+    Ok(HamiltonianTensors{
+      spin1_tensors,
+      spin2_tensors
+      })
+
+  }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-pub struct SpinFieldTensors{
-  tensors: Vec::< Option<SymmetricTensor3D> >,
+pub struct Spin1Tensors{
+  tensors: Vec::< Option<Vector3D> >,
 }
 
-impl<'a> SpinFieldTensors{
+impl<'a> Spin1Tensors{
 
-  pub fn new(number: usize) -> SpinFieldTensors {
+  pub fn new(number: usize) -> Spin1Tensors {
     
     let mut tensors 
-     = Vec::<Option<SymmetricTensor3D>>::with_capacity(number);
+     = Vec::<Option<Vector3D>>::with_capacity(number);
     for _ii in 0..(number as usize) {
       tensors.push(None);
     }
 
-    SpinFieldTensors{
+    Spin1Tensors{
       tensors,
     }
   }
   //----------------------------------------------------------------------------
-  pub fn set(&mut self, n: usize, ten: SymmetricTensor3D) {
+  pub fn set(&mut self, n: usize, ten: Vector3D) {
     self.tensors[n] = Some(ten);
   }
   //----------------------------------------------------------------------------
-  pub fn get(&'a self, n: usize) -> Option< &'a SymmetricTensor3D> {
+  pub fn get(&'a self, n: usize) -> Option< &'a Vector3D> {
     match &self.tensors[n] {
       Some(ten) => Some(ten),
       None => None,  
@@ -50,20 +135,24 @@ impl<'a> SpinFieldTensors{
   pub fn remove(&mut self, n: usize){
     self.tensors[n] = None;
   }
+  //----------------------------------------------------------------------------
+  pub fn len(&self) -> usize{
+    self.tensors.len()
+  }
 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-pub struct SpinSpinTensors{
+pub struct Spin2Tensors{
   tensors: SymList2D::<SymmetricTensor3D>,
 }
 
-impl<'a> SpinSpinTensors{
+impl<'a> Spin2Tensors{
 
   pub fn new(number: usize) -> Self {
-    SpinSpinTensors{
+    Spin2Tensors{
       tensors: SymList2D::new(number),
     }
   }
@@ -82,18 +171,16 @@ impl<'a> SpinSpinTensors{
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-/*
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn construct_zeeman_tensor(
-    gyromagnetic_ratio: &mox::Mat, 
-    magnetic_field: &mox::Mat) -> Result<mox::Mat,String> {
+    gyromagnetic_ratio: &SymmetricTensor3D, 
+    magnetic_field: &Vector3D) -> Vector3D
+{
 
-  let magnetic_field = magnetic_field.trans();
-  let mut zeeman = magnetic_field.multiply( &gyromagnetic_ratio )?;
-  zeeman.scalar_multiply_mut( -phys::RADS_TO_HZ );
-  Ok(zeeman)
+  let zeeman = magnetic_field * gyromagnetic_ratio;
+  (-JOULES_TO_HERTZ) * &zeeman
 }
-
+/*
 pub fn construct_hyperfine_tensor(
     azz: f64, fc: f64, rot_hf2lab: &mox::Mat) -> Result<mox::Mat,String> {
 
@@ -111,41 +198,38 @@ pub fn construct_hyperfine_tensor(
    rot_hf2lab.multiply( &ten_hf.multiply(&rot_hf2lab.trans())? )
 }
 
+*/
 pub fn get_perpendicular_dipole_dipole_frequency(
     gyromagnetic_ratio_1: f64,
     gyromagnetic_ratio_2: f64,
     r: f64
     ) -> f64 {
-  phys::J_TO_HZ*
-  phys::MU0/(4.0*phys::PI)*gyromagnetic_ratio_1*gyromagnetic_ratio_2   
-  *phys::HBAR*phys::HBAR/r/r/r
+  JOULES_TO_HERTZ*
+  MU0/(4.0*PI)*gyromagnetic_ratio_1*gyromagnetic_ratio_2   
+  *HBAR*HBAR/r/r/r
 }
 
 pub fn construct_point_dipole_dipole_tensor(
     gyromagnetic_ratio_1: f64,
     gyromagnetic_ratio_2: f64,
-    delta_r: &mox::Mat
-    ) -> Result<mox::Mat, String> {
+    delta_r: &Vector3D
+    ) -> SymmetricTensor3D {
 
-  if delta_r.n_rows() != 3 || delta_r.n_cols() != 1 {
-    let err_str = format!("delta_r must be 3x1 not {}x{}", 
-        delta_r.n_rows(),delta_r.n_cols());
-    return Err(err_str);
-  } 
-  let r = delta_r.l2_norm()?;
+  let r = delta_r.norm();
   
-  let n3nt = delta_r.multiply( &delta_r.trans() )?.scalar_multiply(3.0/r/r); 
+  let n = (1.0/r) * delta_r;
+ 
+  let n3nt = 3.0 * &n.self_outer(); 
 
   let h_perp = get_perpendicular_dipole_dipole_frequency(gyromagnetic_ratio_1,
       gyromagnetic_ratio_2,r);
 
-  let ten = &mox::Mat::eye(3,3) - &n3nt; 
+  let ten = &SymmetricTensor3D::eye() - &n3nt; 
 
-  Ok(ten)
+  h_perp * &ten
   
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-*/
 
 /*
 #[cfg(test)]
@@ -156,9 +240,9 @@ mod tests{
   //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   #[test]
   #[allow(non_snake_case)]
-  fn test_SpinFieldTensors() {
+  fn test_Spin1Tensors() {
     let number: u32 = 3;
-    let mut sf_tens = SpinFieldTensors::new(number);
+    let mut sf_tens = Spin1Tensors::new(number);
 
     for ii in 0..(number as usize) {
 
@@ -191,9 +275,9 @@ mod tests{
   //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   #[test]
   #[allow(non_snake_case)]
-  fn test_SpinSpinTensors() {
+  fn test_Spin2Tensors() {
     let number: u32 = 3;
-    let mut ss_tens = SpinSpinTensors::new(number);
+    let mut ss_tens = Spin2Tensors::new(number);
 
     let mut val = 0.0;
     for ii in 0..(number as usize) {

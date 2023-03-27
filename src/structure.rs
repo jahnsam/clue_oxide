@@ -21,9 +21,9 @@ use rand_chacha::ChaCha20Rng;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
 pub struct DetectedSpin{
-  isotope: Isotope,
-  weighted_coordinates: IntegrationGrid,
-  transition: [usize;2],
+  pub isotope: Isotope,
+  pub weighted_coordinates: IntegrationGrid,
+  pub transition: [usize;2],
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -42,7 +42,7 @@ struct ExchangeGroupManager{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
 pub struct Structure{
-  detected_particle: Option<DetectedSpin>,
+  pub detected_particle: Option<DetectedSpin>,
   pub bath_particles: Vec::<Particle>,
   bath_spins_indices: Vec::<usize>,
   cell_indices: Vec::<Vec::<Option<usize>>>,

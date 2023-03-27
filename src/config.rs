@@ -28,12 +28,16 @@ pub mod parse_properties;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
+  pub cluster_method: Option<ClusterMethod>,
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
   pub detected_spin_identity: Option<Isotope>,
   pub input_structure_file: Option<String>,
   pub load_geometry: Option<LoadGeometry>,
   pub magnetic_field: Option<Vector3D>,
+  pub max_cluster_size: Option<usize>,
+  pub neighbor_cutoffs: Vec::<NeighborCutoff>,
+  pub number_timepoints: Vec::<usize>,
   //pub inner_radius: Option<f64>,
   //max_number_of_cells: usize,
   //pbc_style: PBCStyle,
@@ -41,12 +45,17 @@ pub struct Config{
   //pub central_spin_coordinates: Option<CentralSpinCoordinates>,
   //use_periodic_boundary_conditions: bool,
   //pub particles: Option<Vec::<ParticleConfig>>, // TODO: why in Option?
-  pub pdb_model_index: Option<usize>,
   pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
+  pub pdb_model_index: Option<usize>,
+  pub pulse_sequence: Option<PulseSequence>,
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
+  time_axis: Vec::<f64>,
+  pub time_increments: Vec::<f64>,
   pub write_structure_pdb: Option<String>,
 }
+
+
 /*
 impl Default for Config{
   fn default() -> Self {
@@ -114,6 +123,53 @@ impl Config{
    self.particles[id].max_possible_spin_multiplicity()
   }
   //----------------------------------------------------------------------------
+  pub fn get_time_axis(&self) -> Result<&Vec::<f64>,CluEError>
+  {
+    if self.time_axis.is_empty() {
+      return Err(CluEError::NoTimeAxis);
+    };
+    Ok(&self.time_axis)
+  }
+  //----------------------------------------------------------------------------
+  pub fn construct_time_axis(&mut self) -> Result<(),CluEError>
+  {
+    let dts = &self.time_increments;
+    if dts.is_empty(){
+      return Err(CluEError::NoTimeIncrements);
+    }
+
+    let n_dts = &self.number_timepoints;
+    if n_dts.is_empty(){
+      return Err(CluEError::NoTimepoints);
+    }
+
+    if dts.len() != n_dts.len(){
+      return Err(CluEError::LenghMismatchTimepointsIncrements(
+            n_dts.len(),dts.len()));
+    }
+
+    let Some(pulse_sequence) = &self.pulse_sequence else{
+      return Err(CluEError::NoPulseSequence);
+    };
+
+    let n_tot = n_dts.iter().sum::<usize>();
+    let mut time_axis = Vec::<f64>::with_capacity(n_tot);
+    match pulse_sequence{
+      PulseSequence::CarrPurcell(n_pi_pulses) => {
+        for (idx, &n_dt) in n_dts.iter().enumerate(){
+          let dt = (*n_pi_pulses as f64)*dts[idx];
+          let mut t = 0.0;
+          for _ii in 0..n_dt{
+            time_axis.push(t);
+            t += dt;
+          }
+        }
+      }
+    }
+
+    Ok(())
+  }
+  //----------------------------------------------------------------------------
 
   /*
   pub fn get_max_spin_multiplicity_for_any_isotope(&self, element: Element)
@@ -149,6 +205,23 @@ pub enum DetectedSpinCoordinates{
   CentroidOverSerials(Vec::<u32>),
   XYZ(Vector3D),
   ProbabilityDistribution(IntegrationGrid),
+}
+#[derive(Debug,Clone,PartialEq)]
+pub enum NeighborCutoff{
+  DeltaHyperfine(f64),
+  DipoleDipole(f64),
+  HahnThreeSpinModulationDepth(f64),
+  HahnThreeSpinFourthOrderTaylorCoefficient(f64),
+}
+#[derive(Debug,Clone,PartialEq)]
+pub enum ClusterMethod{
+  AnalyticRestricted2CCE,
+  CCE,
+}
+#[derive(Debug,Clone,PartialEq)]
+pub enum PulseSequence{
+  CarrPurcell(usize),
+  //RefocusedEcho,
 }
 /*
 

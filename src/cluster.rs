@@ -1,6 +1,7 @@
 use crate::signal::Signal;
 
 pub mod adjacency;
+pub mod build_adjacency_list;
 pub mod connected_subgraphs;
 pub mod find_clusters;
 pub mod get_subclusters;

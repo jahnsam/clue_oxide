@@ -32,6 +32,7 @@ pub enum CluEError{
   InvalidArgument(usize,String),
   InvalidConfigFile(String),
   InvalidToken(usize,String),
+  LenghMismatchTimepointsIncrements(usize,usize),
   MissingFilter(String),
   MissingFilterLabel(usize),
   MissingProperties(String),
@@ -41,18 +42,26 @@ pub enum CluEError{
   ModeAttributeWrongSharp,
   MultipleCosubstitutionGroups(usize),
   NoArgument(usize),
+  NoCentralSpin,
   NoCentralSpinCoor,
   NoCentralSpinIdentity,
   NoCentralSpinTransition,
+  NoClusterMethod,
   NoClustersOfSize(usize),
   NoInputFile,
   NoLoadGeometry,
+  NoMagneticField,
   NoModelIndex,
+  NoMaxClusterSize,
+  NoPulseSequence,
   NoRadius,
   NoRelationalOperators(usize),
   NoRHS(usize),
   NoStructureFile,
   NotAnOperator(usize,String),
+  NoTimeAxis,
+  NoTimeIncrements,
+  NoTimepoints,
   OptionAlreadySet(usize,String),
   UnmatchedBlockComment(usize),
   UnmatchedDelimiter(usize),
@@ -60,6 +69,7 @@ pub enum CluEError{
   TooManyRHSArguments(usize),
   UnassignedCosubstitutionGroup(usize),
   UnrecognizedOption(String),
+  WrongClusterSizeForAnalyticCCE(usize),
   WrongVectorLength(usize,usize,usize)
 }
 
@@ -161,6 +171,10 @@ impl fmt::Display for CluEError{
       CluEError::InvalidToken(line_number,err_token) => write!(f,
           "line {}, invalid token \"{}\"",line_number, err_token),
 
+      CluEError::LenghMismatchTimepointsIncrements(n_dts,dts) => write!(f,
+          "there are {} timepoint specifications, but {} time increments",
+          n_dts,dts),
+
       CluEError::MissingFilter(label) => write!(f,
           "no filter with label \"{}\"",label),
 
@@ -189,6 +203,9 @@ impl fmt::Display for CluEError{
       CluEError::NoArgument(line_number) => write!(f,
           "line {}, expected a function argument",line_number),
 
+      CluEError::NoCentralSpin => write!(f,
+          "no detected spin defined"),
+      
       CluEError::NoCentralSpinCoor => write!(f,
           "coordinates for the detected spin were not defined"),
       
@@ -197,6 +214,9 @@ impl fmt::Display for CluEError{
       
       CluEError::NoCentralSpinTransition => write!(f,
           "the detected spin transition was not defined"),
+      
+      CluEError::NoClusterMethod => write!(f,
+          "no cluster method specified"),
       
       CluEError::NoInputFile => write!(f,
           "no input file"),
@@ -207,9 +227,18 @@ impl fmt::Display for CluEError{
       CluEError::NoLoadGeometry => write!(f,
           "geometry for loading in the system was not defined"),
       
+      CluEError::NoMagneticField => write!(f,
+          "please specify the applied magnetic field"),
+
       CluEError::NoModelIndex => write!(f,
           "PDB model not selected"),
 
+      CluEError::NoMaxClusterSize => write!(f,
+          "maximum cluster size not set"),
+
+      CluEError::NoPulseSequence => write!(f,
+          "no pulse sequence is defined"),
+      
       CluEError::NoRadius => write!(f,
           "system radius not set"),
 
@@ -220,6 +249,15 @@ impl fmt::Display for CluEError{
       CluEError::NotAnOperator(line_number, token) => write!(f,
           "line {}, cannot interpret \"{}\" as an operator", line_number,token),
 
+      CluEError::NoTimeAxis => write!(f,
+          "the time-axis has not been built"),
+      
+      CluEError::NoTimeIncrements => write!(f,
+          "no time increments defined"),
+      
+      CluEError::NoTimepoints => write!(f,
+          "please specify how many timepoints there are for each increment"),
+      
       CluEError::NoRHS(line_number) => write!(f,
           "line {}, cannot read right hand side",line_number),
 
@@ -249,6 +287,9 @@ impl fmt::Display for CluEError{
 
       CluEError::UnrecognizedOption(option) => write!(f,
           "unrecognized option \"{}\"",option),
+
+      CluEError::WrongClusterSizeForAnalyticCCE(given_size) => write!(f,
+          "analytic 2-CCE cannot work with clusters of size {}",given_size),
 
       CluEError::WrongVectorLength(line_number, expected, actual) => write!(f,
           "line {}, expected vector of length {}, but recieved a length of {}", 

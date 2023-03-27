@@ -2,7 +2,7 @@ use crate::structure::{Structure, exchange_groups::*};
 use crate::config::Config;
 use crate::config::DetectedSpinCoordinates;
 use crate::space_3d;
-use crate::physical_constants::{Element,Isotope};
+use crate::physical_constants::Element;
 use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
 use crate::structure::ParticleFilter;
 use crate::CluEError;

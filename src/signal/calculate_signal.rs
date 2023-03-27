@@ -1,3 +1,13 @@
+use crate::config::{Config,ClusterMethod};
+use crate::CluEError;
+use crate::Structure;
+use crate::HamiltonianTensors;
+use crate::build_adjacency_list;
+use crate::find_clusters;
+use crate::signal::calculate_cluster_signal::calculate_cluster_signals;
+use crate::signal::calculate_analytic_restricted_2cluster_signals::{
+  calculate_analytic_restricted_2cluster_signals};
+use rand_chacha::ChaCha20Rng;
 // TODO: 
 //  Each convergence function should have the option to skip convergence
 //  and return the next level's result.
@@ -25,8 +35,40 @@
 //------------------------------------------------------------------------------
 // This averages the spin decoherence signal over multiple input structures,
 // multiple input PDBs for example.
-fn average_structure_signal(config: &Config) -> Result<Signal,CluEError>{
+pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config) 
+  -> Result<(),CluEError>
+{
+  let structure = Structure::build_structure(rng,config)?;
+
+  if let Some(filename) = &config.write_structure_pdb{
+    structure.write_pdb(&format!("{}.pdb",filename))?;
+  }
+
+  let tensors = HamiltonianTensors::generate(&structure, config)?;
+
+  let adjacency_list = build_adjacency_list(&tensors, config)?;
+
+  let Some(max_cluster_size) = config.max_cluster_size else{
+    return Err(CluEError::NoMaxClusterSize);
+  };
+
+  let mut clusters = find_clusters(&adjacency_list, max_cluster_size)?;
+
+  let Some(cluster_method) = &config.cluster_method else {
+    return Err(CluEError::NoClusterMethod);
+  };
+
+  // TODO: implement cluster batches.
+  match cluster_method{
+    ClusterMethod::AnalyticRestricted2CCE => 
+      calculate_analytic_restricted_2cluster_signals(&mut clusters, &tensors,
+          config)?,
+    ClusterMethod::CCE => calculate_cluster_signals(&mut clusters, &tensors, 
+          config)?,
+  }
+  Ok(())
 } 
+/*
 //------------------------------------------------------------------------------
 // This function converges the spin decoherence signal over different 
 // configurations of the same base structure, a Monte Carlo search over
@@ -105,3 +147,4 @@ fn converge_signal_for_clusters_cutoffs(tensors, config: &Config)
   Ok(Signal,cutoffs)
 } 
 //------------------------------------------------------------------------------
+*/

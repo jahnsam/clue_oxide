@@ -21,6 +21,10 @@ pub mod math;
 use crate::config::Config;
 use crate::clue_errors::CluEError;
 use crate::structure::Structure;
+use crate::quantum::tensors::HamiltonianTensors;
+use crate::cluster::build_adjacency_list::build_adjacency_list;
+use crate::cluster::find_clusters::find_clusters;
+use crate::signal::calculate_signal;
 
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
@@ -34,11 +38,7 @@ pub fn run(config: Config) -> Result<(),CluEError>{
     None => rng = ChaCha20Rng::from_entropy(),
   }
 
-  let structure = Structure::build_structure(&mut rng,&config)?;
-  
-  if let Some(filename) = config.write_structure_pdb{
-    structure.write_pdb(&format!("{}.pdb",filename))?;
-  }
+  calculate_signal::average_structure_signal(&mut rng, &config)?;
 
   Ok(())
 }

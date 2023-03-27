@@ -6,8 +6,29 @@ pub struct SymmetricTensor3D{
 }
 
 impl SymmetricTensor3D{
+  //----------------------------------------------------------------------------
   pub fn zeros() -> Self{
     SymmetricTensor3D{elements: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
+  }
+  //----------------------------------------------------------------------------
+  pub fn from(elements: [f64;6]) -> Self{
+    SymmetricTensor3D{elements}
+  }
+  //----------------------------------------------------------------------------
+  pub fn eye() -> Self{
+    SymmetricTensor3D{elements: [1.0, 0.0, 0.0, 
+                                      1.0, 0.0, 
+                                           1.0]}
+  }
+  //----------------------------------------------------------------------------
+
+
+  pub fn scale(&self, a: f64) -> SymmetricTensor3D {
+    let mut elements = self.elements.clone();
+    for x in elements.iter_mut(){
+      *x = (*x)*a;
+    }
+    SymmetricTensor3D{elements}
   }
 
   pub fn xx(&self) -> f64 { self.elements[0]}
@@ -36,6 +57,51 @@ impl ToString for SymmetricTensor3D{
   fn to_string(&self) -> String{
     format!("[{}, {}, {}, {}, {}, {}]", self.elements[0], self.elements[1],
         self.elements[2], self.elements[3],self.elements[4], self.elements[5])
+  }
+}
+impl std::ops::Mul<f64> for &SymmetricTensor3D
+{
+  type Output = SymmetricTensor3D ;
+
+  fn mul(self, rhs: f64) -> SymmetricTensor3D  
+  {
+   self.scale(rhs)
+  }
+}
+impl std::ops::Mul<&SymmetricTensor3D> for f64
+{
+  type Output = SymmetricTensor3D;
+
+  fn mul(self, rhs: &SymmetricTensor3D ) -> SymmetricTensor3D  
+  {
+    rhs.scale(self)
+  }
+}
+impl std::ops::Add<&SymmetricTensor3D> for &SymmetricTensor3D{
+  type Output = SymmetricTensor3D;
+  fn add(self, rhs: &SymmetricTensor3D ) -> SymmetricTensor3D{
+    let n = self.elements.len();
+    assert_eq!(n, rhs.elements.len());
+    let mut out = self.clone();
+
+    for ii in 0..n{
+      out.elements[ii] += rhs.elements[ii];  
+    }
+    out
+  }
+}
+//------------------------------------------------------------------------------
+impl std::ops::Sub<&SymmetricTensor3D> for &SymmetricTensor3D{
+  type Output = SymmetricTensor3D;
+  fn sub(self, rhs: &SymmetricTensor3D ) -> SymmetricTensor3D{
+    let n = self.elements.len();
+    assert_eq!(n, rhs.elements.len());
+    let mut out = self.clone();
+
+    for ii in 0..n{
+      out.elements[ii] -= rhs.elements[ii];  
+    }
+    out
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -138,6 +204,19 @@ impl Vector3D{
     out
   }
   //----------------------------------------------------------------------------
+  /// This function calculate the ___v___ trans(___v___).
+  pub fn self_outer(&self) -> SymmetricTensor3D{
+    let elements = [
+      self.x()*self.x(), 
+      self.x()*self.y(), 
+      self.x()*self.z(), 
+      self.y()*self.y(), 
+      self.y()*self.z(), 
+      self.z()*self.z(), 
+    ];
+    SymmetricTensor3D::from(elements)
+  }
+  //----------------------------------------------------------------------------
 }
 
 impl std::ops::Add<&Vector3D> for &Vector3D{
@@ -179,6 +258,26 @@ impl std::ops::Neg for Vector3D {
     }
 
     out
+  }
+}
+//------------------------------------------------------------------------------
+impl std::ops::Mul<f64> for &Vector3D
+{
+  type Output = Vector3D ;
+
+  fn mul(self, rhs: f64) -> Vector3D  
+  {
+   self.scale(rhs)
+  }
+}
+//------------------------------------------------------------------------------
+impl std::ops::Mul<&Vector3D> for f64
+{
+  type Output = Vector3D;
+
+  fn mul(self, rhs: &Vector3D ) -> Vector3D  
+  {
+    rhs.scale(self)
   }
 }
 //------------------------------------------------------------------------------
@@ -250,6 +349,38 @@ pub fn minimize_absolute_difference_for_vector3d_step(
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// This function calulates ___T___***v***, where ___T___ is a 
+/// `SymmetricTensor3D`. and ___v___ a `Vector3D`.
+pub fn symten3d_times_vec3d(ten: &SymmetricTensor3D, vec: &Vector3D) 
+  -> Vector3D
+{
+  Vector3D::from([
+    vec.x()*ten.xx() + vec.y()*ten.xy() + vec.z()*ten.xz(),
+    vec.x()*ten.yx() + vec.y()*ten.yy() + vec.z()*ten.yz(),
+    vec.x()*ten.zx() + vec.y()*ten.zy() + vec.z()*ten.zz(),
+  ])
+
+} 
+impl std::ops::Mul<&Vector3D> for &SymmetricTensor3D
+{
+  type Output = Vector3D;
+
+  fn mul(self, rhs: &Vector3D) -> Vector3D {
+    symten3d_times_vec3d(self,rhs)
+  }
+}
+impl std::ops::Mul<&SymmetricTensor3D> for &Vector3D
+{
+  type Output = Vector3D;
+
+  fn mul(self, rhs: &SymmetricTensor3D) -> Vector3D {
+    symten3d_times_vec3d(rhs,self)
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
 #[cfg(test)]
 mod tests{
   use super::*;
@@ -278,6 +409,90 @@ mod tests{
     for ii in 0..9{
       assert_eq!(vecs[ii].norm(),radii[ii]);
     }
+  }
+  //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
+  fn test_SymmetricTensor3D(){
+    let mut ten = SymmetricTensor3D{elements: [1.0, 2.0, 3.0, 
+                                                4.0, 5.0, 
+                                                     6.0]};
+    assert_eq!(ten.xx(),1.0);
+    assert_eq!(ten.xy(),2.0);
+    assert_eq!(ten.xz(),3.0);
+
+    assert_eq!(ten.yx(),2.0);
+    assert_eq!(ten.yy(),4.0);
+    assert_eq!(ten.yz(),5.0);
+    
+    assert_eq!(ten.zx(),3.0);
+    assert_eq!(ten.zy(),5.0);
+    assert_eq!(ten.zz(),6.0);
+
+    let a = 2.0;
+    ten = a*&ten;
+    assert_eq!(ten.xx(),a*1.0);
+    assert_eq!(ten.xy(),a*2.0);
+    assert_eq!(ten.xz(),a*3.0);
+
+    assert_eq!(ten.yx(),a*2.0);
+    assert_eq!(ten.yy(),a*4.0);
+    assert_eq!(ten.yz(),a*5.0);
+
+    assert_eq!(ten.zx(),a*3.0);
+    assert_eq!(ten.zy(),a*5.0);
+    assert_eq!(ten.zz(),a*6.0);
+
+    let a = 0.5;
+    ten = &ten * a;
+    assert_eq!(ten.xx(),1.0);
+    assert_eq!(ten.xy(),2.0);
+    assert_eq!(ten.xz(),3.0);
+
+    assert_eq!(ten.yx(),2.0);
+    assert_eq!(ten.yy(),4.0);
+    assert_eq!(ten.yz(),5.0);
+    
+    assert_eq!(ten.zx(),3.0);
+    assert_eq!(ten.zy(),5.0);
+    assert_eq!(ten.zz(),6.0);
+
+    ten.set_xx(-1.0);
+    assert_eq!(ten.xx(),-1.0);
+
+    ten.set_xy(-2.0);
+    assert_eq!(ten.xy(),-2.0);
+
+    ten.set_xz(-3.0);
+    assert_eq!(ten.xz(),-3.0);
+
+    ten.set_yx(-20.0);
+    assert_eq!(ten.yx(),-20.0);
+
+    ten.set_yy(-4.0);
+    assert_eq!(ten.yy(),-4.0);
+
+    ten.set_yz(-5.0);
+    assert_eq!(ten.yz(),-5.0);
+    
+    ten.set_zx(-30.0);
+    assert_eq!(ten.zx(),-30.0);
+
+    ten.set_zy(-50.0);
+    assert_eq!(ten.zy(),-50.0);
+
+    ten.set_zz(-6.0);
+    assert_eq!(ten.zz(),-6.0);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_symten3d_times_vec3d(){
+    let vec = Vector3D::from([1.0, 2.0, 3.0]);
+    let ten = SymmetricTensor3D{elements: [    1.0, 0.1, 0.01, 
+                                           /*0.1*/  1.0, 0.1, 
+                                          /*0.01,  0.1*/ 1.0]};
+    let x = &ten * &vec;
+    assert_eq!(x,Vector3D::from([1.23, 2.4, 3.21])); 
   }
 
 }

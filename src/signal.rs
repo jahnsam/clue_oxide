@@ -1,15 +1,20 @@
 pub mod calculate_cluster_signal;
+pub mod calculate_analytic_restricted_2cluster_signals;
+pub mod calculate_signal;
 use std::ops::{Add,Sub,Mul,Div};
 use num_complex::Complex;
 
-#[derive(PartialEq,Debug,Clone)]
+#[derive(PartialEq,Debug,Clone,Default)]
 pub struct Signal{
-  data: Vec::<Complex<f64>>,
+  pub data: Vec::<Complex<f64>>,
 }
 impl Signal{
+  //----------------------------------------------------------------------------
   pub fn len(&self) -> usize{
     self.data.len()
   }
+  //----------------------------------------------------------------------------
+  pub fn new() -> Self {Signal::default()}
   //----------------------------------------------------------------------------
   pub fn ones(n: usize) -> Self {
     let mut data = Vec::<Complex<f64>>::with_capacity(n);
