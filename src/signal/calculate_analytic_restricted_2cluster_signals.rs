@@ -1,31 +1,44 @@
 use crate::Config;
-use crate::cluster::Cluster;
+use crate::cluster::find_clusters::ClusterSet;
 use crate::signal::Signal;
 use crate::HamiltonianTensors;
 use crate::CluEError;
 use crate::physical_constants::ONE;
+use crate::math;
 
 use rayon::prelude::*;
 use std::collections::HashMap;
 use num_complex::Complex;
 
 pub fn calculate_analytic_restricted_2cluster_signals(
-    clusters: &mut Vec::<HashMap::<Vec::<usize>, Cluster>>, 
+    cluster_set: &mut ClusterSet, 
     tensors: &HamiltonianTensors, config: &Config,
     ) ->Result<(), CluEError>
 {
 
   
+  let clusters = &mut cluster_set.clusters;
+
   if clusters.len() != 2 {
     return Err(CluEError::WrongClusterSizeForAnalyticCCE(clusters.len()));
   }
 
-  clusters[1].par_iter_mut().for_each(
-      |(_idx, cluster)| {
-        let aux_signal = analytic_restricted_2cluster_signal(
+  let Some(batch_size) = config.cluster_batch_size else{
+    return Err(CluEError::NoClusterBatchSize);
+  };
+
+  let n_clusters = clusters[1].len();
+  let n_batches = math::ceil( (n_clusters as f64)/(batch_size as f64)) as usize;
+
+  for ibatch in 0..n_batches{
+    let idx = ibatch*batch_size;
+    clusters[1].par_iter_mut().skip(idx).take(batch_size).for_each(
+        |cluster| {
+          let aux_signal = analytic_restricted_2cluster_signal(
             &cluster.vertices(), tensors, config).unwrap(); // TODO: fix unwrap
-        (*cluster).auxiliary_signal = Some(aux_signal);
-      });
+          (*cluster).auxiliary_signal = Some(aux_signal);
+        });
+  }
 
   Ok(())
 }

@@ -6,6 +6,7 @@ pub mod connected_subgraphs;
 pub mod find_clusters;
 pub mod get_subclusters;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone,Default,PartialEq)]
 pub struct Cluster{
   vertices: Vec::<usize>,
   pub signal: Option<Signal>,

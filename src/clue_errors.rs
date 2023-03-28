@@ -43,6 +43,7 @@ pub enum CluEError{
   ModeAttributeWrongSharp,
   MultipleCosubstitutionGroups(usize),
   NoArgument(usize),
+  NoClusterBatchSize,
   NoCentralSpin,
   NoCentralSpinCoor,
   NoCentralSpinIdentity,
@@ -207,6 +208,9 @@ impl fmt::Display for CluEError{
 
       CluEError::NoArgument(line_number) => write!(f,
           "line {}, expected a function argument",line_number),
+
+      CluEError::NoClusterBatchSize => write!(f,
+          "batch size for clusters not specified"),
 
       CluEError::NoCentralSpin => write!(f,
           "no detected spin defined"),

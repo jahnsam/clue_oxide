@@ -30,6 +30,7 @@ pub mod parse_properties;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
+  pub cluster_batch_size: Option<usize>,
   pub cluster_method: Option<ClusterMethod>,
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
@@ -64,6 +65,9 @@ impl Config{
   /// but will likely be the same for most simulations.  
   /// Any field that is already `Some` will be left alone.
   pub fn set_defaults(&mut self){
+    if self.cluster_batch_size == None{
+      self.cluster_batch_size = Some(10000);
+    }
     if self.detected_spin_identity == None{
       self.detected_spin_identity = Some(Isotope::Electron);
     }

@@ -7,44 +7,34 @@ use crate::cluster::Cluster;
 use std::collections::HashMap;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-pub struct ClusterSet{
-  pub clusters: Vec::<Vec::<Cluster>>,
-  pub cluster_indices: Vec::<HashMap::<Vec::<usize>,usize>>, 
-}
-//------------------------------------------------------------------------------
-pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize) 
-  -> Result< ClusterSet, CluEError>
+pub fn find_clusters(
+    adjacency_list: &AdjacencyList, 
+    max_size: usize) 
+  -> Result< Vec::<HashMap::<Vec::<usize>,Cluster>>, CluEError>
 {
 
-  let mut clusters = Vec::<Vec::<Cluster>>::with_capacity(max_size);
-  let mut cluster_indices 
-    = Vec::<HashMap<Vec::<usize>,usize>>::with_capacity(max_size);
+  let mut clusters = Vec::<HashMap<Vec::<usize>,Cluster>>::with_capacity(max_size);
 
   let vertices = adjacency_list.get_active_vertices();
-  let n_one_clusters = vertices.len();
-  let mut one_clusters = Vec::<Cluster>::with_capacity(n_one_clusters); 
-  let mut one_cluster_indices = HashMap::new(); 
+  let mut one_clusters = HashMap::new(); 
 
   // Identify all 1-clusters, as those with adjacency_matrix[[ii,ii]] == true.
   for vertex in vertices.into_iter(){
 
     let key = vec![vertex];
     let cluster = Cluster::from(key.clone());
-    one_cluster_indices.insert(key, one_clusters.len());
-    one_clusters.push(cluster);
+    one_clusters.insert(key, cluster);
   }
 
 
   clusters.push(one_clusters);
-  cluster_indices.push(one_cluster_indices);
 
   for clu_size in 1..max_size{
 
     // Build n-clusters from (n-1)-clusters.
-    if let Ok((n_clusters,n_cluster_indices))
+    if let Ok(n_clusters)
      = build_n_clusters(&mut clusters[clu_size -1],&adjacency_list){
       clusters.push(n_clusters);
-      cluster_indices.push(n_cluster_indices);
     }else{
         return Err(CluEError::NoClustersOfSize(clu_size+1));
     }
@@ -52,81 +42,64 @@ pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize)
 
   }
 
-  Ok(ClusterSet{
-    clusters,
-    cluster_indices,
-    }) 
+  Ok(clusters)
 }
 
 //------------------------------------------------------------------------------
 fn build_n_clusters(
-    n_minus_1_clusters: &Vec::<Cluster>, 
+    n_minus_1_clusters: &HashMap<Vec::<usize>, Cluster>, 
     adjacency_list: &AdjacencyList)
-  -> Result<(Vec::<Cluster>, HashMap::<Vec::<usize>,usize>),CluEError>
+  -> Result<HashMap::<Vec::<usize>,Cluster>,CluEError>
 {
 
-  let mut new_clusters = Vec::<Cluster>::new();
-  let mut new_cluster_indices = HashMap::new();
+  let mut new_clusters = HashMap::new();
   if n_minus_1_clusters.is_empty(){ 
-    return Ok( (new_clusters,new_cluster_indices) );
+    return Ok(new_clusters);
   }
 
-  for cluster in n_minus_1_clusters.iter() {
+  for (indices, _cluster) in n_minus_1_clusters {
 
-    for idx in (*cluster).vertices.iter(){
+    for idx in indices.iter(){
       if let Some(neighbors) = adjacency_list.get_neighbors(*idx){
 
         for vertex in neighbors.iter(){
       
-          let mut new_indices: Vec::<usize> = (*cluster).vertices.clone();
+          let mut new_indices: Vec::<usize> = (*indices).clone();
           new_indices.push(*vertex);
           new_indices = math::unique(new_indices);
 
-          if new_indices.len() == (*cluster).vertices.len(){ continue; }
+          if new_indices.len() == indices.len(){ continue; }
         
           new_indices.sort();
 
           let  new_cluster = Cluster::from(new_indices.clone());
-          if let Some(_) = new_cluster_indices.get(&new_indices){
-            continue;
-          }
-          new_cluster_indices.insert(new_indices,new_clusters.len());
-          new_clusters.push(new_cluster);
+          new_clusters.insert(new_indices,new_cluster);
         } 
       }
     }
   }
 
-  Ok( (new_clusters,new_cluster_indices) )
+  Ok(new_clusters)
 }
 //------------------------------------------------------------------------------
-// TODO
+
 fn remove_subclusters_of(
-    cluster_set: &mut ClusterSet,
+    clusters: &mut Vec::<HashMap::<Vec::<usize>,Cluster>>,
     unbreakable_cluster: &Cluster){
 
-  for clu_size in 0..cluster_set.clusters.len(){ 
-
-    let n_clusters = cluster_set.clusters[clu_size].len();
-    let mut to_keep = Vec::<usize>::with_capacity(n_clusters);
+  for clu_size in 0..clusters.len(){ 
+    let mut to_remove = Vec::<Vec::<usize>>::new();
     
-    for (idx,cluster) in cluster_set.clusters[clu_size].iter().enumerate() {
-      if !cluster.overlaps(unbreakable_cluster) 
-       || cluster.contains(unbreakable_cluster) {
-        to_keep.push(idx);
+    for (vertices, cluster) in clusters[clu_size].iter() {
+      if cluster.overlaps(unbreakable_cluster) 
+       && !cluster.contains(unbreakable_cluster) {
+        to_remove.push(vertices.clone());
       }
     }
 
-    let mut kept_clusters = Vec::<Cluster>::with_capacity(to_keep.len());
-    let mut kept_cluster_indices = HashMap::with_capacity(to_keep.len());
-    for (new_idx, old_idx) in to_keep.iter().enumerate(){
-      let cluster = cluster_set.clusters[clu_size][*old_idx].clone();
-      kept_cluster_indices.insert(cluster.vertices.clone(),new_idx);
-      kept_clusters.push(cluster);
+    for vertices in to_remove.into_iter(){
+      clusters[clu_size].remove(&vertices);
     }
-
-    cluster_set.clusters[clu_size] = kept_clusters;
-    cluster_set.cluster_indices[clu_size] = kept_cluster_indices;
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -163,10 +136,7 @@ mod tests{
     cube.connect(2,6);
     cube.connect(3,7);
 
-    let mut cluster_set = find_clusters(&cube,9).unwrap();
-    let clusters = &mut cluster_set.clusters;
-    let cluster_indices = &cluster_set.cluster_indices;
-
+    let mut clusters = find_clusters(&cube,9).unwrap();
     assert!(clusters[8].is_empty());
     clusters.pop();
     assert_eq!(clusters.len(),8);
@@ -174,8 +144,7 @@ mod tests{
     assert_eq!(clusters[0].len(), 8);
     for ii in 0..8{
       let v = Vec::<usize>::from([ii]);
-      let idx = cluster_indices[0][&v];
-      assert_eq!(clusters[0][idx].vertices,*v);
+      assert_eq!(clusters[0][&v].vertices,v);
     }
     
     // 0-------1
@@ -197,8 +166,7 @@ mod tests{
 
     assert_eq!(clusters[1].len(), two_clusters.len());
     for v in two_clusters.iter(){
-      let idx = cluster_indices[1][v];
-      assert_eq!(clusters[1][idx].vertices,*v);
+      assert_eq!(clusters[1][v].vertices,*v);
     } 
 
     // 0-------1
@@ -232,11 +200,10 @@ mod tests{
       vec![5,6,7],
     ];
 
-    let size_idx = 2;
-    assert_eq!(clusters[size_idx].len(), three_clusters.len());
+    let idx = 2;
+    assert_eq!(clusters[idx].len(), three_clusters.len());
     for v in three_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
 
     // 0-------1
@@ -284,11 +251,10 @@ mod tests{
       vec![4,5,6,7],
     ];
 
-    let size_idx = 3;
-    assert_eq!(clusters[size_idx].len(), four_clusters.len());
+    let idx = 3;
+    assert_eq!(clusters[idx].len(), four_clusters.len());
     for v in four_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
 
     // 0-------1
@@ -344,11 +310,10 @@ mod tests{
       vec![3,4,5,6,7],
     ];
 
-    let size_idx = 4;
-    assert_eq!(clusters[size_idx].len(), five_clusters.len());
+    let idx = 4;
+    assert_eq!(clusters[idx].len(), five_clusters.len());
     for v in five_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
 
 
@@ -384,11 +349,10 @@ mod tests{
       vec![2,3,4,5,6,7],
     ];
 
-    let size_idx = 5;
-    assert_eq!(clusters[size_idx].len(), six_clusters.len());
+    let idx = 5;
+    assert_eq!(clusters[idx].len(), six_clusters.len());
     for v in six_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
     // 0-------1
     // | \   / |
@@ -408,11 +372,10 @@ mod tests{
       vec![1,2,3,4,5,6,7],
     ];
 
-    let size_idx = 6;
-    assert_eq!(clusters[size_idx].len(), seven_clusters.len());
+    let idx = 6;
+    assert_eq!(clusters[idx].len(), seven_clusters.len());
     for v in seven_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
 
     // 0-------1
@@ -426,11 +389,10 @@ mod tests{
       vec![0,1,2,3,4,5,6,7],
     ];
 
-    let size_idx = 7;
-    assert_eq!(clusters[size_idx].len(), eight_clusters.len());
+    let idx = 7;
+    assert_eq!(clusters[idx].len(), eight_clusters.len());
     for v in eight_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
   }
   //----------------------------------------------------------------------------
@@ -443,21 +405,18 @@ mod tests{
     square.connect(2,3);
     square.connect(3,0);
     
-    let mut cluster_set = find_clusters(&square,4).unwrap();
-    remove_subclusters_of(&mut cluster_set, &Cluster::from(vec![0,1]));
-    let clusters = cluster_set.clusters;
-    let cluster_indices = cluster_set.cluster_indices;
+    let mut clusters = find_clusters(&square,4).unwrap();
+    remove_subclusters_of(&mut clusters, &Cluster::from(vec![0,1]));
 
     let one_clusters = vec![
       //vec![0], vec![1],
       vec![2], vec![3],
     ];
 
-    let size_idx = 0;
-    assert_eq!(clusters[size_idx].len(), one_clusters.len());
+    let idx = 0;
+    assert_eq!(clusters[idx].len(), one_clusters.len());
     for v in one_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
 
     let two_clusters = vec![
@@ -466,11 +425,10 @@ mod tests{
       vec![2,3],
     ];
 
-    let size_idx = 1;
-    assert_eq!(clusters[size_idx].len(), two_clusters.len());
+    let idx = 1;
+    assert_eq!(clusters[idx].len(), two_clusters.len());
     for v in two_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
 
     let three_clusters = vec![
@@ -479,23 +437,22 @@ mod tests{
       // vec![1,2,3],
     ];
 
-    let size_idx = 2;
-    assert_eq!(clusters[size_idx].len(), three_clusters.len());
+    let idx = 2;
+    assert_eq!(clusters[idx].len(), three_clusters.len());
     for v in three_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
 
     let four_clusters = vec![
       vec![0,1,2,3], 
     ];
 
-    let size_idx = 3;
-    assert_eq!(clusters[size_idx].len(), four_clusters.len());
+    let idx = 3;
+    assert_eq!(clusters[idx].len(), four_clusters.len());
     for v in four_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
+      assert_eq!(clusters[idx][v].vertices,*v);
     } 
   }
+  
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

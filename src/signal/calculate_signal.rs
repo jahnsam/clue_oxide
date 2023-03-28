@@ -59,6 +59,7 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
   };
 
   // TODO: implement cluster batches.
+  /*
   match cluster_method{
     ClusterMethod::AnalyticRestricted2CCE => 
       calculate_analytic_restricted_2cluster_signals(&mut clusters, &tensors,
@@ -66,6 +67,7 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
     ClusterMethod::CCE => calculate_cluster_signals(&mut clusters, &tensors, 
           config)?,
   }
+  */
   Ok(())
 } 
 /*
