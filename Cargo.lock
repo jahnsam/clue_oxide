@@ -116,6 +116,7 @@ name = "clue_oxide"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "csv",
  "lebedev_laikov",
  "ndarray",
  "ndarray-linalg",

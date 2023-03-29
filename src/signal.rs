@@ -1,8 +1,12 @@
 pub mod calculate_cluster_signal;
 pub mod calculate_analytic_restricted_2cluster_signals;
 pub mod calculate_signal;
+pub mod cluster_correlation_expansion;
 use std::ops::{Add,Sub,Mul,Div};
 use num_complex::Complex;
+
+use crate::CluEError;
+use std::error::Error;
 
 #[derive(PartialEq,Debug,Clone,Default)]
 pub struct Signal{
@@ -25,49 +29,108 @@ impl Signal{
     Signal{data}
   }
   //----------------------------------------------------------------------------
+  pub fn read_from_csv(filename: &str) -> Result<Self,CluEError>
+  {
+    match Self::read_single_signal_from_csv(filename){
+      Ok(data) => Ok(Signal{data}),
+      Err(_) => Err(CluEError::CannotOpenFile(filename.to_string())),
+    }
+
+  }
+  //----------------------------------------------------------------------------
+  fn read_single_signal_from_csv(filename: &str)
+    -> Result<Vec::<Complex<f64>>,Box<dyn Error>>
+  {
+    // Count data points.
+    let mut rdr = csv::Reader::from_path(filename)?;
+    let mut num_data = 0;
+    for _result in rdr.records() {
+        num_data += 1;
+    }
+
+    // Load signal.
+    let mut signal = Vec::<Complex<f64>>::with_capacity(num_data);
+    let mut rdr = csv::Reader::from_path(filename)?;
+    for result in rdr.records() {
+        let record = result?;
+        if let Some(v) = record.get(0){
+          let v = v.parse::<Complex<f64>>()?;
+          signal.push(v);
+        }
+    }
+    Ok(signal)
+  }
+  //----------------------------------------------------------------------------
+  pub fn write_to_csv(&self, filename: &str) -> Result<(),CluEError>{
+    match self.write_single_signal_to_csv(filename){
+      Ok(()) => Ok(()),
+      Err(_) => Err(CluEError::CannotWriteFile(filename.to_string())),
+    }
+  }
+  //----------------------------------------------------------------------------
+  fn write_single_signal_to_csv(&self, filename: &str) 
+    -> Result<(),Box<dyn Error>>
+  {
+    let mut wtr = csv::Writer::from_path(filename)?;
+    wtr.write_record(&["signal"])?;
+    for v in self.data.iter(){
+      wtr.write_record(&[v.to_string()])?;
+    }
+    wtr.flush()?;
+    Ok(())
+  }
+  //----------------------------------------------------------------------------
 }
 
-impl Add for Signal{
-  type Output = Self;
+impl Add for &Signal{
+  type Output = Signal;
  
-  fn add(self,other: Signal) -> Self{
-    assert_eq!(self.len(), other.len());
-    Signal{
-      data: self.data.iter().zip(other.data).map(|(x,y)| x+y).collect(),
+  fn add(self,rhs: &Signal) -> Signal{
+    assert_eq!(self.len(), rhs.len());
+    let mut data = Vec::<Complex<f64>>::with_capacity(self.len());
+    for (ii,v) in self.data.iter().enumerate(){
+      data.push(v + rhs.data[ii]);
     }
+    Signal{data}
   }
 }
 
-impl Sub for Signal{
-  type Output = Self;
+impl Sub for &Signal{
+  type Output = Signal;
  
-  fn sub(self,other: Signal) -> Self{
-    assert_eq!(self.len(), other.len());
-    Signal{
-      data: self.data.iter().zip(other.data).map(|(x,y)| x-y).collect(),
+  fn sub(self,rhs: &Signal) -> Signal{
+    assert_eq!(self.len(), rhs.len());
+    let mut data = Vec::<Complex<f64>>::with_capacity(self.len());
+    for (ii,v) in self.data.iter().enumerate(){
+      data.push(v - rhs.data[ii]);
     }
+    Signal{data}
   }
 }
 
 
-impl Mul for Signal{
-  type Output = Self;
+impl Mul for &Signal{
+  type Output = Signal;
  
-  fn mul(self,other: Signal) -> Self{
-    assert_eq!(self.len(), other.len());
-    Signal{
-      data: self.data.iter().zip(other.data).map(|(x,y)| x*y).collect(),
+  fn mul(self, rhs: &Signal) -> Signal{
+    assert_eq!(self.len(), rhs.len());
+    let mut data = Vec::<Complex<f64>>::with_capacity(self.len());
+    for (ii,v) in self.data.iter().enumerate(){
+      data.push(v*rhs.data[ii]);
     }
+    Signal{data}
   }
 }
-impl Div for Signal{
-  type Output = Self;
+impl Div for &Signal{
+  type Output = Signal;
  
-  fn div(self,other: Signal) -> Self{
-    assert_eq!(self.len(), other.len());
-    Signal{
-      data: self.data.iter().zip(other.data).map(|(x,y)| x/y).collect(),
+  fn div(self,rhs: &Signal) -> Signal{
+    assert_eq!(self.len(), rhs.len());
+    let mut data = Vec::<Complex<f64>>::with_capacity(self.len());
+    for (ii,v) in self.data.iter().enumerate(){
+      data.push(v/rhs.data[ii]);
     }
+    Signal{data}
   }
 }
 

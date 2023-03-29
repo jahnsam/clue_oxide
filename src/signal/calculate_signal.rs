@@ -7,6 +7,7 @@ use crate::find_clusters;
 use crate::signal::calculate_cluster_signal::calculate_cluster_signals;
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   calculate_analytic_restricted_2cluster_signals};
+use crate::signal::cluster_correlation_expansion::*;
 use rand_chacha::ChaCha20Rng;
 // TODO: 
 //  Each convergence function should have the option to skip convergence
@@ -52,22 +53,21 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
     return Err(CluEError::NoMaxClusterSize);
   };
 
-  let mut clusters = find_clusters(&adjacency_list, max_cluster_size)?;
+  let mut cluster_set = find_clusters(&adjacency_list, max_cluster_size)?;
 
   let Some(cluster_method) = &config.cluster_method else {
     return Err(CluEError::NoClusterMethod);
   };
 
-  // TODO: implement cluster batches.
-  /*
   match cluster_method{
     ClusterMethod::AnalyticRestricted2CCE => 
-      calculate_analytic_restricted_2cluster_signals(&mut clusters, &tensors,
+      calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
           config)?,
-    ClusterMethod::CCE => calculate_cluster_signals(&mut clusters, &tensors, 
+    ClusterMethod::CCE => calculate_cluster_signals(&mut cluster_set, &tensors, 
           config)?,
   }
-  */
+
+  let signal = do_cluster_correlation_expansion_product(&cluster_set,config)?;
   Ok(())
 } 
 /*

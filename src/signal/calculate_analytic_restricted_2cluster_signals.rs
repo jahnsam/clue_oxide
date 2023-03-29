@@ -36,7 +36,7 @@ pub fn calculate_analytic_restricted_2cluster_signals(
         |cluster| {
           let aux_signal = analytic_restricted_2cluster_signal(
             &cluster.vertices(), tensors, config).unwrap(); // TODO: fix unwrap
-          (*cluster).auxiliary_signal = Some(aux_signal);
+          (*cluster).signal = Some(aux_signal);
         });
   }
 

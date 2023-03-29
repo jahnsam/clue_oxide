@@ -9,12 +9,13 @@ edition = "2021"
 opt-level = 3
 
 [dependencies]
-ndarray = '0.15.0'
-ndarray-rand = "0.14.0"
-num-complex = "0.4"
+csv = "1.1"
 
 lebedev_laikov = {git = "https://github.com/Rufflewind/lebedev_laikov"}
 
+ndarray = '0.15.0'
+ndarray-rand = "0.14.0"
+num-complex = "0.4"
 
 rand = "0.8"
 rand_chacha = "0.3.1"

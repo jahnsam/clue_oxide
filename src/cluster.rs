@@ -10,7 +10,6 @@ pub mod get_subclusters;
 pub struct Cluster{
   vertices: Vec::<usize>,
   pub signal: Option<Signal>,
-  pub auxiliary_signal: Option<Signal>,
 }
 
 //------------------------------------------------------------------------------
@@ -19,7 +18,6 @@ impl Cluster{
     Cluster{
       vertices,
       signal: None,
-      auxiliary_signal: None,
     }
   }
 }
