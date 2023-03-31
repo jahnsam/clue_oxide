@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use num_complex::Complex;
 
 pub fn calculate_analytic_restricted_2cluster_signals(
-    cluster_set: &mut ClusterSet, 
+    mut cluster_set: ClusterSet, 
     tensors: &HamiltonianTensors, config: &Config,
     ) ->Result<(), CluEError>
 {
@@ -26,6 +26,12 @@ pub fn calculate_analytic_restricted_2cluster_signals(
   let Some(batch_size) = config.cluster_batch_size else{
     return Err(CluEError::NoClusterBatchSize);
   };
+  
+  
+  let n_tot = config.number_timepoints.iter().sum::<usize>();
+  let mut signal = Signal::ones(n_tot);
+  let mut order_n_signals = Vec::<Signal>::with_capacity(2);
+  order_n_signals.push(signal.clone());
 
   let n_clusters = clusters[1].len();
   let n_batches = math::ceil( (n_clusters as f64)/(batch_size as f64)) as usize;
@@ -38,7 +44,23 @@ pub fn calculate_analytic_restricted_2cluster_signals(
             &cluster.vertices(), tensors, config).unwrap(); // TODO: fix unwrap
           (*cluster).signal = Some(aux_signal);
         });
+
+    let idx_end: usize;
+    if idx+batch_size > clusters[1].len() {
+      idx_end = idx + batch_size;
+    }else{
+      idx_end = clusters[1].len();
+    }
+    for ii in idx..idx_end{
+      let Some(aux_signal) = &clusters[1][ii].signal else{
+        return Err(CluEError::ClusterHasNoSignal(clusters[1][ii].to_string()));
+      };
+
+      signal = &signal * aux_signal;
+    }
   }
+
+  signal.write_to_csv("out.csv");
 
   Ok(())
 }

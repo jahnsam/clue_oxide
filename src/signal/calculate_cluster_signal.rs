@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 
 pub fn calculate_cluster_signals(
-    cluster_set: &mut ClusterSet, 
+    mut cluster_set: ClusterSet, 
     tensors: &HamiltonianTensors, config: &Config,
     ) -> Result<(),CluEError>
 {

@@ -144,16 +144,16 @@ mod tests{
     let signal0 = Signal{ data: vec![ONE,ONE],};
     let signal1 = Signal{ data: vec![ONE,0.5*ONE],};
 
-    let signal2 = signal0.clone() + signal1.clone();
+    let signal2 = &signal0 + &signal1;
     assert_eq!(signal2.data,vec![2.0*ONE,1.5*ONE]);
 
-    let signal3 = signal0.clone() - signal1.clone();
+    let signal3 = &signal0 - &signal1;
     assert_eq!(signal3.data,vec![0.0*ONE,0.5*ONE]);
 
-    let signal4 = signal0.clone() * signal1.clone();
+    let signal4 = &signal0 * &signal1;
     assert_eq!(signal4.data,vec![ONE,0.5*ONE]);
 
-    let signal5 = signal0.clone() / signal1.clone();
+    let signal5 = &signal0 / &signal1;
     assert_eq!(signal5.data,vec![ONE,2.0*ONE]);
   }
 }

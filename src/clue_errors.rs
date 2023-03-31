@@ -20,6 +20,7 @@ pub enum CluEError{
   CannotSampleBinomialDistribution(usize,f64),
   CannotSubTokens,
   CannotWriteFile(String),
+  ClusterHasNoSignal(String),
   ConfigModeNotRecognized(String),
   EmptyVector(usize),
   ExpectedEquality(usize),
@@ -131,6 +132,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotConvertToVector(line_number) => write!(f,
           "line {}, cannot find vector", line_number),
+
+      CluEError::ClusterHasNoSignal(cluster) => write!(f,
+          "expected cluster {} to have a signal, but found none", cluster),
 
       CluEError::CannotWriteFile(file) => write!(f,
           "cannot write to \"{}\"", file),

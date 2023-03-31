@@ -61,13 +61,13 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
 
   match cluster_method{
     ClusterMethod::AnalyticRestricted2CCE => 
-      calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
+      calculate_analytic_restricted_2cluster_signals(cluster_set, &tensors,
           config)?,
-    ClusterMethod::CCE => calculate_cluster_signals(&mut cluster_set, &tensors, 
+    ClusterMethod::CCE => calculate_cluster_signals(cluster_set, &tensors, 
           config)?,
   }
 
-  let signal = do_cluster_correlation_expansion_product(&cluster_set,config)?;
+  //let signal = do_cluster_correlation_expansion_product(&cluster_set,config)?;
   Ok(())
 } 
 /*
