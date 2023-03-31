@@ -307,6 +307,41 @@ impl Config{
 
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::PulseSequence => {
+        if let Some(_value) = &self.pulse_sequence{
+          return Err(already_set());
+        }
+        let Some(rhs) = &expression.rhs else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }; 
+        if rhs.is_empty(){
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+        match rhs[0]{
+          Token::Hahn 
+            => self.pulse_sequence = Some(PulseSequence::CarrPurcell(1)),
+          Token::CarrPurcell => {
+            if rhs.len() != 3 || rhs[1] != Token::Minus{
+              return Err(CluEError::InvalidPulseSequence(
+                    expression.line_number));
+            }
+            let mut n_pi_opt: Option<usize> = None;
+            let rhs = token_stream::read_strings_as_integers(rhs.clone(), 
+                expression.line_number)?;
+            if let Token::Int(n_pi) = rhs[2]{
+              self.pulse_sequence 
+                = Some(PulseSequence::CarrPurcell(n_pi as usize));
+            }else{
+              return Err(CluEError::InvalidPulseSequence(
+                    expression.line_number));
+            }
+
+          },
+          _ => return Err(CluEError::InvalidPulseSequence(
+                expression.line_number)),
+        }
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Radius => set_to_some_f64(&mut self.radius,expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::RNGSeed => {
@@ -349,6 +384,7 @@ mod tests{
         input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
         max_cluster_size = 4;
         number_timepoints = [40,60];
+        pulse_sequence = CP-1;
         radius = 80e-10;
         time_increments = [1e-9, 5e-7];
         write_structure_pdb = out.pdb;
@@ -368,6 +404,7 @@ mod tests{
     
     assert_eq!(config.max_cluster_size, Some(4));
     assert_eq!(config.number_timepoints, vec![40,60]);
+    assert_eq!(config.pulse_sequence, Some(PulseSequence::CarrPurcell(1)));
     assert_eq!(config.radius, Some(80.0e-10));
     assert_eq!(config.time_increments, vec![1e-9,5e-7]);
     assert_eq!(config.write_structure_pdb, Some("out.pdb".to_string()));

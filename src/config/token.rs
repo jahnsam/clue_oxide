@@ -9,6 +9,7 @@ pub enum Token{
  BlockCommentEnd, 
  BlockCommentStart, 
  CCE,
+ CarrPurcell,
  CentroidOverSerials,
  ClusterMethod,
  Clusters,
@@ -27,6 +28,7 @@ pub enum Token{
  GreaterThan,
  GreaterThanEqualTo,
  Hat,
+ Hahn,
  In,
  Indices,                                                      
  InputStructureFile,
@@ -47,6 +49,7 @@ pub enum Token{
  ParenthesisClose,
  ParenthesisOpen,
  Plus,
+ PulseSequence,
  R2CCE,
  Radius,
  Residue,
@@ -81,6 +84,7 @@ impl Token{
       Token::BondedElements => "bonded_elements".to_string(),
       Token::BlockCommentEnd => "*/".to_string(), 
       Token::BlockCommentStart => "/*".to_string(), 
+      Token::CarrPurcell => "CP".to_string(),
       Token::CCE => "CCE".to_string(),
       Token::CentroidOverSerials => "centroid_over_serials".to_string(),
       Token::ClusterMethod => "cluster_method".to_string(),
@@ -99,6 +103,7 @@ impl Token{
       Token::Float(x) => x.to_string(),
       Token::GreaterThan => ">".to_string(),
       Token::GreaterThanEqualTo => ">=".to_string(),
+      Token::Hahn => "Hahn".to_string(),
       Token::Hat => "^".to_string(),
       Token::In => "in".to_string(),
       Token::Indices => "indices".to_string(),
@@ -120,6 +125,7 @@ impl Token{
       Token::ParenthesisClose => ")".to_string(),
       Token::ParenthesisOpen => "(".to_string(),
       Token::Plus => "+".to_string(),
+      Token::PulseSequence => "pulse_sequence".to_string(),
       Token::R2CCE => "r2CCE".to_string(),
       Token::Radius => "radius".to_string(),
       Token::Residue => "residue".to_string(),
@@ -156,6 +162,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "bonded_elements" => Some(Token::BondedElements),
     "*/" => Some(Token::BlockCommentEnd),
     "/*" => Some(Token::BlockCommentStart),
+    "CP" => Some(Token::CarrPurcell),
     "CCE" => Some(Token::CCE),
     "centroid_over_serials" => Some(Token::CentroidOverSerials),
     "cluster_method" => Some(Token::ClusterMethod),
@@ -177,6 +184,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "input_structure_file" => Some(Token::InputStructureFile),
     "indices" => Some(Token::Indices), 
     "label" => Some(Token::Label),
+    "Hahn" => Some(Token::Hahn),
     "^" => Some(Token::Hat),
     "<" => Some(Token::LessThan),
     "<=" => Some(Token::LessThanEqualTo),
@@ -192,6 +200,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
     "+" => Some(Token::Plus),
+    "pulse_sequence" => Some(Token::PulseSequence),
     "r2CCE" => Some(Token::R2CCE),
     "radius" => Some(Token::Radius),
     "residue" => Some(Token::Residue),
@@ -757,6 +766,7 @@ mod tests{
     assert_eq!(identify_token("!").unwrap(), Token::Bang);
     assert_eq!(identify_token("*/").unwrap(), Token::BlockCommentEnd);
     assert_eq!(identify_token("/*").unwrap(), Token::BlockCommentStart);
+    assert_eq!(identify_token("CP").unwrap(), Token::CarrPurcell);
     assert_eq!(identify_token("CCE").unwrap(), Token::CCE);
     assert_eq!(identify_token("centroid_over_serials").unwrap(), 
         Token::CentroidOverSerials);
@@ -775,6 +785,7 @@ mod tests{
     assert_eq!(identify_token("filter").unwrap(), Token::Filter);
     assert_eq!(identify_token(">").unwrap(), Token::GreaterThan);
     assert_eq!(identify_token(">=").unwrap(), Token::GreaterThanEqualTo);
+    assert_eq!(identify_token("Hahn").unwrap(), Token::Hahn);
     assert_eq!(identify_token("^").unwrap(), Token::Hat);
     assert_eq!(identify_token("in").unwrap(), Token::In);
     assert_eq!(identify_token("input_structure_file").unwrap(), 
@@ -795,6 +806,7 @@ mod tests{
     assert_eq!(identify_token(")").unwrap(), Token::ParenthesisClose);
     assert_eq!(identify_token("(").unwrap(), Token::ParenthesisOpen);
     assert_eq!(identify_token("+").unwrap(), Token::Plus);
+    assert_eq!(identify_token("pulse_sequence").unwrap(), Token::PulseSequence);
     assert_eq!(identify_token("radius").unwrap(), Token::Radius);
     assert_eq!(identify_token("residue").unwrap(), Token::Residue);
     assert_eq!(identify_token("rng_seed").unwrap(), Token::RNGSeed);

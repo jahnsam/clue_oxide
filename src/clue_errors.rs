@@ -33,6 +33,7 @@ pub enum CluEError{
   IndexOutOfBounds(usize,usize,usize),
   InvalidArgument(usize,String),
   InvalidConfigFile(String),
+  InvalidPulseSequence(usize),
   InvalidToken(usize,String),
   LenghMismatchTimepointsIncrements(usize,usize),
   MissingFilter(String),
@@ -177,6 +178,9 @@ impl fmt::Display for CluEError{
 
       CluEError::InvalidConfigFile(filename) => write!(f,
           "cannot not read config file \"{}\"", filename),
+
+      CluEError::InvalidPulseSequence(line_number) => write!(f,
+          "line {}, invalid pulse sequence",line_number),
 
       CluEError::InvalidToken(line_number,err_token) => write!(f,
           "line {}, invalid token \"{}\"",line_number, err_token),
