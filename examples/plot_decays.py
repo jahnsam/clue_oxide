@@ -16,20 +16,34 @@ color_palette = [
 ]
 #-------------------------------------------------------------------------------
 def main():
-  if len(sys.argv) == 1:
+  if len(sys.argv) < 3:
     print("Please supply a csv file:")
-    print("  python3 signal.csv")
+    print("  python3 time_axis.csv signal.csv")
     return
 
-  signal = read_signal_file(sys.argv[1])
-  time = np.linspace(0,1,len(signal))
+  time = read_time_axis(sys.argv[1])
+  signals = []
+
+  for ii in range(2,len(sys.argv)):
+    signal = read_signal_file(sys.argv[ii])
+    signals.append(signal)
 
   fig, (ax) = plt.subplots(1,1,figsize=(8, 6) );
-  ax.plot(time,np.real(signal),
-      linewidth=1,color=[5/255,135/255,0]);
+  
+  for ii,signal in enumerate(signals):
+    color = color_palette[ii % 8]
+    ax.plot(time*1e6,np.real(signal),
+        linewidth=1,color=color);
 
+  ax.set_xlabel("time (μs)")
+  ax.set_ylabel("Re(signal)")
   plt.show()
 
+#-------------------------------------------------------------------------------
+def read_time_axis(csv_file):
+  data = pd.read_csv(csv_file);
+  t = data['time_axis'];
+  return np.array(t);
 #-------------------------------------------------------------------------------
 def read_signal_file(csv_file):
   data = pd.read_csv(csv_file);

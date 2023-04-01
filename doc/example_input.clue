@@ -13,6 +13,12 @@ magnetic_field = 1.2; // T
 pulse_sequence = hahn;
 
 
+// OPTION 1
+cutoff_dipole_dipole = 1e3; // Hz
+
+// OPTION 2
+#[neighbor_cutoffs]
+dipole_dipole = 1e3;
 
 // section header for pdb info
 #[pdb, path=path/to/pdb]

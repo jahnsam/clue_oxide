@@ -82,6 +82,51 @@ impl Signal{
   //----------------------------------------------------------------------------
 }
 
+//------------------------------------------------------------------------------
+pub fn write_vec_signals(signals: &Vec::<Signal>, filename: &str,
+    headers: Vec::<String>) -> Result<(),CluEError>
+{
+   if headers.len() != signals.len(){
+     return Err(CluEError::MissingHeader(filename.to_string()));
+   }
+
+   for signal in signals.iter(){
+     if signal.data.len() != signals[0].len(){
+       return Err(CluEError::AllSignalsNotSameLength(filename.to_string()));
+     }
+   }
+
+    match write_vec_signals_to_csv(signals,filename,headers){
+      Ok(()) => Ok(()),
+      Err(_) => Err(CluEError::CannotWriteFile(filename.to_string())),
+    }
+}
+//------------------------------------------------------------------------------
+fn write_vec_signals_to_csv(signals: &Vec::<Signal>,filename: &str,
+    headers: Vec::<String>) -> Result<(),Box<dyn Error>>
+{
+  let n_data = signals[0].data.len();
+
+  let mut wtr = csv::Writer::from_path(filename)?;
+  
+  wtr.write_record(&headers)?;
+
+  for ii in 0..n_data{
+    
+    let mut rec = Vec::<String>::with_capacity(n_data);
+   
+    for signal in signals.iter(){
+      rec.push(signal.data[ii].to_string());
+    }
+
+    wtr.write_record(&rec)?;
+  }
+
+  wtr.flush()?;
+  
+  Ok(())
+}
+//------------------------------------------------------------------------------
 impl Add for &Signal{
   type Output = Signal;
  

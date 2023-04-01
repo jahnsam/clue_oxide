@@ -1,10 +1,44 @@
 use crate::physical_constants::*;
+use crate::clue_errors::*;
 
 use ndarray::Array2;
-use ndarray_linalg;
+use ndarray_linalg::{Eigh, UPLO};
 use num_complex::Complex;
 
 type CxMat = Array2::<Complex<f64>>;
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+pub fn get_propagators(hamiltonian: &CxMat, times: &Vec::<f64>  )
+  -> Result<Vec::<CxMat>,CluEError> 
+  //where T: Copy, Complex<f64>: Mul<T> // TODO allow complex times
+{
+  let Ok((eigvals, eigvecs)) = hamiltonian.eigh(UPLO::Lower) else{
+    return Err(
+        CluEError::CannotDiagonalizeHamiltonian(hamiltonian.to_string()));
+  };
+
+  let mut propagators = Vec::<CxMat>::with_capacity(times.len());
+
+  let inv_eigvecs = eigvecs.t().map(|v| v.conj());
+
+  for &t in times.iter(){
+    let u_eig = CxMat::from_diag(&eigvals.map(|nu| 
+          (-I*2.0*PI*nu*t).exp() 
+          )
+        );
+
+    let u = eigvecs.clone() * u_eig * inv_eigvecs.clone();
+
+    propagators.push(u);
+
+  }
+
+
+
+  Ok(propagators)
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // <m'|Sx|m> = 1/2*(delta_{m',m+1} + delta_{m'+1,1})*sqrt(S*(S+1) - m'*m).
 pub fn spin_x(spin_multiplicity: usize) -> CxMat {

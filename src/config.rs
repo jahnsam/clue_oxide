@@ -13,6 +13,7 @@ use crate::config::particle_config::ParticleConfig;//, ParticleProperties,  Isot
 use crate::physical_constants::Isotope;
 use crate::space_3d::Vector3D;
 use crate::integration_grid::IntegrationGrid;
+use crate::io;
 
 
 pub mod lexer;
@@ -39,7 +40,11 @@ pub struct Config{
   pub load_geometry: Option<LoadGeometry>,
   pub magnetic_field: Option<Vector3D>,
   pub max_cluster_size: Option<usize>,
-  pub neighbor_cutoffs: Vec::<NeighborCutoff>,
+  //pub neighbor_cutoffs: Vec::<NeighborCutoff>,
+  pub neighbor_cutoff_delta_hyperfine: Option<f64>,
+  pub neighbor_cutoff_dipole_dipole: Option<f64>,
+  pub neighbor_cutoff_3_spin_hahn_mod_depth: Option<f64>,
+  pub neighbor_cutoff_3_spin_hahn_taylor_4: Option<f64>,
   pub number_timepoints: Vec::<usize>,
   //pub inner_radius: Option<f64>,
   //pbc_style: PBCStyle,
@@ -136,6 +141,12 @@ impl Config{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  pub fn write_time_axis(&self) -> Result<(),CluEError>{
+    io::write_data(& vec![self.time_axis.clone()], 
+        "time_axis.csv",// TODO enable user control of name
+        vec!["time_axis".to_string()])
+  }
+  //----------------------------------------------------------------------------
 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -151,6 +162,7 @@ pub enum DetectedSpinCoordinates{
   XYZ(Vector3D),
   ProbabilityDistribution(IntegrationGrid),
 }
+/*
 #[derive(Debug,Clone,PartialEq)]
 pub enum NeighborCutoff{
   DeltaHyperfine(f64),
@@ -158,6 +170,7 @@ pub enum NeighborCutoff{
   HahnThreeSpinModulationDepth(f64),
   HahnThreeSpinFourthOrderTaylorCoefficient(f64),
 }
+*/
 #[derive(Debug,Clone,PartialEq)]
 pub enum ClusterMethod{
   AnalyticRestricted2CCE,
@@ -281,14 +294,11 @@ impl Config{
         }
       }
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::MaxClusterSize 
-        => set_to_some_usize(&mut self.max_cluster_size, expression)?,
-      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::NumberTimepoints 
-        => set_to_vec_usize(&mut self.number_timepoints, expression)?,
-      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::InputStructureFile 
         => set_to_some_string(&mut self.input_structure_file, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::MaxClusterSize 
+        => set_to_some_usize(&mut self.max_cluster_size, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::MagneticField => {
   
@@ -306,6 +316,25 @@ impl Config{
         }
 
       },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NeighborCutoffDeltaHyperfine 
+        => set_to_some_f64(&mut self.neighbor_cutoff_delta_hyperfine,
+            expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NeighborCutoffDipoleDipole 
+        => set_to_some_f64(&mut self.neighbor_cutoff_dipole_dipole,
+            expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NeighborCutoff3SpinHahnModDepth 
+        => set_to_some_f64(&mut self.neighbor_cutoff_3_spin_hahn_mod_depth,
+            expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NeighborCutoff3SpinHahnTaylor4 
+        => set_to_some_f64(&mut self.neighbor_cutoff_3_spin_hahn_taylor_4,
+            expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NumberTimepoints 
+        => set_to_vec_usize(&mut self.number_timepoints, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::PulseSequence => {
         if let Some(_value) = &self.pulse_sequence{
@@ -379,12 +408,16 @@ mod tests{
   #[test]
   fn test_parse_config_line(){
     let expressions = get_tokens_from_line("\
-        cluster_method = CCE;
+        cluster_method = cce;
         detected_spin_position = centroid_over_serials([28,29]);
         input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
         max_cluster_size = 4;
         number_timepoints = [40,60];
-        pulse_sequence = CP-1;
+        neighbor_cutoff_delta_hyperfine = 1e4;
+        neighbor_cutoff_dipole_dipole = 1e3;
+        neighbor_cutoff_3_spin_hahn_mod_depth = 1e-10;
+        neighbor_cutoff_3_spin_hahn_taylor_4 = 1e-9;
+        pulse_sequence = cp-1;
         radius = 80e-10;
         time_increments = [1e-9, 5e-7];
         write_structure_pdb = out.pdb;
@@ -403,6 +436,10 @@ mod tests{
          Some("../../assets/TEMPO_wat_gly_70A.pdb".to_string()));
     
     assert_eq!(config.max_cluster_size, Some(4));
+    assert_eq!(config.neighbor_cutoff_delta_hyperfine, Some(1e4));
+    assert_eq!(config.neighbor_cutoff_dipole_dipole, Some(1e3));
+    assert_eq!(config.neighbor_cutoff_3_spin_hahn_mod_depth, Some(1e-10));
+    assert_eq!(config.neighbor_cutoff_3_spin_hahn_taylor_4, Some(1e-9));
     assert_eq!(config.number_timepoints, vec![40,60]);
     assert_eq!(config.pulse_sequence, Some(PulseSequence::CarrPurcell(1)));
     assert_eq!(config.radius, Some(80.0e-10));
@@ -413,7 +450,7 @@ mod tests{
   #[test]
   fn test_construct_time_axis(){
     let expressions = get_tokens_from_line("\
-        pulse_sequence = Hahn;
+        pulse_sequence = hahn;
         number_timepoints = [100,91];
         time_increments = [1e-8, 1e-7];
         ").unwrap();

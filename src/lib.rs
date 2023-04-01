@@ -16,6 +16,7 @@ pub mod signal;
 pub mod space_3d;
 pub mod symmetric_list_2d;
 pub mod math;
+pub mod io;
 
 
 use crate::config::Config;
@@ -32,11 +33,14 @@ use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 /// decoherence.
 pub fn run(config: Config) -> Result<(),CluEError>{
 
+
   let mut rng: ChaCha20Rng;
   match config.rng_seed{
     Some(seed) => rng = ChaCha20Rng::seed_from_u64(seed),
     None => rng = ChaCha20Rng::from_entropy(),
   }
+
+  config.write_time_axis()?;
 
   calculate_signal::average_structure_signal(&mut rng, &config)?;
 

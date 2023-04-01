@@ -41,6 +41,10 @@ pub enum Token{
  MaxClusterSize,
  Minus,
  Mode(ModeAttribute),
+ NeighborCutoffDeltaHyperfine,
+ NeighborCutoffDipoleDipole,
+ NeighborCutoff3SpinHahnModDepth,
+ NeighborCutoff3SpinHahnTaylor4,
  Not,
  NotEqual,
  NotIn,
@@ -84,8 +88,8 @@ impl Token{
       Token::BondedElements => "bonded_elements".to_string(),
       Token::BlockCommentEnd => "*/".to_string(), 
       Token::BlockCommentStart => "/*".to_string(), 
-      Token::CarrPurcell => "CP".to_string(),
-      Token::CCE => "CCE".to_string(),
+      Token::CarrPurcell => "cp".to_string(),
+      Token::CCE => "cce".to_string(),
       Token::CentroidOverSerials => "centroid_over_serials".to_string(),
       Token::ClusterMethod => "cluster_method".to_string(),
       Token::Clusters => "clusters".to_string(),
@@ -103,7 +107,7 @@ impl Token{
       Token::Float(x) => x.to_string(),
       Token::GreaterThan => ">".to_string(),
       Token::GreaterThanEqualTo => ">=".to_string(),
-      Token::Hahn => "Hahn".to_string(),
+      Token::Hahn => "hahn".to_string(),
       Token::Hat => "^".to_string(),
       Token::In => "in".to_string(),
       Token::Indices => "indices".to_string(),
@@ -117,6 +121,14 @@ impl Token{
       Token::MaxClusterSize => "max_cluster_size".to_string(),
       Token::Minus => "-".to_string(),
       Token::Mode(mode) => mode.to_string(),
+      Token::NeighborCutoffDeltaHyperfine 
+        => "neighbor_cutoff_delta_hyperfine".to_string(),
+      Token::NeighborCutoffDipoleDipole 
+        => "neighbor_cutoff_dipole_dipole".to_string(),
+      Token::NeighborCutoff3SpinHahnModDepth 
+        => "neighbor_cutoff_3_spin_hahn_mod_depth".to_string(),
+      Token::NeighborCutoff3SpinHahnTaylor4 
+        => "neighbor_cutoff_3_spin_hahn_taylor_4".to_string(),
       Token::Not => "not".to_string(),
       Token::NotEqual => "!=".to_string(),
       Token::NotIn => "not in".to_string(),
@@ -126,7 +138,7 @@ impl Token{
       Token::ParenthesisOpen => "(".to_string(),
       Token::Plus => "+".to_string(),
       Token::PulseSequence => "pulse_sequence".to_string(),
-      Token::R2CCE => "r2CCE".to_string(),
+      Token::R2CCE => "r2cce".to_string(),
       Token::Radius => "radius".to_string(),
       Token::Residue => "residue".to_string(),
       Token::Residues => "residues".to_string(),
@@ -162,8 +174,8 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "bonded_elements" => Some(Token::BondedElements),
     "*/" => Some(Token::BlockCommentEnd),
     "/*" => Some(Token::BlockCommentStart),
-    "CP" => Some(Token::CarrPurcell),
-    "CCE" => Some(Token::CCE),
+    "cp" => Some(Token::CarrPurcell),
+    "cce" => Some(Token::CCE),
     "centroid_over_serials" => Some(Token::CentroidOverSerials),
     "cluster_method" => Some(Token::ClusterMethod),
     "clusters" => Some(Token::Clusters),
@@ -184,7 +196,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "input_structure_file" => Some(Token::InputStructureFile),
     "indices" => Some(Token::Indices), 
     "label" => Some(Token::Label),
-    "Hahn" => Some(Token::Hahn),
+    "hahn" => Some(Token::Hahn),
     "^" => Some(Token::Hat),
     "<" => Some(Token::LessThan),
     "<=" => Some(Token::LessThanEqualTo),
@@ -192,6 +204,14 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "magnetic_field" => Some(Token::MagneticField),
     "max_cluster_size" => Some(Token::MaxClusterSize),
     "-" => Some(Token::Minus),
+    "neighbor_cutoff_delta_hyperfine" 
+      => Some(Token::NeighborCutoffDeltaHyperfine),
+    "neighbor_cutoff_dipole_dipole" 
+      => Some(Token::NeighborCutoffDipoleDipole),
+    "neighbor_cutoff_3_spin_hahn_mod_depth" 
+      => Some(Token::NeighborCutoff3SpinHahnModDepth),
+    "neighbor_cutoff_3_spin_hahn_taylor_4" 
+      => Some(Token::NeighborCutoff3SpinHahnTaylor4),
     "not" => Some(Token::Not),
     "!=" => Some(Token::NotEqual),
     "not in" => Some(Token::NotIn),
@@ -201,7 +221,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "(" => Some(Token::ParenthesisOpen),
     "+" => Some(Token::Plus),
     "pulse_sequence" => Some(Token::PulseSequence),
-    "r2CCE" => Some(Token::R2CCE),
+    "r2cce" => Some(Token::R2CCE),
     "radius" => Some(Token::Radius),
     "residue" => Some(Token::Residue),
     "residues" => Some(Token::Residues),
@@ -766,8 +786,8 @@ mod tests{
     assert_eq!(identify_token("!").unwrap(), Token::Bang);
     assert_eq!(identify_token("*/").unwrap(), Token::BlockCommentEnd);
     assert_eq!(identify_token("/*").unwrap(), Token::BlockCommentStart);
-    assert_eq!(identify_token("CP").unwrap(), Token::CarrPurcell);
-    assert_eq!(identify_token("CCE").unwrap(), Token::CCE);
+    assert_eq!(identify_token("cp").unwrap(), Token::CarrPurcell);
+    assert_eq!(identify_token("cce").unwrap(), Token::CCE);
     assert_eq!(identify_token("centroid_over_serials").unwrap(), 
         Token::CentroidOverSerials);
     assert_eq!(identify_token("cluster_method").unwrap(), Token::ClusterMethod);
@@ -785,7 +805,7 @@ mod tests{
     assert_eq!(identify_token("filter").unwrap(), Token::Filter);
     assert_eq!(identify_token(">").unwrap(), Token::GreaterThan);
     assert_eq!(identify_token(">=").unwrap(), Token::GreaterThanEqualTo);
-    assert_eq!(identify_token("Hahn").unwrap(), Token::Hahn);
+    assert_eq!(identify_token("hahn").unwrap(), Token::Hahn);
     assert_eq!(identify_token("^").unwrap(), Token::Hat);
     assert_eq!(identify_token("in").unwrap(), Token::In);
     assert_eq!(identify_token("input_structure_file").unwrap(), 
@@ -797,6 +817,14 @@ mod tests{
     assert_eq!(identify_token("magnetic_field").unwrap(), Token::MagneticField);
     assert_eq!(identify_token("max_cluster_size").unwrap(), Token::MaxClusterSize);
     assert_eq!(identify_token("-").unwrap(), Token::Minus);
+    assert_eq!(identify_token("neighbor_cutoff_delta_hyperfine").unwrap(), 
+        Token::NeighborCutoffDeltaHyperfine);
+    assert_eq!(identify_token("neighbor_cutoff_dipole_dipole").unwrap(), 
+        Token::NeighborCutoffDipoleDipole);
+    assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_mod_depth").unwrap(), 
+        Token::NeighborCutoff3SpinHahnModDepth);
+    assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_taylor_4").unwrap(), 
+        Token::NeighborCutoff3SpinHahnTaylor4);
     assert_eq!(identify_token("not").unwrap(), Token::Not);
     assert_eq!(identify_token("!=").unwrap(), Token::NotEqual);
     assert_eq!(identify_token("not in").unwrap(), Token::NotIn);
@@ -830,7 +858,7 @@ mod tests{
     assert_eq!(identify_token("indices").unwrap(), Token::Indices); 
     assert_eq!(identify_token("elements").unwrap(), Token::Elements); 
     assert_eq!(identify_token("serials").unwrap(), Token::Serials); 
-    assert_eq!(identify_token("r2CCE").unwrap(), Token::R2CCE);
+    assert_eq!(identify_token("r2cce").unwrap(), Token::R2CCE);
     assert_eq!(identify_token("residues").unwrap(), Token::Residues);
     assert_eq!(identify_token("residue_sequence_numbers").unwrap(), 
         Token::ResSeqNums);

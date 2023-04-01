@@ -2,13 +2,16 @@ use std::fmt;
 
 #[derive(PartialEq,Debug,Clone)]
 pub enum CluEError{
+  AllSignalsNotSameLength(String),
   AtomDoesNotSpecifyElement(usize),
+  AllVectorsNotSameLength(String),
   CannotAddTokens,
   CannontAugmentFilter(usize,String),
   CannotCombineTokens(usize),
   CannotConvertToFloat(usize,String),
   CannotConvertSerialToIndex(u32),
   CannotConvertToVector(usize),
+  CannotDiagonalizeHamiltonian(String),
   CannotDivTokens,
   CannotFindCellID(usize),
   CannotMulTokens,
@@ -38,6 +41,7 @@ pub enum CluEError{
   LenghMismatchTimepointsIncrements(usize,usize),
   MissingFilter(String),
   MissingFilterLabel(usize),
+  MissingHeader(String),
   MissingProperties(String),
   MissingPropertiesLabel(usize),
   ModeAttributeWrongBrackets,
@@ -81,8 +85,14 @@ impl fmt::Display for CluEError{
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
 
+      CluEError::AllSignalsNotSameLength(filename) => write!(f,
+          "for \"{}\",signals must all have the same length", filename),
+
       CluEError::AtomDoesNotSpecifyElement(serial) => write!(f,
           "atom {} does not specify an element",serial),
+
+      CluEError::AllVectorsNotSameLength(filename) => write!(f,
+          "for \"{}\",signals must all have the same length", filename),
 
       CluEError::CannotAddTokens => write!(f,
           "cannot add tokens meaningfully"),
@@ -96,6 +106,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotConvertSerialToIndex(serial) => write!(f,
           "cannot convert serial id, {}, to an index",serial),
+
+      CluEError::CannotDiagonalizeHamiltonian(matrix) => write!(f,
+          "cannot diagonalize Hamiltonian,\n {}",matrix),
 
       CluEError::CannotDivTokens => write!(f,
           "cannot divide tokens meaningfully"),
@@ -194,6 +207,9 @@ impl fmt::Display for CluEError{
 
       CluEError::MissingFilterLabel(line_number) => write!(f,
           "line {}, missing label in filter",line_number),
+
+      CluEError::MissingHeader(filename) => write!(f,
+          "in \"{}\", every entry must have a header",filename),
 
       CluEError::MissingProperties(label) => write!(f,
           "no properties with label \"{}\"",label),
