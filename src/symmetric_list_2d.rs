@@ -7,7 +7,7 @@ pub struct SymList2D<T>{
 impl<T> SymList2D<T>{
 
   pub fn new(dim: usize) -> Self{
-    let n_elem = (dim*dim - dim)/2;
+    let n_elem = (dim*dim + dim)/2;
     let mut elements = Vec::<Option<T>>::with_capacity(n_elem);
    
     for _ii in 0..n_elem{
@@ -38,6 +38,7 @@ impl<T> SymList2D<T>{
 
 
 }
+
 fn get_uppertriangle_index(row: usize, col: usize, dim: usize) -> usize {
   
   let mut row = row as i32;
@@ -54,6 +55,7 @@ fn get_uppertriangle_index(row: usize, col: usize, dim: usize) -> usize {
 
   return idx as usize;
 }
+
 
 #[cfg(test)]
 mod tests{

@@ -54,6 +54,9 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
   };
 
   let mut cluster_set = find_clusters(&adjacency_list, max_cluster_size)?;
+  for (size_idx,clusters_of_size) in cluster_set.clusters.iter().enumerate(){
+    println!("Found {} clusters of size {}.",clusters_of_size.len(),size_idx+1);
+  }
 
   let Some(cluster_method) = &config.cluster_method else {
     return Err(CluEError::NoClusterMethod);

@@ -46,7 +46,7 @@ pub fn calculate_analytic_restricted_2cluster_signals(
         });
 
     let idx_end: usize;
-    if idx+batch_size > clusters[1].len() {
+    if idx+batch_size < clusters[1].len() {
       idx_end = idx + batch_size;
     }else{
       idx_end = clusters[1].len();

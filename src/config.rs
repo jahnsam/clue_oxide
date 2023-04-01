@@ -119,14 +119,14 @@ impl Config{
     };
 
     let n_tot = n_dts.iter().sum::<usize>();
-    let mut time_axis = Vec::<f64>::with_capacity(n_tot);
+    self.time_axis = Vec::<f64>::with_capacity(n_tot);
     match pulse_sequence{
       PulseSequence::CarrPurcell(n_pi_pulses) => {
+        let mut t = 0.0;
         for (idx, &n_dt) in n_dts.iter().enumerate(){
           let dt = (*n_pi_pulses as f64)*dts[idx];
-          let mut t = 0.0;
           for _ii in 0..n_dt{
-            time_axis.push(t);
+            self.time_axis.push(t);
             t += dt;
           }
         }
@@ -408,6 +408,33 @@ mod tests{
     assert_eq!(config.radius, Some(80.0e-10));
     assert_eq!(config.time_increments, vec![1e-9,5e-7]);
     assert_eq!(config.write_structure_pdb, Some("out.pdb".to_string()));
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_construct_time_axis(){
+    let expressions = get_tokens_from_line("\
+        pulse_sequence = Hahn;
+        number_timepoints = [100,91];
+        time_increments = [1e-8, 1e-7];
+        ").unwrap();
+
+    let mut config = Config::new();
+    for expression in expressions.iter(){
+      config.parse_config_line(expression).unwrap();
+    }
+
+    config.construct_time_axis().unwrap();
+    let time_axis = config.get_time_axis().unwrap();
+    assert_eq!(time_axis.len(),191);
+    assert_eq!(time_axis[0],0.0);
+    let t = 1e-8;
+    assert!((time_axis[1]-t).abs()/t<1e-12);
+    let t = 1e-6;
+    assert!((time_axis[100]-t).abs()/t<1e-12);
+    let t = 1.1e-6;
+    assert!((time_axis[101]-t).abs()/t<1e-12);
+    let t = 10e-6;
+    assert!((time_axis[190]-t).abs()/t<1e-12);
     
   }
 }

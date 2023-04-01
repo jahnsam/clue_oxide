@@ -231,7 +231,6 @@ pub fn construct_point_dipole_dipole_tensor(
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-/*
 #[cfg(test)]
 mod tests{
   use super::*;
@@ -241,16 +240,16 @@ mod tests{
   #[test]
   #[allow(non_snake_case)]
   fn test_Spin1Tensors() {
-    let number: u32 = 3;
+    let number = 3;
     let mut sf_tens = Spin1Tensors::new(number);
 
-    for ii in 0..(number as usize) {
+    for ii in 0..number {
 
-      let ten = mox::Mat::ones(1,1);
+      let mut ten = Vector3D::zeros();
       let val = 1.0 + (ii as f64);
-      let ten = ten.scalar_multiply(val);
+      ten.set_x(val);
 
-      assert!(sf_tens.set(ii,ten));
+      sf_tens.set(ii,ten);
 
     }
 
@@ -259,8 +258,8 @@ mod tests{
     for ii in 0..(number as usize) {
 
       let ten = sf_tens.get(ii).unwrap();
-      let val = ten.get(0,0).unwrap();
-      assert!( (val-expected_values[ii]).abs() < ERROR_THRESHOLD ); 
+      let val = ten.x();
+      assert!( (val-expected_values[ii]).abs() < 1e-12 ); 
 
     }
 
@@ -276,18 +275,18 @@ mod tests{
   #[test]
   #[allow(non_snake_case)]
   fn test_Spin2Tensors() {
-    let number: u32 = 3;
+    let number = 3;
     let mut ss_tens = Spin2Tensors::new(number);
 
     let mut val = 0.0;
     for ii in 0..(number as usize) {
       for jj in 0..(number as usize) {
 
-        let ten = mox::Mat::ones(1,1);
+        let ten = SymmetricTensor3D::eye();
         val += 1.0;
-        let ten = ten.scalar_multiply(val);
+        let ten = ten.scale(val);
 
-        assert!(ss_tens.set(ii,jj,ten));
+        ss_tens.set(ii,jj,ten);
       }
     }
     let expected_values = vec![ 
@@ -296,16 +295,14 @@ mod tests{
       7.0, 8.0, 9.0];
 
     let mut idx = 0;
-    for ii in 0..(number as usize) {
-      for jj in 0..(number as usize) {
+    for ii in 0..number {
+      for jj in 0..number {
         let ten = ss_tens.get(ii,jj).unwrap();
-        let val = ten.get(0,0).unwrap();
-        assert!( (val-expected_values[idx]).abs() < ERROR_THRESHOLD ); 
+        let val = ten.xx();
+        assert!( (val-expected_values[idx]).abs() < 1e-12 ); 
         idx += 1;
       }
     }
   }
-  
   //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 }
-*/
