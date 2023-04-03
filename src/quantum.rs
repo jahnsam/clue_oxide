@@ -1,2 +1,2 @@
-pub mod spin_operators;
+pub mod spin_hamiltonian;
 pub mod tensors;

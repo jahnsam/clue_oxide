@@ -13,6 +13,7 @@ use crate::physical_constants::{HBAR, JOULES_TO_HERTZ,MU0,PI};
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct HamiltonianTensors{
+  pub spin_multiplicities: Vec::<usize>,
   pub spin1_tensors: Spin1Tensors, // O(S)
   pub spin2_tensors: Spin2Tensors, // O(S^2)
 
@@ -27,6 +28,7 @@ impl HamiltonianTensors{
     -> Result<Self,CluEError>
   {
     let n_spins = structure.number_active() + 1;
+    let mut spin_multiplicities = Vec::<usize>::with_capacity(n_spins);
     let mut spin1_tensors = Spin1Tensors::new(n_spins);
     let mut spin2_tensors = Spin2Tensors::new(n_spins);
 
@@ -41,6 +43,8 @@ impl HamiltonianTensors{
     let eye = SymmetricTensor3D::eye();
     let gamma_e = detected_particle.isotope.gyromagnetic_ratio();
 
+    spin_multiplicities.push(detected_particle.isotope.spin_multiplicity());
+
 
     spin1_tensors.set(0,
         construct_zeeman_tensor(&(gamma_e*&eye),magnetic_field));
@@ -52,6 +56,8 @@ impl HamiltonianTensors{
       idx0 += 1;
 
       let gamma0 = particle0.isotope.gyromagnetic_ratio();
+
+      spin_multiplicities.push(particle0.isotope.spin_multiplicity());
 
       // nuclear Zeeman
       spin1_tensors.set(idx0, 
@@ -92,6 +98,7 @@ impl HamiltonianTensors{
     }
 
     Ok(HamiltonianTensors{
+      spin_multiplicities,
       spin1_tensors,
       spin2_tensors
       })

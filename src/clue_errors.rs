@@ -14,6 +14,7 @@ pub enum CluEError{
   CannotDiagonalizeHamiltonian(String),
   CannotDivTokens,
   CannotFindCellID(usize),
+  CannotFindSpinOp(String),
   CannotMulTokens,
   CannotOpenFile(String),
   CannotParseElement(String),
@@ -65,17 +66,21 @@ pub enum CluEError{
   NoRadius,
   NoRelationalOperators(usize),
   NoRHS(usize),
+  NoSpinOpForClusterSize(usize,usize),
+  NoSpinOpWithMultiplicity(usize),
   NoStructureFile,
   NotAnOperator(usize,String),
   NoTimeAxis,
   NoTimeIncrements,
   NoTimepoints,
   OptionAlreadySet(usize,String),
-  UnmatchedBlockComment(usize),
-  UnmatchedDelimiter(usize),
   TooManyRelationalOperators(usize),
   TooManyRHSArguments(usize),
+  UnavailableSpinOp(usize,usize),
   UnassignedCosubstitutionGroup(usize),
+  UnequalLengths(String,usize,String,usize),
+  UnmatchedBlockComment(usize),
+  UnmatchedDelimiter(usize),
   UnrecognizedOption(String),
   WrongClusterSizeForAnalyticCCE(usize),
   WrongVectorLength(usize,usize,usize)
@@ -115,6 +120,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotFindCellID(idx) => write!(f,
           "cannot determine cell id for particle {}",idx),
+
+      CluEError::CannotFindSpinOp(sop) => write!(f,
+          "cannot find spin operator \"{}\"",sop),
 
       CluEError::CannotMulTokens => write!(f,
           "cannot multiply tokens meaningfully"),
@@ -294,6 +302,14 @@ impl fmt::Display for CluEError{
       CluEError::NoRHS(line_number) => write!(f,
           "line {}, cannot read right hand side",line_number),
 
+      CluEError::NoSpinOpForClusterSize(cluster_size,max_size) => write!(f,
+          "no spin operators for clusters of size {} are built,\
+          only sizes upto {}",cluster_size,max_size),
+
+      CluEError::NoSpinOpWithMultiplicity(spin_multiplicity) => write!(f,
+          "no spin-{} operators are built", 
+          (*spin_multiplicity as f64 - 1.0)/2.0),
+
       CluEError::NoStructureFile => write!(f,
           "no structure file defined"),
 
@@ -317,6 +333,14 @@ impl fmt::Display for CluEError{
       CluEError::UnassignedCosubstitutionGroup(index)=> write!(f,
           "particle {} cannot be assigned to a cosubstitution group",
           index),
+
+      CluEError::UnavailableSpinOp(op_pos,n_ops) => write!(f,
+          "spin operator index, {}, exceeds vector length of {}",
+          op_pos,n_ops),
+
+      CluEError::UnequalLengths(vec0,len0,vec1,len1) => write!(f,
+          "unequal lengths, {} has length {}, but {} has length {}",
+          vec0,len0,vec1,len1),
 
       CluEError::UnrecognizedOption(option) => write!(f,
           "unrecognized option \"{}\"",option),
