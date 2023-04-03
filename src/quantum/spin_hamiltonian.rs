@@ -1,7 +1,8 @@
 use crate::physical_constants::*;
 use crate::clue_errors::*;
-use crate::config::Config;
+use crate::config::{Config,PulseSequence};
 use crate::HamiltonianTensors;
+use crate::signal::Signal;
 
 use std::fmt;
 use ndarray::Array2;
@@ -10,6 +11,122 @@ use ndarray::linalg::kron;
 use num_complex::Complex;
 
 type CxMat = Array2::<Complex<f64>>;
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+pub fn propagate_pulse_sequence(
+    density_matrix: &CxMat, hamiltonian: &SpinHamiltonian, config: &Config)
+  -> Result<Signal,CluEError>
+{
+
+  let Some(pulse_sequence) = &config.pulse_sequence else{
+    return Err(CluEError::NoPulseSequence);
+  };
+
+  let time_increments = &config.time_increments;
+  if time_increments.is_empty(){
+    return Err(CluEError::NoTimeIncrements);
+  }
+
+  let number_timepoints = &config.number_timepoints;
+  if number_timepoints.is_empty(){
+    return Err(CluEError::NoTimepoints);
+  }
+  let n_tot = number_timepoints.iter().sum::<usize>();
+
+  let mut signal = Vec::<Complex<f64>>::with_capacity(n_tot);
+
+  let du_betas = get_propagators(&hamiltonian.beta,time_increments)?;
+  let du_alphas = get_propagators(&hamiltonian.alpha,time_increments)?;
+
+
+  let mut u_beta = CxMat::eye(du_betas[0].dim().0);
+  let mut u_alpha = CxMat::eye(du_alphas[0].dim().0);
+  let mut u_beta_dag = CxMat::eye(du_betas[0].dim().0);
+  let mut u_alpha_dag = CxMat::eye(du_alphas[0].dim().0);
+
+  for (idt,_dt) in time_increments.iter().enumerate(){
+    for (_inumt,_numt) in number_timepoints.iter().enumerate(){
+    
+      let u: CxMat;
+      match pulse_sequence{
+        PulseSequence::CarrPurcell(0) => // FID
+          u = u_alpha_dag.dot(&u_beta),
+
+        PulseSequence::CarrPurcell(1) => // Hahn echo
+          u = u_alpha_dag.dot(&u_beta_dag.dot(&u_alpha.dot(&u_beta))),  
+        
+        PulseSequence::CarrPurcell(2) => // CP-2
+          u = u_beta_dag.dot(&u_alpha_dag.dot(&u_alpha_dag.dot(&u_beta_dag
+                .dot(&u_alpha.dot(&u_beta.dot(&u_alpha.dot(&u_beta))))))),
+        
+        PulseSequence::CarrPurcell(n_pi) => { // CP-n
+          let u_aa = u_alpha.dot(&u_alpha);
+          let u_bb = u_beta.dot(&u_beta);
+          let exponent = ((*n_pi as f64 - 1.0)/2.0) as usize;
+          let aabb1 = u_aa.dot(&u_bb);
+          let bbaa1 = u_bb.dot(&u_aa);
+          let mut aabb = aabb1.clone();
+          let mut bbaa = bbaa1.clone();
+          for _ii in 1..exponent{
+            aabb = aabb1.dot(&aabb);
+            bbaa = bbaa1.dot(&bbaa);
+          }
+          if n_pi%2 == 0{
+            u = ((u_alpha.dot(&bbaa.dot(&u_bb.dot(&u_alpha))))
+                .t().map(|v| v.conj()))
+              .dot( &(u_beta.dot(&aabb.dot(&u_aa.dot(&u_beta)))));
+          }else{
+            u = ((u_beta.dot(&aabb.dot(&u_alpha))).t().map(|v| v.conj()))
+              .dot( &(u_alpha.dot(&bbaa.dot(&u_beta))) );
+          }
+        },
+      }
+
+      let it = std::iter::zip(density_matrix,&u);
+      let v = it.map(|(rho_ij,u_ij)| rho_ij*u_ij).sum::<Complex<f64>>();
+      signal.push(v);
+
+
+      u_beta = du_betas[idt].dot(&u_beta);
+      u_alpha = du_alphas[idt].dot(&u_alpha);
+
+      u_beta_dag = u_beta.map(|u_ij| u_ij.conj() );
+      u_alpha_dag = u_alpha.map(|u_ij| u_ij.conj() );
+    }
+  }
+
+  Ok(Signal{data: signal})
+}
+//------------------------------------------------------------------------------
+pub fn get_propagators(hamiltonian: &CxMat, times: &Vec::<f64>  )
+  -> Result<Vec::<CxMat>,CluEError> 
+{
+  let Ok((eigvals, eigvecs)) = hamiltonian.eigh(UPLO::Lower) else{
+    return Err(
+        CluEError::CannotDiagonalizeHamiltonian(hamiltonian.to_string()));
+  };
+
+  let mut propagators = Vec::<CxMat>::with_capacity(times.len());
+
+  let inv_eigvecs = eigvecs.t().map(|v| v.conj());
+
+  for &t in times.iter(){
+    let u_eig = CxMat::from_diag(&eigvals.map(|nu| 
+          { let i_phase: Complex<f64> = (-I*2.0*PI*nu)*t;
+            i_phase.exp() 
+          }  
+          )
+        );
+
+    let u = eigvecs.dot( &u_eig.dot( &inv_eigvecs) );
+
+    propagators.push(u);
+
+  }
+
+  Ok(propagators)
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub struct SpinHamiltonian{
@@ -112,35 +229,6 @@ pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
   let alpha = ham0 + ham_ms*ms_alpha;
   
   Ok(SpinHamiltonian{beta,alpha})
-}
-//------------------------------------------------------------------------------
-pub fn get_propagators(hamiltonian: &CxMat, times: &Vec::<f64>  )
-  -> Result<Vec::<CxMat>,CluEError> 
-{
-  let Ok((eigvals, eigvecs)) = hamiltonian.eigh(UPLO::Lower) else{
-    return Err(
-        CluEError::CannotDiagonalizeHamiltonian(hamiltonian.to_string()));
-  };
-
-  let mut propagators = Vec::<CxMat>::with_capacity(times.len());
-
-  let inv_eigvecs = eigvecs.t().map(|v| v.conj());
-
-  for &t in times.iter(){
-    let u_eig = CxMat::from_diag(&eigvals.map(|nu| 
-          { let i_phase: Complex<f64> = (-I*2.0*PI*nu)*t;
-            i_phase.exp() 
-          }  
-          )
-        );
-
-    let u = eigvecs.dot( &u_eig.dot( &inv_eigvecs) );
-
-    propagators.push(u);
-
-  }
-
-  Ok(propagators)
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
