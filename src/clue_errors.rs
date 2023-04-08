@@ -57,6 +57,7 @@ pub enum CluEError{
   NoCentralSpinTransition,
   NoClusterMethod,
   NoClustersOfSize(usize),
+  NoDensityMatrixMethod,
   NoInputFile,
   NoLoadGeometry,
   NoMagneticField,
@@ -70,6 +71,7 @@ pub enum CluEError{
   NoSpinOpWithMultiplicity(usize),
   NoStructureFile,
   NotAnOperator(usize,String),
+  NoTemperature,
   NoTimeAxis,
   NoTimeIncrements,
   NoTimepoints,
@@ -259,6 +261,9 @@ impl fmt::Display for CluEError{
       CluEError::NoClusterMethod => write!(f,
           "no cluster method specified"),
       
+      CluEError::NoDensityMatrixMethod=> write!(f,
+          "no density matrix method specified"),
+      
       CluEError::NoInputFile => write!(f,
           "no input file"),
       
@@ -290,6 +295,9 @@ impl fmt::Display for CluEError{
       CluEError::NotAnOperator(line_number, token) => write!(f,
           "line {}, cannot interpret \"{}\" as an operator", line_number,token),
 
+      CluEError::NoTemperature => write!(f,
+          "no temperature specified"),
+      
       CluEError::NoTimeAxis => write!(f,
           "the time-axis has not been built"),
       

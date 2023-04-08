@@ -33,6 +33,7 @@ pub mod parse_properties;
 pub struct Config{
   pub cluster_batch_size: Option<usize>,
   pub cluster_method: Option<ClusterMethod>,
+  pub density_matrix: Option<DensityMatrixMethod>,
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
   pub detected_spin_identity: Option<Isotope>,
@@ -55,6 +56,7 @@ pub struct Config{
   pub pulse_sequence: Option<PulseSequence>,
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
+  pub temperature: Option<f64>,
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
   pub write_structure_pdb: Option<String>,
@@ -150,6 +152,12 @@ impl Config{
 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+#[derive(Debug,Clone,PartialEq)]
+pub enum DensityMatrixMethod{
+  Identity,
+  Thermal,
+}
 
 #[derive(Debug,Clone,PartialEq)]
 pub enum LoadGeometry{

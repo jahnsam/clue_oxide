@@ -1,6 +1,6 @@
 use crate::physical_constants::*;
 use crate::clue_errors::*;
-use crate::config::{Config,PulseSequence};
+use crate::config::{Config,PulseSequence,DensityMatrixMethod};
 use crate::HamiltonianTensors;
 use crate::signal::Signal;
 
@@ -97,7 +97,70 @@ pub fn propagate_pulse_sequence(
   Ok(Signal{data: signal})
 }
 //------------------------------------------------------------------------------
+pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
+  -> Result<CxMat,CluEError>
+{
+
+  let Some(density_matrix_method) = &config.density_matrix else{
+    return Err(CluEError::NoDensityMatrixMethod);
+  };
+
+  let density_matrix: CxMat;
+
+  match density_matrix_method{
+    DensityMatrixMethod::Identity => {
+      let dim = hamiltonian.beta.dim().0;
+      density_matrix = CxMat::eye(dim);
+    },
+    DensityMatrixMethod::Thermal => {
+      let Some(temperature) = config.temperature else{
+        return Err(CluEError::NoTemperature);
+      };
+      let beta = I/(temperature*BOLTZMANN*JOULES_TO_HERTZ);
+      
+      let mean_hamiltonian = (&hamiltonian.beta + &hamiltonian.alpha)/2.0;
+      
+      let mut rhos = get_propagators_complex_time(&mean_hamiltonian,
+          &vec![-beta])?;
+
+      density_matrix = rhos.remove(0);
+    },
+  }
+
+  Ok(density_matrix)
+}
+//------------------------------------------------------------------------------
 pub fn get_propagators(hamiltonian: &CxMat, times: &Vec::<f64>  )
+  -> Result<Vec::<CxMat>,CluEError> 
+{
+  let Ok((eigvals, eigvecs)) = hamiltonian.eigh(UPLO::Lower) else{
+    return Err(
+        CluEError::CannotDiagonalizeHamiltonian(hamiltonian.to_string()));
+  };
+
+  let mut propagators = Vec::<CxMat>::with_capacity(times.len());
+
+  let inv_eigvecs = eigvecs.t().map(|v| v.conj());
+
+  for &t in times.iter(){
+    let u_eig = CxMat::from_diag(&eigvals.map(|nu| 
+          { let i_phase: Complex<f64> = (-I*2.0*PI*nu)*t;
+            i_phase.exp() 
+          }  
+          )
+        );
+
+    let u = eigvecs.dot( &u_eig.dot( &inv_eigvecs) );
+
+    propagators.push(u);
+
+  }
+
+  Ok(propagators)
+}
+//------------------------------------------------------------------------------
+pub fn get_propagators_complex_time(hamiltonian: &CxMat, 
+    times: &Vec::<Complex<f64>>  )
   -> Result<Vec::<CxMat>,CluEError> 
 {
   let Ok((eigvals, eigvecs)) = hamiltonian.eigh(UPLO::Lower) else{
@@ -228,7 +291,7 @@ pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
   let beta = ham0.clone() + ham_ms.clone()*ms_beta;
   let alpha = ham0 + ham_ms*ms_alpha;
   
-  Ok(SpinHamiltonian{beta,alpha})
+Ok(SpinHamiltonian{beta,alpha})
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

@@ -1,3 +1,4 @@
+use crate::clue_errors::*;
 use crate::signal::Signal;
 
 pub mod adjacency;
@@ -6,10 +7,10 @@ pub mod connected_subgraphs;
 pub mod find_clusters;
 pub mod get_subclusters;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone,Default,PartialEq)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct Cluster{
   vertices: Vec::<usize>,
-  pub signal: Option<Signal>,
+  pub signal: Result<Option<Signal>,CluEError>,
 }
 
 //------------------------------------------------------------------------------
@@ -17,7 +18,7 @@ impl Cluster{
   pub fn from(vertices: Vec::<usize>) -> Self{
     Cluster{
       vertices,
-      signal: None,
+      signal: Ok(None),
     }
   }
 }

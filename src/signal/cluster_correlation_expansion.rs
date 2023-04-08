@@ -15,7 +15,7 @@ pub fn do_cluster_correlation_expansion_product(cluster_set: &ClusterSet,
   for clusters in cluster_set.clusters.iter(){
 
     for cluster in clusters.iter(){
-      if let Some(v) =  &cluster.signal{
+      if let Ok(Some(v)) =  &cluster.signal{
         signal = &signal * v;
       }
     }

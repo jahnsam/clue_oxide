@@ -40,9 +40,8 @@ pub fn calculate_analytic_restricted_2cluster_signals(
     let idx = ibatch*batch_size;
     clusters[1].par_iter_mut().skip(idx).take(batch_size).for_each(
         |cluster| {
-          let aux_signal = analytic_restricted_2cluster_signal(
-            &cluster.vertices(), tensors, config).unwrap(); // TODO: fix unwrap
-          (*cluster).signal = Some(aux_signal);
+          (*cluster).signal = analytic_restricted_2cluster_signal(
+            &cluster.vertices(), tensors, config);
         });
 
     let idx_end: usize;
@@ -52,7 +51,7 @@ pub fn calculate_analytic_restricted_2cluster_signals(
       idx_end = clusters[1].len();
     }
     for ii in idx..idx_end{
-      let Some(aux_signal) = &clusters[1][ii].signal else{
+      let Ok(Some(aux_signal)) = &clusters[1][ii].signal else{
         return Err(CluEError::ClusterHasNoSignal(clusters[1][ii].to_string()));
       };
 
@@ -66,7 +65,8 @@ pub fn calculate_analytic_restricted_2cluster_signals(
 }
 
 fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
-    tensors: &HamiltonianTensors, config: &Config) -> Result<Signal,CluEError>
+    tensors: &HamiltonianTensors, config: &Config) 
+  -> Result<Option<Signal>,CluEError>
 {
   if vertices.len() != 2 {
     return Err(CluEError::WrongClusterSizeForAnalyticCCE(vertices.len()));
@@ -75,13 +75,13 @@ fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
   let idx1 = vertices[1];
 
   let Some(dipdip) = &tensors.spin2_tensors.get(idx0,idx1) else {
-    return Ok(Signal::new());
+    return Ok(Some(Signal::new()));
   };
   let Some(hf0) =  &tensors.spin2_tensors.get(0,idx0) else {
-    return Ok(Signal::new());
+    return Ok(Some(Signal::new()));
   }; 
   let Some(hf1) =  &tensors.spin2_tensors.get(0,idx1) else {
-    return Ok(Signal::new());
+    return Ok(Some(Signal::new()));
   }; 
 
   let b = dipdip.zz();
@@ -99,7 +99,7 @@ fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
     data.push(ONE - k*s4 );
   }
 
-  Ok(Signal{data})
+  Ok(Some(Signal{data}))
 
 
 }

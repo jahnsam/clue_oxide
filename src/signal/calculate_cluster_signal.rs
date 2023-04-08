@@ -31,29 +31,27 @@ pub fn calculate_cluster_signals(
       = math::ceil( (n_clusters as f64)/(batch_size as f64)) as usize;
       for ibatch in 0..n_batches{
         let idx = ibatch*batch_size;
+
         clusters[cluster_size].par_iter_mut().skip(idx).take(batch_size)
-          .for_each(
-            |cluster| 
-              (*cluster).signal 
-              = calculate_full_signal(&cluster.vertices(),spin_ops,tensors,config)
+          .for_each(|cluster| 
+              (*cluster).signal = calculate_full_signal(&cluster.vertices(),
+                spin_ops,tensors,config)
         );
+
       }
   }
   Ok(())
 }
 
 fn calculate_full_signal(tensor_indices: &Vec::<usize>, 
-    spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors, config: &Config) 
-  -> Option<Signal>
+    spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors, 
+    config: &Config) 
+  -> Result<Option<Signal>,CluEError>
 {
 
-  /*
-  let hamiltonian = build_
-  let density_matrix =
-  get_density_matrix(&hamiltonian,&spin_ops,&tensors,&config);
-  let signal = propagate_pulse_sequence(density_matrix, &hamiltonian: &config)?;
-  */
-  let nt = tensors.len();
-  Some(Signal::ones(nt))
+  let hamiltonian = build_hamiltonian(tensor_indices,spin_ops, tensors,config)?;
+  let density_matrix = get_density_matrix(&hamiltonian, config)?;
+  let signal = propagate_pulse_sequence(&density_matrix, &hamiltonian, config)?;
+  Ok(Some(signal))
 }
 
