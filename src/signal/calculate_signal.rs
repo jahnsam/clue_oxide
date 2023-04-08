@@ -9,6 +9,8 @@ use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   calculate_analytic_restricted_2cluster_signals};
 use crate::signal::cluster_correlation_expansion::*;
 use rand_chacha::ChaCha20Rng;
+use crate::quantum::spin_hamiltonian::*;
+use crate::math;
 // TODO: 
 //  Each convergence function should have the option to skip convergence
 //  and return the next level's result.
@@ -66,8 +68,14 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
     ClusterMethod::AnalyticRestricted2CCE => 
       calculate_analytic_restricted_2cluster_signals(cluster_set, &tensors,
           config)?,
-    ClusterMethod::CCE => calculate_cluster_signals(cluster_set, &tensors, 
-          config)?,
+    ClusterMethod::CCE => {
+      let spin_multiplicity_set =
+        math::unique(tensors.spin_multiplicities.clone());
+      let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
+          max_cluster_size)?;
+      calculate_cluster_signals(cluster_set, &spin_ops, &tensors, 
+          config)?;
+    },
   }
 
   //let signal = do_cluster_correlation_expansion_product(&cluster_set,config)?;

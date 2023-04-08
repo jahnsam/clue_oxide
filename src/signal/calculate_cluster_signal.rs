@@ -4,13 +4,14 @@ use crate::clue_errors::CluEError;
 use crate::signal::Signal;
 use crate::HamiltonianTensors;
 use crate::math;
+use crate::quantum::spin_hamiltonian::*;
 
 use rayon::prelude::*;
 
 use std::collections::HashMap;
 
 pub fn calculate_cluster_signals(
-    mut cluster_set: ClusterSet, 
+    mut cluster_set: ClusterSet, spin_ops: &ClusterSpinOperators,
     tensors: &HamiltonianTensors, config: &Config,
     ) -> Result<(),CluEError>
 {
@@ -33,16 +34,25 @@ pub fn calculate_cluster_signals(
         clusters[cluster_size].par_iter_mut().skip(idx).take(batch_size)
           .for_each(
             |cluster| 
-              (*cluster).signal = calculate_full_signal(tensors,config)
+              (*cluster).signal 
+              = calculate_full_signal(&cluster.vertices(),spin_ops,tensors,config)
         );
       }
   }
   Ok(())
 }
 
-fn calculate_full_signal(tensors: &HamiltonianTensors, config: &Config) 
+fn calculate_full_signal(tensor_indices: &Vec::<usize>, 
+    spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors, config: &Config) 
   -> Option<Signal>
 {
+
+  /*
+  let hamiltonian = build_
+  let density_matrix =
+  get_density_matrix(&hamiltonian,&spin_ops,&tensors,&config);
+  let signal = propagate_pulse_sequence(density_matrix, &hamiltonian: &config)?;
+  */
   let nt = tensors.len();
   Some(Signal::ones(nt))
 }
