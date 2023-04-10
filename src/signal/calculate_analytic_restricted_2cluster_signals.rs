@@ -3,7 +3,7 @@ use crate::cluster::find_clusters::ClusterSet;
 use crate::signal::Signal;
 use crate::HamiltonianTensors;
 use crate::CluEError;
-use crate::physical_constants::ONE;
+use crate::physical_constants::{ONE,PI};
 use crate::math;
 
 use rayon::prelude::*;
@@ -63,8 +63,8 @@ pub fn calculate_analytic_restricted_2cluster_signals(
 
   Ok(())
 }
-
-fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
+//------------------------------------------------------------------------------
+pub fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
     tensors: &HamiltonianTensors, config: &Config) 
   -> Result<Option<Signal>,CluEError>
 {
@@ -87,8 +87,10 @@ fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
   let b = dipdip.zz();
   let delta_hf = (hf0.zz() - hf1.zz()).abs();
   
-  let omega = (delta_hf*delta_hf + b*b).sqrt();
-  let k = (2.0*b*delta_hf/( omega*omega )).powi(2);
+  //let omega = (delta_hf*delta_hf + b*b).sqrt();
+  //let k = (2.0*b*delta_hf/( omega*omega )).powi(2);
+  let omega = 2.0*PI*hahn_three_spin_modulation_frequency(delta_hf,b);
+  let k = hahn_three_spin_modulation_depth(delta_hf,b);
 
   let time_axis = config.get_time_axis()?;
   let nt = time_axis.len();
@@ -101,6 +103,13 @@ fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
 
   Ok(Some(Signal{data}))
 
-
+}
+//------------------------------------------------------------------------------
+pub fn hahn_three_spin_modulation_depth(delta_hf: f64,b:f64) -> f64{
+  (2.0*b*delta_hf/( delta_hf*delta_hf + b*b) ).powi(2)
+}
+//------------------------------------------------------------------------------
+pub fn hahn_three_spin_modulation_frequency(delta_hf: f64,b:f64) -> f64{
+  (delta_hf*delta_hf + b*b).sqrt()
 }
 

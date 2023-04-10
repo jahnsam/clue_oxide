@@ -6,7 +6,7 @@ use crate::signal::Signal;
 
 use std::fmt;
 use ndarray::Array2;
-use ndarray_linalg::{Eigh, UPLO};
+use ndarray_linalg::{Eigh, UPLO, Trace};
 use ndarray::linalg::kron;
 use num_complex::Complex;
 
@@ -105,7 +105,7 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
     return Err(CluEError::NoDensityMatrixMethod);
   };
 
-  let density_matrix: CxMat;
+  let mut density_matrix: CxMat;
 
   match density_matrix_method{
     DensityMatrixMethod::Identity => {
@@ -116,7 +116,7 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
       let Some(temperature) = config.temperature else{
         return Err(CluEError::NoTemperature);
       };
-      let beta = I/(temperature*BOLTZMANN*JOULES_TO_HERTZ);
+      let beta = I/(temperature*BOLTZMANN/HBAR);
       
       let mean_hamiltonian = (&hamiltonian.beta + &hamiltonian.alpha)/2.0;
       
@@ -127,9 +127,15 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
     },
   }
 
+  let z = density_matrix.trace().unwrap();
+  density_matrix = density_matrix/z;
   Ok(density_matrix)
 }
 //------------------------------------------------------------------------------
+/// This function takes a Hamiltonian (Hz) and a vector of times (s), 
+/// and calculates the propagator for each time.
+/// For each time _t_, the propagator _U_(_t_) = exp(-i2π_tH_), 
+/// where _H_ is a Hamiltonian in frequency units.
 pub fn get_propagators(hamiltonian: &CxMat, times: &Vec::<f64>  )
   -> Result<Vec::<CxMat>,CluEError> 
 {
@@ -159,6 +165,10 @@ pub fn get_propagators(hamiltonian: &CxMat, times: &Vec::<f64>  )
   Ok(propagators)
 }
 //------------------------------------------------------------------------------
+/// This function takes a Hamiltonian (Hz) and a vector of times (s), 
+/// and calculates the propagator for each time.
+/// For each time _t_, the propagator _U_(_t_) = exp(-i2π_tH_), 
+/// where _H_ is a Hamiltonian in frequency units.
 pub fn get_propagators_complex_time(hamiltonian: &CxMat, 
     times: &Vec::<Complex<f64>>  )
   -> Result<Vec::<CxMat>,CluEError> 
@@ -617,8 +627,206 @@ pub fn spin_squared(spin_multiplicity: usize) -> CxMat {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::space_3d::{SymmetricTensor3D,Vector3D};
+  use crate::quantum::tensors::*;
+  use ndarray::array;
+  use crate::signal::calculate_analytic_restricted_2cluster_signals::{
+    analytic_restricted_2cluster_signal,
+    hahn_three_spin_modulation_frequency,
+    hahn_three_spin_modulation_depth};
 
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_propagate_pulse_sequence(){
+    let density_matrix = CxMat::eye(4);
+
+    let spin_ops = ClusterSpinOperators::new(&vec![2],2);
+
+    let z0 = 33.0e9;
+    let z1 = 80.0e6;
+    let a1 = 10.0e6;
+    let a2 = -10.0e6;
+    let b = 10.0e3;
+    let tensors = build_restricted_three_spin_tensors(z0, z1, a1, a2, b);
+  
+    let spin_indices = vec![1,2];
+    
+    let spin_ops = ClusterSpinOperators::new(&vec![2],2).unwrap();
+
+    let mut config = Config::new();
+    config.number_timepoints = vec![21];
+    let delta_hf = a1 - a2;
+    let freq = hahn_three_spin_modulation_frequency(delta_hf,b);
+    config.time_increments = vec![0.05/freq];
+    config.pulse_sequence = Some(PulseSequence::CarrPurcell(2));
+
+    config.set_defaults();
+    config.construct_time_axis().unwrap();
+  
+    let hamiltonian = build_hamiltonian(&spin_indices,&spin_ops, &tensors,
+        &config).unwrap();
+
+    config.density_matrix = Some(DensityMatrixMethod::Identity);
+    let density_matrix = get_density_matrix(&hamiltonian,&config).unwrap();
+
+    let signal = propagate_pulse_sequence(&density_matrix, &hamiltonian, 
+        &config).unwrap();
+
+    let ref_signal_opt = analytic_restricted_2cluster_signal(
+        &spin_indices,&tensors,&config).unwrap();
+    let Some(ref_signal) = ref_signal_opt else{
+      panic!("Could not calculate reference signal.");
+    };
+
+    for (ii,v) in signal.data.iter().enumerate(){
+      let v0 = ref_signal.data[ii];
+      assert!((v-v0).norm() < 1e-12);
+    }
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_build_hamiltonian(){
+
+    let z0 = 1000.0;
+    let z1 = 100.0;
+    let a1 = 2.0;
+    let a2 = -1.0;
+    let b = 0.1;
+
+    let tensors = build_restricted_three_spin_tensors(z0, z1, a1, a2, b);
+  
+
+    let spin_indices = vec![1,2];
+    let spin_ops = ClusterSpinOperators::new(&vec![2],2).unwrap();
+    let mut config = Config::new();
+    config.set_defaults();
+
+    let hamiltonian = build_hamiltonian(&spin_indices,&spin_ops, &tensors,
+        &config).unwrap();
+
+    let ms = 0.5;
+    let z0 = ms*z0*ONE;
+    let z1 = z1*ONE;
+    let a1 = a1*ONE;
+    let a2 = a2*ONE;
+    let b = b*ONE;
+    
+    let beta = array![
+      [-z0 + z1 - (a1+a2)/4.0 + b/4.0,ZERO,ZERO,ZERO],
+      [ZERO,-z0 -(a1-a2)/4.0 - b/4.0 ,-b/4.0,ZERO],
+      [ZERO,-b/4.0, -z0 +(a1-a2)/4.0 - b/4.0,ZERO],
+      [ZERO,ZERO,ZERO,-z0 -z1 + (a1+a2)/4.0 + b/4.0],
+    ];
+    
+      let alpha = array![
+      [z0 + z1 + (a1+a2)/4.0 + b/4.0,ZERO,ZERO,ZERO],
+      [ZERO,z0 +(a1-a2)/4.0 - b/4.0 ,-b/4.0,ZERO],
+      [ZERO,-b/4.0, z0 -(a1-a2)/4.0 - b/4.0,ZERO],
+      [ZERO,ZERO,ZERO,z0 -z1 - (a1+a2)/4.0 + b/4.0],
+    ];
+
+    assert!(approx_eq(&hamiltonian.beta, &beta, 1e-12));
+    assert!(approx_eq(&hamiltonian.alpha, &alpha, 1e-12));
+  }
+  //----------------------------------------------------------------------------
+  fn build_restricted_three_spin_tensors(z0: f64, z1: f64, a1: f64, a2: f64, 
+      b: f64) -> HamiltonianTensors{
+    let spin_multiplicities = vec![2,2,2];
+
+    let mut spin1_tensors = Spin1Tensors::new(3);
+    let zeeman0 = Vector3D::from([0.0, 0.0, z0]);
+    let zeeman1 = Vector3D::from([0.0, 0.0, z1]);
+    spin1_tensors.set(0,zeeman0);
+    spin1_tensors.set(1,zeeman1.clone());
+    spin1_tensors.set(2,zeeman1);
+
+    let mut spin2_tensors = Spin2Tensors::new(3);
+    let hf1 = SymmetricTensor3D::from([ 0.0, 0.0, 0.0,
+                                             0.0, 0.0,
+                                                    a1]);
+    let hf2 = SymmetricTensor3D::from([ 0.0, 0.0, 0.0,
+                                             0.0, 0.0,
+                                                   a2]);
+
+    let dip = SymmetricTensor3D::from([ -b/2.0,    0.0, 0.0,
+                                                -b/2.0, 0.0,
+                                                         b]);
+
+    spin2_tensors.set(0,1,hf1);
+    spin2_tensors.set(0,2,hf2);
+    spin2_tensors.set(1,2,dip);
+
+    HamiltonianTensors{
+      spin_multiplicities,
+      spin1_tensors,
+      spin2_tensors} 
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_get_density_matrix(){
+    let sz = spin_z(2);
+    let delta_energy = 416732382466.5515; // kB*T/h at T = 20 K.
+    let ham = sz*delta_energy;
+
+    let spin_hamiltonian = SpinHamiltonian{beta: ham.clone(),alpha: ham};
+
+    let mut config = Config::new();
+
+    config.density_matrix = Some(DensityMatrixMethod::Identity);
+    let density_matrix = get_density_matrix(&spin_hamiltonian,&config).unwrap();
+
+    let mut expected = CxMat::eye(2)/2.0;
+
+    assert!(approx_eq(&density_matrix, &expected, 1e-12));
+
+    config.density_matrix = Some(DensityMatrixMethod::Thermal);
+    config.temperature = Some(20.0);
+    
+    let density_matrix = get_density_matrix(&spin_hamiltonian,&config).unwrap();
+
+
+    let z = (0.5*ONE).exp() + (-0.5*ONE).exp();
+    expected[[0,0]] = (-0.5*ONE).exp()/z;
+    expected[[1,1]] = (0.5*ONE).exp()/z;
+
+    assert!(approx_eq(&density_matrix, &expected, 1e-9));
+
+    let sx = spin_x(2);
+    let ham = sx*delta_energy;
+    let spin_hamiltonian = SpinHamiltonian{beta: ham.clone(),alpha: ham};
+
+    let density_matrix = get_density_matrix(&spin_hamiltonian,&config).unwrap();
+
+    let c = ( (0.5*ONE).exp() + (-0.5*ONE).exp())/2.0;
+    let s = ( (0.5*ONE).exp() - (-0.5*ONE).exp())/2.0;
+    
+    expected[[0,0]] = 0.5*ONE;
+    expected[[1,1]] = 0.5*ONE;
+    expected[[0,1]] = -0.5*ONE*s/c;
+    expected[[1,0]] = -0.5*ONE*s/c;
+
+    assert!(approx_eq(&density_matrix, &expected, 1e-9));
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_get_propagators_complex_time() {
+    let sy = spin_y(2);
+    let ham = sy*2.0;
+
+    let times = vec![ONE/8.0];
+
+    let propagators = get_propagators_complex_time(&ham,&times).unwrap();
+    let u = &propagators[0];
+
+    for irow in  0..2 {
+      for icol in 1..2 {
+        let err: f64 = (u[[irow,icol]].conj()*u[[irow,icol]] - 0.5*ONE).norm();
+        assert!(err < 1e-12);
+      }
+    }
+
+  }  
   //----------------------------------------------------------------------------
   #[test]
   fn test_get_propagators() {

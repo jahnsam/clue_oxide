@@ -71,6 +71,7 @@ pub enum CluEError{
   NoSpinOpWithMultiplicity(usize),
   NoStructureFile,
   NotAnOperator(usize,String),
+  NotAProperSubset(String,String),
   NoTemperature,
   NoTimeAxis,
   NoTimeIncrements,
@@ -294,6 +295,9 @@ impl fmt::Display for CluEError{
 
       CluEError::NotAnOperator(line_number, token) => write!(f,
           "line {}, cannot interpret \"{}\" as an operator", line_number,token),
+
+      CluEError::NotAProperSubset(subcluster, cluster) => write!(f,
+          "{} is not a proper subset of {}", subcluster, cluster),
 
       CluEError::NoTemperature => write!(f,
           "no temperature specified"),

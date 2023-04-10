@@ -7,6 +7,7 @@ use crate::clue_errors::CluEError;
 // Numbers
 pub const I: Complex<f64> = Complex::<f64>{re: 0.0, im: 1.0};
 pub const ONE: Complex<f64> = Complex::<f64>{re: 1.0, im: 0.0};
+pub const ZERO: Complex<f64> = Complex::<f64>{re: 0.0, im: 0.0};
 //pub const I: mox::Z64 = mox::I;
 //pub const ONE: mox::Z64 = mox::Z64{re: 1.0, im: 0.0};
 

@@ -8,6 +8,6 @@ neighbor_cutoff_dipole_dipole = 1e3; // Hz.
 pulse_sequence = hahn;
 number_timepoints = [101];
 time_increments = [1e-7];
-cluster_method = r2cce;
+cluster_method = cce;
 max_cluster_size = 2;
 magnetic_field = 1.2;

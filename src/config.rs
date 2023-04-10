@@ -87,6 +87,12 @@ impl Config{
     if self.pdb_model_index == None{
       self.pdb_model_index = Some(0);
     }
+    if self.density_matrix == None{
+      match self.temperature{
+        Some(_) => self.density_matrix = Some(DensityMatrixMethod::Thermal),
+        None => self.density_matrix = Some(DensityMatrixMethod::Identity),
+      }
+    }
   }
   //----------------------------------------------------------------------------
   pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) -> usize{
