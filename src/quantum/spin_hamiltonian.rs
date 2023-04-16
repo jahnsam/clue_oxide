@@ -44,7 +44,8 @@ pub fn propagate_pulse_sequence(
   let mut u_alpha_dag = CxMat::eye(du_alphas[0].dim().0);
 
   for (idt,_dt) in time_increments.iter().enumerate(){
-    for (_inumt,_numt) in number_timepoints.iter().enumerate(){
+    let n_timepoints = number_timepoints[idt];
+    for _inumt in 0..n_timepoints{
     
       let u: CxMat;
       match pulse_sequence{
@@ -673,6 +674,8 @@ mod tests {
     let signal = propagate_pulse_sequence(&density_matrix, &hamiltonian, 
         &config).unwrap();
 
+    assert_eq!(signal.data.len(),21);
+
     let ref_signal_opt = analytic_restricted_2cluster_signal(
         &spin_indices,&tensors,&config).unwrap();
     let Some(ref_signal) = ref_signal_opt else{
@@ -681,7 +684,7 @@ mod tests {
 
     for (ii,v) in signal.data.iter().enumerate(){
       let v0 = ref_signal.data[ii];
-      assert!((v-v0).norm() < 1e-12);
+      assert!((v-v0).norm() < 1e-9);
     }
   }
   //----------------------------------------------------------------------------

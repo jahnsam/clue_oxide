@@ -4,7 +4,7 @@ use crate::Structure;
 use crate::HamiltonianTensors;
 use crate::build_adjacency_list;
 use crate::find_clusters;
-use crate::signal::calculate_cluster_signal::calculate_cluster_signals;
+use crate::signal::cluster_correlation_expansion::*;
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   calculate_analytic_restricted_2cluster_signals};
 use crate::signal::cluster_correlation_expansion::*;
@@ -73,7 +73,7 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
         math::unique(tensors.spin_multiplicities.clone());
       let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
           max_cluster_size)?;
-      calculate_cluster_signals(cluster_set, &spin_ops, &tensors, 
+      do_cluster_correlation_expansion(cluster_set, &spin_ops, &tensors, 
           config)?;
     },
   }

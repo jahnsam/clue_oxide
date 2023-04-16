@@ -184,8 +184,7 @@ pub fn construct_zeeman_tensor(
     magnetic_field: &Vector3D) -> Vector3D
 {
 
-  let zeeman = magnetic_field * gyromagnetic_ratio;
-  (-JOULES_TO_HERTZ) * &zeeman
+  (-0.5/PI)*&(magnetic_field * gyromagnetic_ratio)
 }
 /*
 pub fn construct_hyperfine_tensor(
@@ -231,19 +230,101 @@ pub fn construct_point_dipole_dipole_tensor(
   let h_perp = get_perpendicular_dipole_dipole_frequency(gyromagnetic_ratio_1,
       gyromagnetic_ratio_2,r);
 
-  let ten = &SymmetricTensor3D::eye() - &n3nt; 
+  let ten = h_perp*&(&SymmetricTensor3D::eye() - &n3nt); 
 
-  h_perp * &ten
+  ten
   
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[cfg(test)]
 mod tests{
   use super::*;
-  //use crate::phys::*;
+  use crate::physical_constants::*;
+  use crate::space_3d::{SymmetricTensor3D, Vector3D};
 
-  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_construct_zeeman_tensor() {
+    let gmr = ELECTRON_G*MUB/HBAR;
+    assert!((gmr+1.76085963023e11).abs() < 0.00000000053e11);
+    let gyromagnetic_ratio = SymmetricTensor3D::from([gmr,0.0, 0.0,
+                                                          gmr, 0.0,
+                                                               gmr]); 
+    let magnetic_field = Vector3D::from([0.0, 0.0, 1.2]);
+
+    let zeeman = construct_zeeman_tensor(&gyromagnetic_ratio,&magnetic_field);
+    assert_eq!(zeeman.x(),0.0);
+    assert_eq!(zeeman.y(),0.0);
+    assert!( (zeeman.z() - 33629941709.0).abs() < 0.1);
+
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_get_perpendicular_dipole_dipole_frequency(){
+    let gmr = Isotope::Hydrogen1.gyromagnetic_ratio();
+    let gmr0 = 2.6752218744e8;
+    assert!( (gmr-gmr0).abs() < 0.000_000_0011e8);
+    let r = 1.5e-10;
+    let freq = get_perpendicular_dipole_dipole_frequency(gmr,gmr,r);
+    
+    let ref_freq = 35591.15890;
+    assert!((freq-ref_freq).abs()/ref_freq<1e-9);
+  
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_construct_point_dipole_dipole_tensor(){
+  
+    let gmr = Isotope::Hydrogen1.gyromagnetic_ratio();
+    let r = 1.5e-10;
+    let freq = get_perpendicular_dipole_dipole_frequency(gmr,gmr,r);
+
+    let phi_list = (0..=10).map(|x| (x as f64)/10.0*PI*2.0)
+      .collect::<Vec::<f64>>();
+
+    let theta_list = (0..=10).map(|x| (2.0*(x as f64)/10.0 - 1.0f64).acos())
+      .collect::<Vec::<f64>>();
+
+    for &theta in theta_list.iter(){
+      let ct = theta.cos();
+      let st = theta.sin();
+
+      for &phi in phi_list.iter(){
+        let cp = phi.cos();
+        let sp = phi.sin();
+
+
+        let delta_r = r*&Vector3D::from([st*cp,st*sp,ct]);
+
+        assert!((delta_r.norm()-r).abs()/r<1e-12);
+
+        let ten = construct_point_dipole_dipole_tensor(gmr,gmr,&delta_r);
+        
+        let nnt = SymmetricTensor3D::from(
+            [cp*cp*st*st, cp*sp*st*st, cp*st*ct,
+                          sp*sp*st*st, sp*st*ct,
+                                          ct*ct]);
+        let ref_ten = freq*&(&SymmetricTensor3D::eye() - &(3.0*&nnt));
+
+        let err_ten = &ten - &ref_ten; 
+
+        let tol = freq*1e-9;
+        assert!(err_ten.xx().abs() < tol);
+        assert!(err_ten.xy().abs() < tol);
+        assert!(err_ten.xz().abs() < tol);
+        assert!(err_ten.yy().abs() < tol);
+        assert!(err_ten.yz().abs() < tol);
+        assert!(err_ten.zz().abs() < tol);
+
+
+      }
+    }
+  }
+
+  //----------------------------------------------------------------------------
   #[test]
   #[allow(non_snake_case)]
   fn test_Spin1Tensors() {
@@ -272,13 +353,7 @@ mod tests{
 
 
   }
-  //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-
-
-
-  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  //----------------------------------------------------------------------------
   #[test]
   #[allow(non_snake_case)]
   fn test_Spin2Tensors() {
@@ -311,5 +386,5 @@ mod tests{
       }
     }
   }
-  //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

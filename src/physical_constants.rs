@@ -33,7 +33,8 @@ pub const VOLT: f64 = JOULE/COULOMB;
 pub const PLANCK: f64 = 6.62607015e-34*JOULE/HERTZ;
 
 // 2021: https://physics.nist.gov/cgi-bin/cuu/Value?hbar 
-pub const HBAR: f64 = 1.054571817e-34 * JOULE * SECOND;
+//pub const HBAR: f64 = 1.054571817e-34 * JOULE * SECOND;
+pub const HBAR: f64 = (PLANCK/2.0/PI) * JOULE * SECOND;
 
 // 2022 https://www.physics.nist.gov/cgi-bin/cuu/Value?mub
 pub const MUB:f64 = 9.2740100783e-24 * JOULE/TESLA;
@@ -685,7 +686,9 @@ impl Isotope{
     match self{
       // https://www.physics.nist.gov/cgi-bin/cuu/Value?gem
       Isotope::Electron => -2.00231930436256, 
-      Isotope::Hydrogen1 => 5.5869,
+      //Isotope::Hydrogen1 => 5.5869,
+      // https://physics.nist.gov/cgi-bin/cuu/Value?gp
+      Isotope::Hydrogen1 => 5.5856946893,
       Isotope::Hydrogen2 => 0.857438,
       Isotope::Hydrogen3 => 5.95799,
       Isotope::Helium3 => -4.255,

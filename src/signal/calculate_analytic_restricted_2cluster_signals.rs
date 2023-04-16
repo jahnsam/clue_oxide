@@ -110,6 +110,6 @@ pub fn hahn_three_spin_modulation_depth(delta_hf: f64,b:f64) -> f64{
 }
 //------------------------------------------------------------------------------
 pub fn hahn_three_spin_modulation_frequency(delta_hf: f64,b:f64) -> f64{
-  (delta_hf*delta_hf + b*b).sqrt()
+  (delta_hf*delta_hf + b*b).sqrt()/8.0
 }
 

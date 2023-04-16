@@ -1,4 +1,3 @@
-pub mod calculate_cluster_signal;
 pub mod calculate_analytic_restricted_2cluster_signals;
 pub mod calculate_signal;
 pub mod cluster_correlation_expansion;

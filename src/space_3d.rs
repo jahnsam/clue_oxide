@@ -384,9 +384,12 @@ impl std::ops::Mul<&SymmetricTensor3D> for &Vector3D
 #[cfg(test)]
 mod tests{
   use super::*;
+  use crate::physical_constants::PI;
 
+  //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
   #[test]
-  fn test_vector3d_ord(){
+  fn test_Vector3D_ord(){
 
     let x = Vector3D::from([1.0, 0.0, 0.0]);
     let y = Vector3D::from([0.0, 1.0, 0.0]);
@@ -408,6 +411,32 @@ mod tests{
       sqrt2, sqrt2, sqrt2, sqrt2];
     for ii in 0..9{
       assert_eq!(vecs[ii].norm(),radii[ii]);
+    }
+
+  }
+  //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
+  fn test_Vector3D_norm(){
+     let phi_list = (0..=10).map(|x| (x as f64)/10.0*PI*2.0)
+      .collect::<Vec::<f64>>();
+
+    let theta_list = (0..=10).map(|x| (2.0*(x as f64)/10.0 - 1.0f64).acos())
+      .collect::<Vec::<f64>>();
+
+    for &theta in theta_list.iter(){
+      let ct = theta.cos();
+      let st = theta.sin();
+
+      for &phi in phi_list.iter(){
+        let cp = phi.cos();
+        let sp = phi.sin();
+
+
+        let norm_vec = &Vector3D::from([st*cp,st*sp,ct]);
+
+        assert!((norm_vec.norm()-1.0).abs()<1e-12);
+      }
     }
   }
   //----------------------------------------------------------------------------
@@ -494,5 +523,45 @@ mod tests{
     let x = &ten * &vec;
     assert_eq!(x,Vector3D::from([1.23, 2.4, 3.21])); 
   }
+  //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
+  fn test_SymmetricTensor3D_self_outer(){
+     let phi_list = (0..=10).map(|x| (x as f64)/10.0*PI*2.0)
+      .collect::<Vec::<f64>>();
 
+    let theta_list = (0..=10).map(|x| (2.0*(x as f64)/10.0 - 1.0f64).acos())
+      .collect::<Vec::<f64>>();
+
+    for &theta in theta_list.iter(){
+      let ct = theta.cos();
+      let st = theta.sin();
+
+      for &phi in phi_list.iter(){
+        let cp = phi.cos();
+        let sp = phi.sin();
+
+
+        let norm_vec = &Vector3D::from([st*cp,st*sp,ct]);
+
+        let nnt = norm_vec.self_outer();
+
+        let ref_nnt = SymmetricTensor3D::from(
+            [cp*cp*st*st, cp*sp*st*st, cp*st*ct,
+                          sp*sp*st*st, sp*st*ct,
+                                          ct*ct]);
+
+        let err_ten = &nnt - &ref_nnt;
+
+        let tol = 1e-9;
+        assert!(err_ten.xx().abs() < tol);
+        assert!(err_ten.xy().abs() < tol);
+        assert!(err_ten.xz().abs() < tol);
+        assert!(err_ten.yy().abs() < tol);
+        assert!(err_ten.yz().abs() < tol);
+        assert!(err_ten.zz().abs() < tol);
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
 }

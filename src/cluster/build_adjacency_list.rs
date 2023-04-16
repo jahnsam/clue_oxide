@@ -2,7 +2,12 @@ use crate::config::Config;
 //use crate::config::{Config,NeighborCutoff};
 use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
+use crate::physical_constants::PI;
 use crate::quantum::tensors::HamiltonianTensors;
+use crate::signal::calculate_analytic_restricted_2cluster_signals::{
+  hahn_three_spin_modulation_depth,
+  hahn_three_spin_modulation_frequency,
+};
 
 pub fn build_adjacency_list(tensors: &HamiltonianTensors, config: &Config) 
   -> Result<AdjacencyList, CluEError>
@@ -28,7 +33,7 @@ pub fn build_adjacency_list(tensors: &HamiltonianTensors, config: &Config)
   Ok(adjacency_list)
 }
 //------------------------------------------------------------------------------
-pub fn are_spins_neighbors(idx0: usize,idx1: usize,
+fn are_spins_neighbors(idx0: usize,idx1: usize,
     tensors: &HamiltonianTensors, config: &Config) -> bool
 {
 
@@ -54,34 +59,14 @@ pub fn are_spins_neighbors(idx0: usize,idx1: usize,
     if b < *cutoff {return false;}
   }
   if let Some(cutoff) = &config.neighbor_cutoff_3_spin_hahn_mod_depth{
-    let k = (2.0*b*delta_hf/(delta_hf*delta_hf + b*b)).powi(2);
+    let k = hahn_three_spin_modulation_depth(delta_hf,b);
     if k < *cutoff {return false;}
   }
   if let Some(cutoff) = &config.neighbor_cutoff_3_spin_hahn_taylor_4{
-    let k = (2.0*b*delta_hf/(delta_hf*delta_hf + b*b)).powi(2);
-    let kom4 = k*(delta_hf*delta_hf + b*b).powi(2);
-    if k < *cutoff {return false;}
+    let k = hahn_three_spin_modulation_depth(delta_hf,b);
+    let omega = 2.0*PI*hahn_three_spin_modulation_frequency(delta_hf,b);
+    let kom4 = k*omega.powi(4);
+    if kom4 < *cutoff {return false;}
   }
-  /*
-  for cutoff in &config.neighbor_cutoffs{
-    match cutoff{
-      NeighborCutoff::DeltaHyperfine(cutoff) => { 
-        if delta_hf < *cutoff {return false;}
-      },
-      NeighborCutoff::DipoleDipole(cutoff) => {
-        if b < *cutoff { return false;}
-      },
-      NeighborCutoff::HahnThreeSpinModulationDepth(cutoff) => {
-        let k = (2.0*b*delta_hf/(delta_hf*delta_hf + b*b)).powi(2);
-        if k < *cutoff {return false;}
-      },
-      NeighborCutoff::HahnThreeSpinFourthOrderTaylorCoefficient(cutoff) => {
-        let k = (2.0*b*delta_hf/(delta_hf*delta_hf + b*b)).powi(2);
-        let kom4 = k*(delta_hf*delta_hf + b*b).powi(2);
-        if kom4 < *cutoff { return false; }
-      },
-    }
-  }
-  */
   true
 }

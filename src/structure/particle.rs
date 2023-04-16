@@ -1,33 +1,6 @@
 use crate::space_3d::Vector3D;
 use crate::physical_constants::{Element,Isotope};
 
-/* Pseudocode Overview   
-  
-   let config = read_input(file);
-
-   for pdb in config.pdbs{
-     let structure = parse_pdb()
-                     .set_spins()
-                     .apply_pbc();
-    
-    let spin_op = get_spin_operators(max_cluster_size, max_spin_mult);                 
-
-    let tensors = get_tensors(&structure,&config);
-
-    let clusters = find_clusters();
-
-    clusters.remove_partial_methyls();
-
-    let clusters.calculate_cluster_signals();
-
-    let clusters.calculate_auxiliary_signals();
-
-    let structure_signal = do_cce(clusters);
-
-    return structure_signal;
-
-   }
-*/
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
 pub struct Particle{
