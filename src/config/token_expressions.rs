@@ -344,6 +344,21 @@ mod tests{
     else{
       panic!("Expected Some(rhs), but found None.");
     }
+
+    let tokens = vec![Token::TunnelSplitting, Token::SquareBracketOpen, 
+        Token::UserInputValue("1H".to_string()), Token::SquareBracketClose,
+        Token::Equals, Token::Float(80.0e3)];
+    let expression = TokenExpression::from(tokens.clone(),0).unwrap();
+
+    for ii in 0..4{
+      assert_eq!(expression.lhs[ii],tokens[ii]);
+    }
+    if let Some(rhs) = expression.rhs{
+      assert_eq!(rhs[0],tokens[5]);
+    }
+    else{
+      panic!("Expected Some(rhs), but found None.");
+    }
   }
 
   //----------------------------------------------------------------------------

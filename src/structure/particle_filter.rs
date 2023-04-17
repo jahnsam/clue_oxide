@@ -211,6 +211,9 @@ impl ParticleFilter{
       SecondaryParticleFilter::Bonded 
         => self.bonded_indices.push(index_ref_particle),
       
+      SecondaryParticleFilter::Particle => {
+        self.indices.push(index_ref_particle);
+      }, 
       SecondaryParticleFilter::SameMolecule 
         => {
         let id = structure.molecule_ids[index_ref_particle];
@@ -246,25 +249,39 @@ impl ParticleFilter{
 #[derive(Debug,Clone,PartialEq)]
 pub enum SecondaryParticleFilter{
   Bonded, // atoms bonded to particle
-  //Particle, // the particle itself
+  Particle, // the particle itself
   SameMolecule, // atoms on the same molecule as particle 
   //SameResidueSequenceNumber, // atoms with the same ResSeq as particle.
 }
 impl ToString for SecondaryParticleFilter{
   fn to_string(&self) -> String{
     match self{
-      SecondaryParticleFilter::Bonded => String::from("Bonded"),
+      SecondaryParticleFilter::Bonded => String::from("bonded"),
+      SecondaryParticleFilter::Particle => String::from("particle"),
       SecondaryParticleFilter::SameMolecule
-        => String::from("SameMolecule"),
+        => String::from("same_molecule"),
     }
   } 
+}
+impl SecondaryParticleFilter{
+  pub fn from(secondary_filter: &str) 
+    -> Result<SecondaryParticleFilter,CluEError>
+  {
+    match secondary_filter{
+      "bonded" => Ok(SecondaryParticleFilter::Bonded),
+      "particle" => Ok(SecondaryParticleFilter::Particle),
+      "same_molecule" => Ok(SecondaryParticleFilter::SameMolecule),
+      _ => Err(CluEError::CannotParseSecondaryParticleFilter(
+            secondary_filter.to_string())),
+    }
+  }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone,PartialEq)]
 pub enum VectorSpecifier{
-  Diff(SecondaryParticleFilter,SecondaryParticleFilter),
+  Diff(SecondaryParticleFilter,String,SecondaryParticleFilter,String),
   Vector(Vector3D)
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

@@ -214,7 +214,7 @@ pub fn get_perpendicular_dipole_dipole_frequency(
   MU0/(4.0*PI)*gyromagnetic_ratio_1*gyromagnetic_ratio_2   
   *HBAR*HBAR/r/r/r
 }
-
+//------------------------------------------------------------------------------
 pub fn construct_point_dipole_dipole_tensor(
     gyromagnetic_ratio_1: f64,
     gyromagnetic_ratio_2: f64,
@@ -235,6 +235,22 @@ pub fn construct_point_dipole_dipole_tensor(
   ten
   
 }
+//------------------------------------------------------------------------------
+/// This function takes three values and three vectors and constructs
+/// ___T___ = ___XE___trans(___X___), where ___E___ is the digonal matrix of
+/// the values and ___X___ is a 3×3 matrix with each vector as a column.
+pub fn construct_symmetric_tensor_from_values_and_vectors(
+    evals: &[f64;3], evecs: &[Vector3D;3]) -> SymmetricTensor3D
+{
+
+  let mut ten = SymmetricTensor3D::zeros();
+  for (ii,v) in evecs.iter().enumerate(){
+    ten = &ten + &(v.self_outer()).scale(evals[ii]);
+  }
+
+  ten
+
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -245,6 +261,53 @@ mod tests{
   use crate::physical_constants::*;
   use crate::space_3d::{SymmetricTensor3D, Vector3D};
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_construct_symmetric_tensor_from_values_and_vectors(){
+    let x = Vector3D::from([1.0, 0.0, 0.0]);
+    let y = Vector3D::from([0.0, 1.0, 0.0]);
+    let z = Vector3D::from([0.0, 0.0, 1.0]);
+
+    let xyz = [x,y,z];
+    let evals = [-1.0,2.0,10.0];
+
+    let ten = construct_symmetric_tensor_from_values_and_vectors(
+        &evals,&xyz);
+
+    let xyz_ten = SymmetricTensor3D::from([evals[0],0.0,0.0,
+                                                    evals[1], 0.0,
+                                                              evals[2]]);
+
+    assert_eq!(ten.xx(),xyz_ten.xx());
+    assert_eq!(ten.xy(),xyz_ten.xy());
+    assert_eq!(ten.xz(),xyz_ten.xz());
+    assert_eq!(ten.yy(),xyz_ten.yy());
+    assert_eq!(ten.yz(),xyz_ten.yz());
+    assert_eq!(ten.zz(),xyz_ten.zz());
+
+    let v1 = Vector3D::from([1.0,1.0,1.0]).scale(1.0/3.0f64.sqrt());
+    let v2 = Vector3D::from([-1.0,-1.0,2.0]).scale(1.0/6.0f64.sqrt());
+    let v3 = Vector3D::from([1.0,-1.0,0.0]).scale(1.0/2.0f64.sqrt());
+
+    assert!( (v1.norm() - 1.0) < 1e-12);
+    assert!( (v2.norm() - 1.0) < 1e-12);
+    assert!( (v3.norm() - 1.0) < 1e-12);
+    assert!( v1.dot(&v2) < 1e-12);
+    assert!( v1.dot(&v3) < 1e-12);
+    assert!( v2.dot(&v3) < 1e-12);
+    
+    let evecs = [v1,v2,v3];
+
+
+    let ten = construct_symmetric_tensor_from_values_and_vectors(
+        &evals,&evecs);
+
+    println!("DB: {:?}",ten);
+    for (ii,v) in evecs.iter().enumerate(){
+      println!("DB: {}",ii);
+      assert_eq!(&ten*v , v.scale(evals[ii]));
+    }
+  }
   //----------------------------------------------------------------------------
   #[test]
   fn test_construct_zeeman_tensor() {

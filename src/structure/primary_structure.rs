@@ -395,6 +395,7 @@ fn update_cosubstitution_ids(
             indices = filter.filter_indices(structure,bonded);
           }
         },
+        Some(SecondaryParticleFilter::Particle) => (),
         Some(SecondaryParticleFilter::SameMolecule) => {
           let mol_id = structure.molecule_ids[idx0];
           indices = filter.filter_indices(structure,

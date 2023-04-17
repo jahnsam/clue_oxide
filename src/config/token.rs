@@ -1,4 +1,5 @@
 use crate::clue_errors::*;
+use crate::physical_constants::Isotope;
 use std::ops::{Add,Sub,Mul,Div};
 //------------------------------------------------------------------------------
 #[derive(PartialEq, Debug, Clone)]
@@ -19,6 +20,10 @@ pub enum Token{
  CurlyBracketOpen,
  DetectedSpinPosition,
  DoubleQuote,
+ ElectricQuadrupoleCoupling,
+ ElectricQuadrupoleX,
+ ElectricQuadrupoleY,
+ ElectricQuadrupoleZ,
  Element,
  Elements,                                                    
  EOL,
@@ -29,10 +34,15 @@ pub enum Token{
  GreaterThanEqualTo,
  Hat,
  Hahn,
+ HyperfineCoupling,
+ HyperfineX,
+ HyperfineY,
+ HyperfineZ,
  In,
  Indices,                                                      
  InputStructureFile,
  Int(i32),
+ Isotope,
  Label,
  LessThan,
  LessThanEqualTo,
@@ -99,6 +109,11 @@ impl Token{
       Token::CurlyBracketOpen => "{".to_string(),
       Token::DetectedSpinPosition => "detected_spin_position".to_string(),
       Token::DoubleQuote => "\"".to_string(),
+      Token::ElectricQuadrupoleCoupling  
+        => "electric_quadrupole_coupling".to_string(),
+      Token::ElectricQuadrupoleX  => "electric_quadrupole_x".to_string(),
+      Token::ElectricQuadrupoleY  => "electric_quadrupole_y".to_string(),
+      Token::ElectricQuadrupoleZ  => "electric_quadrupole_z".to_string(),
       Token::Element => "element".to_string(),
       Token::Elements => "elements".to_string(),
       Token::EOL => "\n".to_string(),
@@ -109,10 +124,15 @@ impl Token{
       Token::GreaterThanEqualTo => ">=".to_string(),
       Token::Hahn => "hahn".to_string(),
       Token::Hat => "^".to_string(),
+      Token::HyperfineCoupling => "hyperfine_coupling".to_string(),
+      Token::HyperfineX => "hyperfine_x".to_string(),
+      Token::HyperfineY => "hyperfine_y".to_string(),
+      Token::HyperfineZ => "hyperfine_z".to_string(),
       Token::In => "in".to_string(),
       Token::Indices => "indices".to_string(),
       Token::InputStructureFile => "input_structure_file".to_string(),
       Token::Int(n) => n.to_string(),
+      Token::Isotope => "isotope".to_string(),
       Token::Label => "label".to_string(),
       Token::LessThan => "<".to_string(),
       Token::LessThanEqualTo => "<=".to_string(),
@@ -185,6 +205,10 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "{" => Some(Token::CurlyBracketOpen),
     "detected_spin_position" => Some(Token::DetectedSpinPosition),
     "\"" => Some(Token::DoubleQuote),
+    "electric_quadrupole_coupling" => Some(Token::ElectricQuadrupoleCoupling),
+    "electric_quadrupole_x" => Some(Token::ElectricQuadrupoleX),
+    "electric_quadrupole_y" => Some(Token::ElectricQuadrupoleY),
+    "electric_quadrupole_z" => Some(Token::ElectricQuadrupoleZ),
     "element" => Some(Token::Element),
     "elements" => Some(Token::Elements), 
     "\n" => Some(Token::EOL),
@@ -195,9 +219,14 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "in" => Some(Token::In),
     "input_structure_file" => Some(Token::InputStructureFile),
     "indices" => Some(Token::Indices), 
+    "isotope" => Some(Token::Isotope),
     "label" => Some(Token::Label),
     "hahn" => Some(Token::Hahn),
     "^" => Some(Token::Hat),
+    "hyperfine_coupling" => Some(Token::HyperfineCoupling),
+    "hyperfine_x" => Some(Token::HyperfineX),
+    "hyperfine_y" => Some(Token::HyperfineY),
+    "hyperfine_z" => Some(Token::HyperfineZ),
     "<" => Some(Token::LessThan),
     "<=" => Some(Token::LessThanEqualTo),
     "//" => Some(Token::LineComment),
@@ -641,6 +670,7 @@ pub fn count_token(target: &Token, tokens: &[Token]) -> usize{
 #[derive(PartialEq, Debug, Clone)]
 pub struct ModeAttribute{
   pub mode:  ConfigMode,
+  pub isotope: Option<Isotope>,
   pub label: Option<String>,
   pub path: Option<String>,
   //pub mode_type: Option<String>,
@@ -650,6 +680,7 @@ impl Default for ModeAttribute{
   fn default() -> Self{
     ModeAttribute{
       mode:  ConfigMode::Config,
+      isotope: None,
       label: None,
       path: None,
       //mode_type: None,
@@ -679,6 +710,23 @@ impl ModeAttribute{
 
     let mode = ConfigMode::from(tokens[idx+2].clone())?; 
 
+    let isotope: Option<Isotope>;
+    let isotope_indices = find_token(&Token::Isotope, &tokens);
+
+    if isotope_indices.is_empty(){
+      isotope = None;
+    } else if isotope_indices.len() == 1 
+      && tokens[isotope_indices[0]+1] == Token::Equals{
+       if  let Token::UserInputValue(value)=&tokens[isotope_indices[0]+2]{
+        let isotope_value = Isotope::from(&value)?;
+        isotope = Some(isotope_value);
+      }else{
+        return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+      }
+       
+    } else {
+      return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+    }
 
     let label: Option<String>;
     let label_indices = find_token(&Token::Label,&tokens);
@@ -713,7 +761,7 @@ impl ModeAttribute{
       return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
     }
 
-    Ok(ModeAttribute{ mode,label, path})
+    Ok(ModeAttribute{ mode,isotope, label, path})
   }
   //----------------------------------------------------------------------------
   pub fn to_string(&self) -> String{
@@ -799,6 +847,14 @@ mod tests{
     assert_eq!(identify_token("detected_spin_position").unwrap(), 
         Token::DetectedSpinPosition);
     assert_eq!(identify_token("\"").unwrap(), Token::DoubleQuote);
+    assert_eq!(identify_token("electric_quadrupole_coupling").unwrap(), 
+        Token::ElectricQuadrupoleCoupling);
+    assert_eq!(identify_token("electric_quadrupole_x").unwrap(), 
+        Token::ElectricQuadrupoleX);
+    assert_eq!(identify_token("electric_quadrupole_y").unwrap(), 
+        Token::ElectricQuadrupoleY);
+    assert_eq!(identify_token("electric_quadrupole_z").unwrap(), 
+        Token::ElectricQuadrupoleZ);
     assert_eq!(identify_token("element").unwrap(), Token::Element);
     assert_eq!(identify_token("\n").unwrap(), Token::EOL);
     assert_eq!(identify_token("=").unwrap(), Token::Equals);
@@ -807,9 +863,15 @@ mod tests{
     assert_eq!(identify_token(">=").unwrap(), Token::GreaterThanEqualTo);
     assert_eq!(identify_token("hahn").unwrap(), Token::Hahn);
     assert_eq!(identify_token("^").unwrap(), Token::Hat);
+    assert_eq!(identify_token("hyperfine_coupling").unwrap(), 
+        Token::HyperfineCoupling);
+    assert_eq!(identify_token("hyperfine_x").unwrap(), Token::HyperfineX);
+    assert_eq!(identify_token("hyperfine_y").unwrap(), Token::HyperfineY);
+    assert_eq!(identify_token("hyperfine_z").unwrap(), Token::HyperfineZ);
     assert_eq!(identify_token("in").unwrap(), Token::In);
     assert_eq!(identify_token("input_structure_file").unwrap(), 
         Token::InputStructureFile);
+    assert_eq!(identify_token("isotope").unwrap(), Token::Isotope);
     assert_eq!(identify_token("label").unwrap(), Token::Label);
     assert_eq!(identify_token("<").unwrap(), Token::LessThan);
     assert_eq!(identify_token("<=").unwrap(), Token::LessThanEqualTo);

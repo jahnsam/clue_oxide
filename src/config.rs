@@ -229,7 +229,7 @@ impl Config{
       match mode.mode{
         ConfigMode::Clusters => (),
         ConfigMode::Config =>  config.parse_config_line(expression)?,
-        ConfigMode::Filter => (),
+        ConfigMode::Filter => config.parse_filter_line(expression,&mode.label)?,
         ConfigMode::Spins => (),
         ConfigMode::Structures => (),
         ConfigMode::Tensors => (),

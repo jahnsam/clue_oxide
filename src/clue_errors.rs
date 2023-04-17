@@ -19,7 +19,9 @@ pub enum CluEError{
   CannotOpenFile(String),
   CannotParseElement(String),
   CannotParseLine(String),
+  CannotParseIsotope(String),
   CannotParseRHS(usize),
+  CannotParseSecondaryParticleFilter(String),
   CannotPowTokens,
   CannotSampleBinomialDistribution(usize,f64),
   CannotSubTokens,
@@ -139,8 +141,14 @@ impl fmt::Display for CluEError{
       CluEError::CannotParseLine(line) => write!(f,
           "cannot parse line \"{}\"", line),
 
+      CluEError::CannotParseIsotope(isotope) => write!(f,
+          "cannot parse \"{}\" as an isotope", isotope),
+
       CluEError::CannotParseRHS(line_number) => write!(f,
           "line {}, cannot parse line righ hand side", line_number),
+
+      CluEError::CannotParseSecondaryParticleFilter(filter) => write!(f,
+          "cannot parse secondary particle filter \"{}\"", filter),
 
       CluEError::CannotSampleBinomialDistribution(n,p) => write!(f,
           "cannot sample from the binomial distribution B(n={},p={})",

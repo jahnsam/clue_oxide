@@ -58,6 +58,15 @@ impl Config{
           expression.line_number, expression.lhs[0].to_string()) };
     match expression.lhs[0]{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      //Token::HyperfineCoupling =>,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      /*
+      Token::HyperfineX => {
+        is isotope specified?
+        is axis already set?
+        parse SecondaryParticleFilter
+      },
+      */
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       _ => return Err(CluEError::InvalidToken(expression.line_number,
             expression.lhs[0].to_string())),

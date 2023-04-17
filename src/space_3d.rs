@@ -133,9 +133,9 @@ impl Vector3D{
 
   pub fn set_x(&mut self, value: f64) { self.elements[0] = value;}
   //----------------------------------------------------------------------------
-  pub fn set_y(&mut self, value: f64) { self.elements[0] = value;}
+  pub fn set_y(&mut self, value: f64) { self.elements[1] = value;}
   //----------------------------------------------------------------------------
-  pub fn set_z(&mut self, value: f64) { self.elements[0] = value;}
+  pub fn set_z(&mut self, value: f64) { self.elements[2] = value;}
 
   //----------------------------------------------------------------------------
   pub fn r(&self) -> f64{
@@ -412,6 +412,36 @@ mod tests{
     for ii in 0..9{
       assert_eq!(vecs[ii].norm(),radii[ii]);
     }
+
+  }
+  //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
+  fn test_Vector3D_cross(){
+
+    let x = Vector3D::from([1.0, 0.0, 0.0]);
+    let y = Vector3D::from([0.0, 1.0, 0.0]);
+    let z = Vector3D::from([0.0, 0.0, 1.0]);
+
+    assert_eq!(x,y.cross(&z));
+    assert_eq!(y,z.cross(&x));
+    assert_eq!(z,x.cross(&y));
+    assert_eq!(z.scale(-1.0),y.cross(&x));
+    assert_eq!(x.scale(-1.0),z.cross(&y));
+    assert_eq!(y.scale(-1.0),x.cross(&z));
+
+
+    let v1 = Vector3D::from([1.0,1.0,1.0]).scale(1.0/3.0f64.sqrt());
+    let v2 = Vector3D::from([-1.0,-1.0,2.0]).scale(1.0/6.0f64.sqrt());
+    let v3 = v1.cross(&v2);
+
+    println!("DB: {:?}",v3);
+    assert!( (v1.norm() - 1.0) < 1e-12);
+    assert!( (v2.norm() - 1.0) < 1e-12);
+    assert!( (v3.norm() - 1.0) < 1e-12);
+    assert!( v1.dot(&v2) < 1e-12);
+    assert!( v1.dot(&v3) < 1e-12);
+    assert!( v2.dot(&v3) < 1e-12);
 
   }
   //----------------------------------------------------------------------------
