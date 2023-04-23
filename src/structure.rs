@@ -7,6 +7,8 @@ pub mod particle_filter;
 
 //use crate::config::particle_config;
 use crate::config::{Config, particle_config::ParticleProperties};
+use crate::config::particle_config::IsotopeProperties;
+use crate::config::particle_config::TensorSpecifier;
 use crate::clue_errors::CluEError;
 use crate::integration_grid::IntegrationGrid;
 use crate::structure::particle::Particle;
@@ -179,6 +181,50 @@ impl Structure{
 
   }
   */
+  //----------------------------------------------------------------------------
+  pub fn extract_hyperfine_specifier<'a>(&self, particle_index: usize,
+      config: &'a Config)
+    -> Option<&'a TensorSpecifier>
+  {
+    let Some(isotope_properties) = self.extract_isotope_properties(
+        particle_index,config) 
+    else{
+      return None;
+    };
+
+    isotope_properties.hyperfine_coupling.as_ref()
+  }
+  //----------------------------------------------------------------------------
+  pub fn extract_electric_quadrupole_specifier<'a>(&self, particle_index: usize,
+      config: &'a Config)
+    -> Option<&'a TensorSpecifier>
+  {
+    let Some(isotope_properties) = self.extract_isotope_properties(
+        particle_index,config) 
+    else{
+      return None;
+    };
+
+    isotope_properties.electric_quadrupole_coupling.as_ref()
+  }
+  //----------------------------------------------------------------------------
+  pub fn extract_isotope_properties<'a>(&self, particle_index: usize,
+      config: &'a Config)
+    -> Option<&'a IsotopeProperties>
+  {
+    let Some(p_cfg_id) = self.particle_config_ids[particle_index] else{
+      return None;
+    };
+
+    let Some(properties) = &config.particles[p_cfg_id].properties else{
+      return None;
+    };
+
+    let key = self.bath_particles[particle_index].isotope.to_string();
+    
+    properties.isotope_properties.get(&key)
+
+  }
   //----------------------------------------------------------------------------
   // This function searches the user specified particle configuration (if any),
   // and determines which one each particle goes with.

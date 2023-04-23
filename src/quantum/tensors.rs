@@ -4,7 +4,8 @@ use crate::config::Config;
 use crate::config::particle_config::TensorSpecifier;
 use crate::physical_constants::{HBAR, JOULES_TO_HERTZ,MU0,PI};
 use crate::space_3d::{SymmetricTensor3D,Vector3D};
-use crate::structure::Structure;
+use crate::structure::{DetectedSpin,Structure};
+use crate::structure::particle::Particle;
 use crate::symmetric_list_2d::SymList2D;
 
 
@@ -65,6 +66,9 @@ impl HamiltonianTensors{
           construct_zeeman_tensor(&(gamma0*&eye),magnetic_field));
 
       // hyperfine
+      let hf_ten = construct_hyperfine_tensor(detected_particle, particle0, 
+          idx0, structure, config)?; 
+      /*
       let mut hf_ten = SymmetricTensor3D::zeros();
       for ii in 0..detected_particle.weighted_coordinates.len(){
         let delta_r = &detected_particle.weighted_coordinates.xyz(ii) 
@@ -75,6 +79,7 @@ impl HamiltonianTensors{
         
         hf_ten = &hf_ten + &(w*&ten);
       }
+      */
       spin2_tensors.set(0,idx0, hf_ten);
 
 
@@ -187,25 +192,41 @@ pub fn construct_zeeman_tensor(
 
   (-0.5/PI)*&(magnetic_field * gyromagnetic_ratio)
 }
-/*
-pub fn construct_hyperfine_tensor(
-    azz: f64, fc: f64, rot_hf2lab: &mox::Mat) -> Result<mox::Mat,String> {
+//------------------------------------------------------------------------------
+pub fn construct_hyperfine_tensor(detected_particle: &DetectedSpin, 
+    particle0: &Particle, particle_index: usize, 
+    structure: &Structure, config: &Config) 
+  -> Result<SymmetricTensor3D, CluEError>
+{
 
-    if rot_hf2lab.n_rows() != 3 || rot_hf2lab.n_cols() != 3 {
-      let err_str = format!("hf to lab rotation matrix must be 3x3, not {}x{}",
-          rot_hf2lab.n_rows(), rot_hf2lab.n_cols());
-      return Err(err_str);
+  let tensor: SymmetricTensor3D;
+  if let Some(tensor_specifier) = structure
+    .extract_hyperfine_specifier(particle_index,&config)
+  {
+    tensor = construct_symmetric_tensor_from_tensor_specifier(
+        &tensor_specifier, particle_index,&structure, &config)?;
+  }else{
+
+    let gamma_e = detected_particle.isotope.gyromagnetic_ratio();
+    let gamma0 = particle0.isotope.gyromagnetic_ratio();
+    
+    let mut hf_ten = SymmetricTensor3D::zeros();
+    for ii in 0..detected_particle.weighted_coordinates.len(){
+      let delta_r = &detected_particle.weighted_coordinates.xyz(ii) 
+        - &particle0.coordinates;
+    
+      let w = detected_particle.weighted_coordinates.weight(ii);
+    
+      let ten = construct_point_dipole_dipole_tensor(gamma_e,gamma0,&delta_r);
+      hf_ten = &hf_ten + &(w*&ten);
     }
+    tensor = hf_ten;
+        
+  }
 
-    let ten_hf = mox::Mat::from(3,3, vec![-azz/2.0 +fc,      0.0, 0.0,
-                                          0.0, -azz/2.0 +fc, 0.0,
-                                          0.0,          0.0, azz +fc ]);
-
-
-   rot_hf2lab.multiply( &ten_hf.multiply(&rot_hf2lab.trans())? )
+  Ok(tensor)
 }
-
-*/
+//------------------------------------------------------------------------------
 pub fn get_perpendicular_dipole_dipole_frequency(
     gyromagnetic_ratio_1: f64,
     gyromagnetic_ratio_2: f64,
