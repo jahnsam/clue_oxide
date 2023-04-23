@@ -1,8 +1,10 @@
-use crate::structure::Structure;
-use crate::space_3d::Vector3D;
-use crate::structure::Particle;
-use crate::physical_constants::{Element,Isotope};
+
 use crate::clue_errors::CluEError;
+use crate::Config;
+use crate::physical_constants::{Element,Isotope};
+use crate::space_3d::Vector3D;
+use crate::structure::{Particle,Structure};
+
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Filters are used to specify a set of bath particles.
 // TODO: ensure filters can specify:
@@ -275,6 +277,36 @@ impl SecondaryParticleFilter{
             secondary_filter.to_string())),
     }
   }
+  //----------------------------------------------------------------------------
+  pub fn filter(&self, particle_index: usize, label: &str, 
+      structure: &Structure, config: &Config ) -> Result<Vec::<usize>,CluEError>
+  {
+
+    let Some((id, p_cfg)) = config.find_particle_config(&label) else{
+      return Err(CluEError::MissingFilter(label.to_string()));
+    };
+
+    let Some(filter) = &p_cfg.filter else{
+      return Err(CluEError::MissingFilter(label.to_string()));
+    };
+
+    let mut indices = Vec::<usize>::new();
+  
+    match self{
+      SecondaryParticleFilter::Bonded => {
+        if let Some(bonded) = structure.connections
+          .get_neighbors(particle_index){
+          indices = filter.filter_indices(structure,bonded);
+        }
+      },
+      SecondaryParticleFilter::Particle => indices = vec![particle_index],
+      SecondaryParticleFilter::SameMolecule => {
+        let mol_id = structure.molecule_ids[particle_index];
+        indices = filter.filter_indices(structure,&structure.molecules[mol_id]);
+      },
+    }
+    Ok(indices)
+  }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -284,15 +316,139 @@ pub enum VectorSpecifier{
   Diff(SecondaryParticleFilter,String,SecondaryParticleFilter,String),
   Vector(Vector3D)
 }
+//------------------------------------------------------------------------------
+impl VectorSpecifier{
+  pub fn to_vector3d(&self, particle_index: usize, structure: &Structure, 
+      config: &Config) -> Result<Vector3D,CluEError>
+  {
+    match self{ 
+      VectorSpecifier::Diff(sec_fltr_0,label_0,sec_fltr_1,label_1) =>{
+
+
+        let indices_0 = sec_fltr_0.filter(particle_index, &label_0, &structure,
+            &config)?;
+
+        let indices_1 = sec_fltr_1.filter(particle_index, &label_1, &structure,
+            &config)?;
+
+        if indices_0.len() != 1 {
+          return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
+                format!("...diff({}...",sec_fltr_0.to_string() )));
+        }
+        let idx0 = indices_0[0]; 
+
+        if indices_1.len() != 1 {
+          return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
+                format!("...diff(..., {}...",sec_fltr_1.to_string() )));
+        }
+        let idx1 = indices_1[0]; 
+
+        if idx0 == idx1{
+          return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
+                format!("...diff({}..., {}...",
+                  sec_fltr_0.to_string(), sec_fltr_1.to_string(), )));
+        }
+
+        let vector3d = &structure.bath_particles[idx1].coordinates 
+          - &structure.bath_particles[idx0].coordinates;
+        
+        Ok(vector3d)
+      },
+      VectorSpecifier::Vector(vector3d) => Ok(vector3d.clone()),
+    }
+  }
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 #[cfg(test)]
 mod tests{
   use super::*;
+  use crate::config::particle_config::ParticleConfig;
   use crate::structure::pdb;
   use crate::Config;
   use crate::config::DetectedSpinCoordinates;
 
+  //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
+  fn test_VectorSpecifier_to_vector3d(){
+    let filename = "./assets/TEMPO.pdb";
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
+    let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
+    config.set_defaults();
+    structure.build_primary_structure(&config).unwrap();
+
+    config.particles.push( ParticleConfig::new("nitrogen".to_string()) );
+    let label = String::from("oxygen");
+    config.particles.push( ParticleConfig::new(label.clone()) );
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Nitrogen];
+    config.particles[0].filter = Some(filter);
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Oxygen];
+    config.particles[1].filter = Some(filter);
+
+    let vector_specifier = VectorSpecifier::Diff(
+        SecondaryParticleFilter::Particle,"nitrogen".to_string(),
+        SecondaryParticleFilter::Bonded,"oxygen".to_string());
+
+    let r_n = Vector3D::from([36.440e-10, 36.900e-10,  37.100e-10]);
+    let r_o = Vector3D::from([35.290e-10,  36.430e-10,  37.810e-10]);
+
+    let delta_r = &r_o - &r_n;
+
+    let particle_index = 27;
+    assert_eq!(structure.bath_particles[particle_index].element, 
+        Element::Nitrogen);
+    let r = vector_specifier.to_vector3d(particle_index,&structure,&config)
+      .unwrap();
+
+    assert_eq!(r,delta_r);
+
+  }
+  //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
+  fn test_SecondaryParticleFilter_filter(){
+  
+    let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
+    let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
+    config.set_defaults();
+    structure.build_primary_structure(&config).unwrap();
+
+    let label = String::from("test_label");
+    config.particles.push( ParticleConfig::new(label.clone()) );
+    let mut filter = ParticleFilter::new();
+
+    config.particles[0].filter = Some(filter.clone());
+
+    let particle_index = 43;
+    let secondary_filter = SecondaryParticleFilter::Bonded;
+    let indices = secondary_filter.filter(particle_index, &label, &structure, 
+        &config ).unwrap(); 
+    assert_eq!(indices,vec![44,45]);
+
+    let secondary_filter = SecondaryParticleFilter::Particle;
+    let indices = secondary_filter.filter(particle_index, &label, &structure, 
+        &config ).unwrap(); 
+    assert_eq!(indices,vec![43]);
+
+
+    let particle_index = 28;
+    let secondary_filter = SecondaryParticleFilter::SameMolecule;
+    filter.elements = vec![Element::Hydrogen];
+    config.particles[0].filter = Some(filter);
+    let indices = secondary_filter.filter(particle_index, &label, &structure, 
+        &config ).unwrap(); 
+    assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
+  }
   //----------------------------------------------------------------------------
   #[test]
   fn test_augment_filter(){

@@ -92,6 +92,7 @@ pub enum CluEError{
   UnmatchedDelimiter(usize),
   UnrecognizedOption(String),
   UnrecognizedVectorSpecifier(String),
+  VectorSpecifierDoesNotSpecifyUniqueVector(String),
   WrongClusterSizeForAnalyticCCE(usize),
   WrongVectorLength(usize,usize,usize)
 }
@@ -384,6 +385,10 @@ impl fmt::Display for CluEError{
 
       CluEError::UnrecognizedVectorSpecifier(specifier) => write!(f,
           "unrecognized vector specifier \"{}\"",specifier),
+
+      CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(specifier) 
+        => write!(f,
+          "vector specifier does not specify unique vector \"{}\"",specifier),
 
       CluEError::WrongClusterSizeForAnalyticCCE(given_size) => write!(f,
           "analytic 2-CCE cannot work with clusters of size {}",given_size),

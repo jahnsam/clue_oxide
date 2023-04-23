@@ -51,7 +51,7 @@ pub struct Config{
   //pbc_style: PBCStyle,
   //error_tolerance: f64,
   //use_periodic_boundary_conditions: bool,
-  pub particles: Vec::<ParticleConfig>, // TODO: why in Option?
+  pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
   pub radius: Option<f64>,
@@ -153,6 +153,17 @@ impl Config{
     io::write_data(& vec![self.time_axis.clone()], 
         "time_axis.csv",// TODO enable user control of name
         vec!["time_axis".to_string()])
+  }
+  //----------------------------------------------------------------------------
+  pub fn find_particle_config(&self, label: &str) 
+    -> Option<(usize,&ParticleConfig)>
+  {
+    for (idx, p_cfg) in self.particles.iter().enumerate(){
+      if *label == p_cfg.label{
+        return Some((idx,p_cfg));
+      }
+    }
+    None
   }
   //----------------------------------------------------------------------------
 
