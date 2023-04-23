@@ -1,11 +1,12 @@
-use crate::symmetric_list_2d::SymList2D;
-use crate::space_3d::{SymmetricTensor3D,Vector3D};
 
 use crate::clue_errors::CluEError;
-use crate::structure::Structure;
 use crate::config::Config;
-
+use crate::config::particle_config::TensorSpecifier;
 use crate::physical_constants::{HBAR, JOULES_TO_HERTZ,MU0,PI};
+use crate::space_3d::{SymmetricTensor3D,Vector3D};
+use crate::structure::Structure;
+use crate::symmetric_list_2d::SymList2D;
+
 
 //use std::fs;
 //use std::fs::File;
@@ -251,6 +252,87 @@ pub fn construct_symmetric_tensor_from_values_and_vectors(
   ten
 
 }
+//------------------------------------------------------------------------------
+fn construct_symmetric_tensor_from_tensor_specifier(
+    tensor_specifier: &TensorSpecifier, particle_index: usize,
+    structure: &Structure, config: &Config) 
+  -> Result<SymmetricTensor3D, CluEError>
+{
+  let Some(values) = tensor_specifier.values else{
+    return Err(CluEError::NoTensorValues);
+  }; 
+
+  let mut axes = Vec::<Vector3D>::with_capacity(2);
+  let mut axis_dims = Vec::<usize>::with_capacity(2);
+
+  let x = 0;
+  let y = 1;
+  let z = 2;
+  if let Some(axis_specifier) = &tensor_specifier.z_axis{
+    let mut axis = axis_specifier.to_vector3d(particle_index,structure,
+        config)?;
+    axis = axis.scale(1.0/axis.norm());
+    axes.push(axis);
+    axis_dims.push(z);
+  }
+
+  if let Some(axis_specifier) = &tensor_specifier.x_axis{
+    let mut axis = axis_specifier.to_vector3d(particle_index,structure,
+        config)?;
+
+    if axes.len() == 1{
+      axis = &axis - &axes[0].scale(axes[0].dot(&axis));
+    }
+    axis = axis.scale(1.0/axis.norm());
+    axes.push(axis);
+    axis_dims.push(x);
+  }
+
+  if axes.len() < 2 {
+    if let Some(axis_specifier) = &tensor_specifier.y_axis{
+      let mut axis = axis_specifier.to_vector3d(particle_index, structure, 
+          config)?;
+      if axes.len() == 1{
+        axis = &axis - &axes[0].scale(axes[0].dot(&axis));
+      }
+      axis = axis.scale(1.0/axis.norm());
+      axes.push(axis);
+      axis_dims.push(y);
+    }
+  }
+
+
+  if axis_dims.len() != 2{
+    return Err(CluEError::WrongNumberOfAxes(axes.len(),2))
+  }
+  let axis_dims = [axis_dims[0],axis_dims[1]];
+
+  let all_3_axes: [Vector3D; 3]; 
+  match axis_dims{
+    [z,x] => {
+       let mut axis = axes[0].cross(&axes[1]);
+       axis = axis.scale(1.0/axis.norm());
+       all_3_axes = [axes[1].clone(),axis,axes[0].clone()];
+    },
+    [z,y] => {
+       let mut axis = axes[1].cross(&axes[0]);
+       axis = axis.scale(1.0/axis.norm());
+       all_3_axes = [axis,axes[1].clone(),axes[0].clone()];
+    },
+    [x,y] => {
+       let mut axis = axes[0].cross(&axes[1]);
+       axis = axis.scale(1.0/axis.norm());
+       all_3_axes = [axes[0].clone(),axes[1].clone(),axis];
+    },
+    _ => return Err(CluEError::InvalidAxes),
+  }
+
+  let ten = construct_symmetric_tensor_from_values_and_vectors(
+      &values, &all_3_axes);
+
+  Ok(ten)
+
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -261,6 +343,11 @@ mod tests{
   use crate::physical_constants::*;
   use crate::space_3d::{SymmetricTensor3D, Vector3D};
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_construct_symmetric_tensor_from_tensor_specifier(){
+    assert!(false);
+  }
   //----------------------------------------------------------------------------
   #[test]
   fn test_construct_symmetric_tensor_from_values_and_vectors(){

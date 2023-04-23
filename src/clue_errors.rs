@@ -39,6 +39,7 @@ pub enum CluEError{
   IncorrectNumberOfAxes(usize,usize),
   IndexOutOfBounds(usize,usize,usize),
   InvalidArgument(usize,String),
+  InvalidAxes,
   InvalidConfigFile(String),
   InvalidPulseSequence(usize),
   InvalidToken(usize,String),
@@ -79,6 +80,7 @@ pub enum CluEError{
   NotAnOperator(usize,String),
   NotAProperSubset(String,String),
   NoTemperature,
+  NoTensorValues,
   NoTimeAxis,
   NoTimeIncrements,
   NoTimepoints,
@@ -94,6 +96,7 @@ pub enum CluEError{
   UnrecognizedVectorSpecifier(String),
   VectorSpecifierDoesNotSpecifyUniqueVector(String),
   WrongClusterSizeForAnalyticCCE(usize),
+  WrongNumberOfAxes(usize,usize),
   WrongVectorLength(usize,usize,usize)
 }
 
@@ -214,6 +217,9 @@ impl fmt::Display for CluEError{
           "line {}, cannot access element {} from array of length {}", 
           line_number, idx, len),
 
+      CluEError::InvalidAxes => write!(f,
+          "invalid axes"),
+
       CluEError::InvalidArgument(line_number,expected_arg) => write!(f,
           "line {}, argument should be a(n) {}",line_number, expected_arg),
 
@@ -328,6 +334,9 @@ impl fmt::Display for CluEError{
       CluEError::NoTemperature => write!(f,
           "no temperature specified"),
       
+      CluEError::NoTensorValues => write!(f,
+          "no values specified for tensor"),
+      
       CluEError::NoTimeAxis => write!(f,
           "the time-axis has not been built"),
       
@@ -392,6 +401,9 @@ impl fmt::Display for CluEError{
 
       CluEError::WrongClusterSizeForAnalyticCCE(given_size) => write!(f,
           "analytic 2-CCE cannot work with clusters of size {}",given_size),
+
+      CluEError::WrongNumberOfAxes(num_axes, expected_num) => write!(f,
+          "{} axes were provided, but {} are expected",num_axes, expected_num),
 
       CluEError::WrongVectorLength(line_number, expected, actual) => write!(f,
           "line {}, expected vector of length {}, but recieved a length of {}", 
