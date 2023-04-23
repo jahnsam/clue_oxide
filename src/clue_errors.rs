@@ -15,6 +15,7 @@ pub enum CluEError{
   CannotDivTokens,
   CannotFindCellID(usize),
   CannotFindSpinOp(String),
+  CannotInferEigenvalues(usize),
   CannotMulTokens,
   CannotOpenFile(String),
   CannotParseElement(String),
@@ -43,6 +44,7 @@ pub enum CluEError{
   InvalidToken(usize,String),
   LenghMismatchTimepointsIncrements(usize,usize),
   MissingFilter(String),
+  MissingFilterArgument(usize,String),
   MissingFilterLabel(usize),
   MissingHeader(String),
   MissingProperties(String),
@@ -60,12 +62,14 @@ pub enum CluEError{
   NoClusterMethod,
   NoClustersOfSize(usize),
   NoDensityMatrixMethod,
+  NoHyperfineSpecifier(String,String),
   NoInputFile,
   NoLoadGeometry,
   NoMagneticField,
   NoModelIndex,
   NoMaxClusterSize,
   NoPulseSequence,
+  NoQuadrupoleSpecifier(String,String),
   NoRadius,
   NoRelationalOperators(usize),
   NoRHS(usize),
@@ -87,6 +91,7 @@ pub enum CluEError{
   UnmatchedBlockComment(usize),
   UnmatchedDelimiter(usize),
   UnrecognizedOption(String),
+  UnrecognizedVectorSpecifier(String),
   WrongClusterSizeForAnalyticCCE(usize),
   WrongVectorLength(usize,usize,usize)
 }
@@ -129,6 +134,9 @@ impl fmt::Display for CluEError{
       CluEError::CannotFindSpinOp(sop) => write!(f,
           "cannot find spin operator \"{}\"",sop),
 
+      CluEError::CannotInferEigenvalues(line_number) => write!(f,
+          "line {}, cannot infer eigenvalues from input",line_number),
+      
       CluEError::CannotMulTokens => write!(f,
           "cannot multiply tokens meaningfully"),
 
@@ -224,6 +232,9 @@ impl fmt::Display for CluEError{
       CluEError::MissingFilter(label) => write!(f,
           "no filter with label \"{}\"",label),
 
+      CluEError::MissingFilterArgument(line_number,fn_name) => write!(f,
+          "line {}, missing filter argument in \"{}()\"",line_number,fn_name),
+
       CluEError::MissingFilterLabel(line_number) => write!(f,
           "line {}, missing label in filter",line_number),
 
@@ -270,15 +281,18 @@ impl fmt::Display for CluEError{
       CluEError::NoClusterMethod => write!(f,
           "no cluster method specified"),
       
+      CluEError::NoClustersOfSize(size) => write!(f,
+          "cannot find any clusters of size {}", size),
+
       CluEError::NoDensityMatrixMethod=> write!(f,
           "no density matrix method specified"),
       
       CluEError::NoInputFile => write!(f,
           "no input file"),
       
-      CluEError::NoClustersOfSize(size) => write!(f,
-          "cannot find any clusters of size {}", size),
-
+      CluEError::NoHyperfineSpecifier(label,isotope) => write!(f,
+          "no hyperfine specifier found for {} {}",label,isotope),
+      
       CluEError::NoLoadGeometry => write!(f,
           "geometry for loading in the system was not defined"),
       
@@ -293,6 +307,9 @@ impl fmt::Display for CluEError{
 
       CluEError::NoPulseSequence => write!(f,
           "no pulse sequence is defined"),
+      
+      CluEError::NoQuadrupoleSpecifier(label,isotope) => write!(f,
+          "no quadrupole specifier found for {} {}",label,isotope),
       
       CluEError::NoRadius => write!(f,
           "system radius not set"),
@@ -364,6 +381,9 @@ impl fmt::Display for CluEError{
 
       CluEError::UnrecognizedOption(option) => write!(f,
           "unrecognized option \"{}\"",option),
+
+      CluEError::UnrecognizedVectorSpecifier(specifier) => write!(f,
+          "unrecognized vector specifier \"{}\"",specifier),
 
       CluEError::WrongClusterSizeForAnalyticCCE(given_size) => write!(f,
           "analytic 2-CCE cannot work with clusters of size {}",given_size),

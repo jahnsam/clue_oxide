@@ -96,11 +96,15 @@ impl ParticleProperties{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug,Clone,PartialEq,Default)]
 pub struct IsotopeProperties{
   pub electric_quadrupole_coupling: Option<TensorSpecifier>,
-  pub exchange_coupling: f64,
+  pub exchange_coupling: Option<f64>,
   pub hyperfine_coupling: Option<TensorSpecifier>,
+}
+
+impl IsotopeProperties{
+  pub fn new() -> Self{ IsotopeProperties::default() }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -131,23 +135,17 @@ pub struct IsotopeAbundance{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug,Clone,PartialEq,Default)]
 pub struct TensorSpecifier{
-  pub values: [f64; 3],
+  pub values: Option<[f64; 3]>,
   pub x_axis: Option<VectorSpecifier>,
   pub y_axis: Option<VectorSpecifier>,
   pub z_axis: Option<VectorSpecifier>,
 }
 
-impl Default for TensorSpecifier{
-  fn default() -> Self{
-  
-    TensorSpecifier{
-      values: [0.0; 3],
-      x_axis: None,
-      y_axis: None,
-      z_axis: None,
-   }
+impl TensorSpecifier{
+  pub fn new() -> Self{
+    TensorSpecifier::default()
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

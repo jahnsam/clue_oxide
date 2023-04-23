@@ -2,11 +2,14 @@ use crate::config::token::*;
 use crate::CluEError;
 use crate::config::ModeAttribute;
 use crate::config::token_stream;
+use crate::config::token_stream::split_on_token;
 use crate::config::token_algebra::*;
-use crate::space_3d::Vector3D;
 use crate::config::to_i32_token;
+use crate::config::token_stream::{find_brackets,find_outermost_parentheses};
 use crate::physical_constants::Element;
-use crate::config::token_stream::find_outermost_parentheses;
+use crate::space_3d::Vector3D;
+use crate::structure::particle_filter::{SecondaryParticleFilter,
+  VectorSpecifier};
 
 // TokenExpression holds a line of input, organized for easy parsing.
 #[derive(Debug,Clone,Default,PartialEq)]
@@ -264,6 +267,106 @@ pub fn set_to_some_vector3d(
   }else{
     return Err(CluEError::NoRHS(expression.line_number));
   }
+
+  Ok(())
+}
+//------------------------------------------------------------------------------
+// TODO: add more descriptive errors.
+pub fn set_to_some_vector_specifier(
+    target: &mut Option<VectorSpecifier>, expression: &TokenExpression,
+    label: &str)
+  -> Result<(),CluEError>
+{
+  
+  check_target_option(target,expression)?;
+
+  let tokens = token_stream::extract_rhs(expression)?;
+
+  if tokens.is_empty(){
+    return Err(CluEError::NoRHS(expression.line_number));
+  }
+
+  let vector_specifier: VectorSpecifier;
+
+  let vector_keyword = tokens[0].to_string();
+  match &vector_keyword as &str{
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    "diff" => {
+      let Some( (idx0,idx1) ) = find_outermost_parentheses(&tokens, 
+          expression.line_number)? else{  
+         return Err(CluEError::CannotConvertToVector(
+              expression.line_number));
+      };
+
+      let args = split_on_token(tokens[idx0+1..idx1].to_vec(), Token::Comma);
+
+      if args.len() != 2{
+        return Err(CluEError::CannotConvertToVector(
+            expression.line_number));
+      }
+
+      let mut secondary_particle_filters 
+        = Vec::<SecondaryParticleFilter>::with_capacity(2);
+
+      let mut labels = Vec::<String>::with_capacity(2);
+
+      for arg in args.iter(){
+        if arg.is_empty(){
+          return Err(CluEError::CannotConvertToVector(
+            expression.line_number));
+        }
+
+        let sec_fltr = SecondaryParticleFilter::from(&arg[0].to_string())?;
+
+        match sec_fltr{
+          SecondaryParticleFilter::Particle => labels.push(label.to_string()),
+          _ => {
+            if arg.len() != 4{
+              return Err(CluEError::MissingFilterArgument(
+                    expression.line_number, sec_fltr.to_string() ));
+            }
+            labels.push(arg[2].to_string());
+          },
+        }
+        secondary_particle_filters.push(sec_fltr);
+      }
+
+      vector_specifier = VectorSpecifier::Diff(
+         secondary_particle_filters[0].clone(),labels[0].clone(),
+         secondary_particle_filters[1].clone(),labels[1].clone());
+    },
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    "vector" => {
+      let Some( (idx0,idx1) ) = find_brackets(&tokens, expression.line_number)?
+      else{  
+        return Err(CluEError::CannotConvertToVector(
+              expression.line_number));
+      };
+
+      let value_token = to_f64_token((&tokens[idx0..=idx1]).to_vec(), 
+          expression.line_number)?;
+      
+      if let Token::VectorF64(vec) = value_token{ 
+        if vec.len() != 3 {
+          return Err(CluEError::WrongVectorLength(
+                expression.line_number,3,vec.len()));
+        }
+
+        vector_specifier = VectorSpecifier::Vector(
+            Vector3D::from([vec[0],vec[1],vec[2]])
+            );
+
+      } else{
+        return Err(CluEError::CannotConvertToVector(
+              expression.line_number));
+      }
+    },
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    _ => return Err(CluEError::UnrecognizedVectorSpecifier(
+          vector_keyword)),  
+  }
+  
+  *target = Some(vector_specifier);
 
   Ok(())
 }

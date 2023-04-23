@@ -302,9 +302,7 @@ mod tests{
     let ten = construct_symmetric_tensor_from_values_and_vectors(
         &evals,&evecs);
 
-    println!("DB: {:?}",ten);
     for (ii,v) in evecs.iter().enumerate(){
-      println!("DB: {}",ii);
       assert_eq!(&ten*v , v.scale(evals[ii]));
     }
   }

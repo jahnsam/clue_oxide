@@ -342,9 +342,9 @@ fn are_delimiters_paired(open: &Token, close: &Token, line_number: usize)
 }
  
 //------------------------------------------------------------------------------
-// The functions take a token slice and return the index of the first "[" 
-// and the following  "]".  The finction will err if there are nested brackets.
-fn find_brackets(tokens: &[Token], line_number: usize) 
+/// The functions take a token slice and return the index of the first "[" 
+/// and the following  "]".  The finction will err if there are nested brackets.
+pub fn find_brackets(tokens: &[Token], line_number: usize) 
  -> Result<Option<(usize,usize)>, CluEError>
 {
   // Find brackets.

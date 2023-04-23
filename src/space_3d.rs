@@ -435,7 +435,6 @@ mod tests{
     let v2 = Vector3D::from([-1.0,-1.0,2.0]).scale(1.0/6.0f64.sqrt());
     let v3 = v1.cross(&v2);
 
-    println!("DB: {:?}",v3);
     assert!( (v1.norm() - 1.0) < 1e-12);
     assert!( (v2.norm() - 1.0) < 1e-12);
     assert!( (v3.norm() - 1.0) < 1e-12);

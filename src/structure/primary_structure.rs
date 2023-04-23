@@ -450,7 +450,6 @@ mod tests{
     structure.pair_particle_configs(&config);
 
     structure.find_cosubstitution_groups(&config).unwrap();
-    println!("DB: {:?}",structure.cosubstitution_groups);
     let expected = vec![
         vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26],
         vec![30,31,35,39,40],
