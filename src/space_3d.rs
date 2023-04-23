@@ -471,6 +471,36 @@ mod tests{
   //----------------------------------------------------------------------------
   #[allow(non_snake_case)]
   #[test]
+  fn test_Vector3D_normalize(){
+     let phi_list = (0..=10).map(|x| (x as f64)/10.0*PI*2.0)
+      .collect::<Vec::<f64>>();
+
+    let theta_list = (0..=10).map(|x| (2.0*(x as f64)/10.0 - 1.0f64).acos())
+      .collect::<Vec::<f64>>();
+
+    let r_list = vec![0.01, 0.2 , 1.0, 2.1, 10.5];
+
+    for &theta in theta_list.iter(){
+      let ct = theta.cos();
+      let st = theta.sin();
+
+      for &phi in phi_list.iter(){
+        let cp = phi.cos();
+        let sp = phi.sin();
+
+
+        for & r in r_list.iter(){
+          let vec = &Vector3D::from([r*st*cp,r*st*sp,r*ct]);
+          let norm_vec = vec.normalize();
+
+          assert!((norm_vec.norm()-1.0).abs()<1e-12);
+        }
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
   fn test_SymmetricTensor3D(){
     let mut ten = SymmetricTensor3D{elements: [1.0, 2.0, 3.0, 
                                                 4.0, 5.0, 

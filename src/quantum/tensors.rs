@@ -265,15 +265,15 @@ fn construct_symmetric_tensor_from_tensor_specifier(
   let mut axes = Vec::<Vector3D>::with_capacity(2);
   let mut axis_dims = Vec::<usize>::with_capacity(2);
 
-  let x = 0;
-  let y = 1;
-  let z = 2;
+  const X: usize = 0;
+  const Y: usize = 1;
+  const Z: usize = 2;
   if let Some(axis_specifier) = &tensor_specifier.z_axis{
     let mut axis = axis_specifier.to_vector3d(particle_index,structure,
         config)?;
-    axis = axis.scale(1.0/axis.norm());
+    axis = axis.normalize();
     axes.push(axis);
-    axis_dims.push(z);
+    axis_dims.push(Z);
   }
 
   if let Some(axis_specifier) = &tensor_specifier.x_axis{
@@ -283,9 +283,9 @@ fn construct_symmetric_tensor_from_tensor_specifier(
     if axes.len() == 1{
       axis = &axis - &axes[0].scale(axes[0].dot(&axis));
     }
-    axis = axis.scale(1.0/axis.norm());
+    axis = axis.normalize();
     axes.push(axis);
-    axis_dims.push(x);
+    axis_dims.push(X);
   }
 
   if axes.len() < 2 {
@@ -295,9 +295,9 @@ fn construct_symmetric_tensor_from_tensor_specifier(
       if axes.len() == 1{
         axis = &axis - &axes[0].scale(axes[0].dot(&axis));
       }
-      axis = axis.scale(1.0/axis.norm());
+      axis = axis.normalize();
       axes.push(axis);
-      axis_dims.push(y);
+      axis_dims.push(Y);
     }
   }
 
@@ -309,17 +309,17 @@ fn construct_symmetric_tensor_from_tensor_specifier(
 
   let all_3_axes: [Vector3D; 3]; 
   match axis_dims{
-    [z,x] => {
+    [Z,X] => {
        let mut axis = axes[0].cross(&axes[1]);
        axis = axis.scale(1.0/axis.norm());
        all_3_axes = [axes[1].clone(),axis,axes[0].clone()];
     },
-    [z,y] => {
+    [Z,Y] => {
        let mut axis = axes[1].cross(&axes[0]);
        axis = axis.scale(1.0/axis.norm());
        all_3_axes = [axis,axes[1].clone(),axes[0].clone()];
     },
-    [x,y] => {
+    [X,Y] => {
        let mut axis = axes[0].cross(&axes[1]);
        axis = axis.scale(1.0/axis.norm());
        all_3_axes = [axes[0].clone(),axes[1].clone(),axis];
@@ -342,11 +342,101 @@ mod tests{
   use super::*;
   use crate::physical_constants::*;
   use crate::space_3d::{SymmetricTensor3D, Vector3D};
+  use crate::config::particle_config::ParticleConfig;
+  use crate::structure::pdb;
+  use crate::Config;
+  use crate::config::DetectedSpinCoordinates;
+  use crate::structure::particle_filter::{ParticleFilter, 
+    SecondaryParticleFilter,VectorSpecifier};
+
 
   //----------------------------------------------------------------------------
   #[test]
   fn test_construct_symmetric_tensor_from_tensor_specifier(){
-    assert!(false);
+    let filename = "./assets/TEMPO.pdb";
+    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
+    let mut config = Config::new();
+    config.detected_spin_position = Some(
+        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
+    config.set_defaults();
+    structure.build_primary_structure(&config).unwrap();
+
+    config.particles.push( ParticleConfig::new("nitrogen".to_string()) );
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Nitrogen];
+    config.particles[0].filter = Some(filter);
+
+    let label = String::from("oxygen");
+    config.particles.push( ParticleConfig::new(label.clone()) );
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Oxygen];
+    config.particles[1].filter = Some(filter);
+
+    let label = String::from("carbon");
+    config.particles.push( ParticleConfig::new(label.clone()) );
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Carbon];
+    config.particles[2].filter = Some(filter);
+
+    let vector_specifier_no = VectorSpecifier::Diff(
+        SecondaryParticleFilter::Particle,"nitrogen".to_string(),
+        SecondaryParticleFilter::Bonded,"oxygen".to_string());
+
+    let vector_specifier_cc = VectorSpecifier::Diff(
+        SecondaryParticleFilter::Bonded,"carbon".to_string(),
+        SecondaryParticleFilter::Bonded,"carbon".to_string());
+
+    let r_n = Vector3D::from([36.440e-10, 36.900e-10,  37.100e-10]);
+    let r_o = Vector3D::from([35.290e-10,  36.430e-10,  37.810e-10]);
+    let r_c1 = Vector3D::from([37.700e-10, 36.150e-10, 37.340e-10]);
+    let r_c19 = Vector3D::from([36.610e-10, 38.380e-10, 36.850e-10]);
+
+    let delta_r_no = &r_o - &r_n;
+    let delta_r_cc = &r_c19 - &r_c1;
+
+    let particle_index = 27;
+    assert_eq!(structure.bath_particles[particle_index].element,
+        Element::Nitrogen);
+    let r_no = vector_specifier_no.to_vector3d(particle_index,&structure,
+        &config).unwrap();
+    assert_eq!(r_no,delta_r_no);
+
+    let r_cc = vector_specifier_cc.to_vector3d(particle_index,&structure,
+        &config).unwrap();
+    assert_eq!(r_cc,delta_r_cc);
+
+
+    // de Oliveira, M.; Knitsch, R.; Sajid, M.; Stute, A.; Elmer, L.-M.; 
+    // Kehr, G.; Erker, G.; Magon, C. J.; Jeschke, G.; Eckert, H.
+    // Aminoxyl Radicals of B/P Frustrated Lewis Pairs:
+    // Refinement of the Spin-Hamiltonian Parameters by Field- and
+    // Temperature-Dependent Pulsed EPR Spectroscopy.
+    // PLoS ONE 2016, 11 (6), e0157944.
+    // https://doi.org/10.1371/journal.pone.0157944.
+    let e2qQh = 3.5*1e6; // Hz
+    let eta = 0.68;
+    let values = [e2qQh*(eta-1.0), e2qQh*(-eta-1.0), 2.0*e2qQh];
+    assert_eq!(values,[-1119999.9999999998, -5880000.000000001, 7000000.0]);
+
+    let tensor_specifier = TensorSpecifier{
+      values: Some(values.clone()),
+      x_axis: Some(vector_specifier_no),
+      y_axis: Some(vector_specifier_cc),
+      z_axis: None,
+    };
+
+    let tensor = construct_symmetric_tensor_from_tensor_specifier(
+        &tensor_specifier, particle_index,&structure, &config).unwrap();
+
+    let x = r_no.normalize();
+    let y = (&r_cc - &x.scale(x.dot(&r_cc))).normalize();
+
+    assert_eq!(&tensor*&r_no,r_no.scale(values[0]));
+    assert!((&(&tensor*&x) 
+          - &x.scale(values[0])).norm()/values[0].abs() < 1e-9 );
+
+    assert!((&(&tensor*&y) 
+          - &y.scale(values[1])).norm()/values[1].abs() < 1e-9 );
   }
   //----------------------------------------------------------------------------
   #[test]

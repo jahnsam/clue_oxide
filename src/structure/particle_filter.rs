@@ -3,6 +3,7 @@ use crate::clue_errors::CluEError;
 use crate::Config;
 use crate::physical_constants::{Element,Isotope};
 use crate::space_3d::Vector3D;
+use crate::math;
 use crate::structure::{Particle,Structure};
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -325,11 +326,28 @@ impl VectorSpecifier{
       VectorSpecifier::Diff(sec_fltr_0,label_0,sec_fltr_1,label_1) =>{
 
 
-        let indices_0 = sec_fltr_0.filter(particle_index, &label_0, &structure,
-            &config)?;
+        let mut indices_0 = sec_fltr_0.filter(particle_index, &label_0, 
+            &structure, &config)?;
 
-        let indices_1 = sec_fltr_1.filter(particle_index, &label_1, &structure,
-            &config)?;
+        let mut indices_1 = sec_fltr_1.filter(particle_index, &label_1, 
+            &structure, &config)?;
+
+
+        if indices_0.len() == 2 && indices_1.len() == 2{
+          indices_0.append(&mut indices_1);
+          indices_0 = math::unique(indices_0);
+          indices_0.sort();
+          
+          if indices_0.len() != 2 {
+            return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
+                format!("...diff({}..., {}...",
+                  sec_fltr_0.to_string(), sec_fltr_1.to_string(), )));
+          }
+
+          indices_1 = vec![indices_0[1]];
+          indices_0 = vec![indices_0[0]];
+
+        }
 
         if indices_0.len() != 1 {
           return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
