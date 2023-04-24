@@ -31,32 +31,46 @@ pub struct DetectedSpin{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/*
-struct ExchangeGroupManager{
-  exchange_groups: Vec::<ExchangeGroup>,
-  exchange_group_ids: Vec::<Option<usize>>,
-  exchange_coupling: Vec::<f64>, // one entry per exchange_group
-}
-*/
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
 pub struct Structure{
+  // the particle giving rise to the detected signal
   pub detected_particle: Option<DetectedSpin>,
+  
+  // all particles that are not directly detected   
   pub bath_particles: Vec::<Particle>,
+
+  // a list of which bath_particles have spin
   bath_spins_indices: Vec::<usize>,
-  cell_indices: Vec::<Vec::<Option<usize>>>,
+
+  // set of lists of all periodic copies of each particle from the primary cell 
+  pub cell_indices: Vec::<Vec::<Option<usize>>>,
+
+  // set of displacements for periodic boundary conditions
   pub cell_offsets: Vec::<Vector3D>,
+
+  // list of chemical bonds
   pub connections: AdjacencyList,
+
+  // set of molecule
   molecules: Vec::<Vec::<usize>>,
+
+  // a list specifing which molecule each particle belongs to
   molecule_ids: Vec::<usize>,
-  //cosubstitute: Option<AdjacencyList>,
+
+  // collections of atoms that should be isotope substituted together
   cosubstitution_groups: Vec::< Vec::<usize> >,
-  exchange_groups: Option<ExchangeGroupManager>,
+
+  // information on methyls
+  pub exchange_groups: Option<ExchangeGroupManager>,
+
+  // indices for which config.particle corresponds to each particle
   particle_config_ids: Vec::<Option<usize>>,
+
+  // origin of the pdb frame
   pdb_origin: Vector3D,
+
+  // list indices indicating the particle that each particle is a periodic
+  // boundary condition copy of  
   primary_cell_indices: Vec::<usize>,
 }
 
@@ -76,7 +90,6 @@ impl Structure{
       connections,
       molecules: Vec::<Vec::<usize>>::new(),
       molecule_ids: Vec::<usize>::new(),
-      //cosubstitute: None,
       cosubstitution_groups: Vec::<Vec::<usize>>::new(),
       exchange_groups: None,
       particle_config_ids: Vec::<Option<usize>>::new(),

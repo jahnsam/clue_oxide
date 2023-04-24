@@ -6,6 +6,8 @@ use crate::physical_constants::{HBAR, JOULES_TO_HERTZ,MU0,PI};
 use crate::space_3d::{SymmetricTensor3D,Vector3D};
 use crate::structure::{DetectedSpin,Structure};
 use crate::structure::particle::Particle;
+use crate::structure::exchange_groups::ExchangeGroup;
+use crate::structure::exchange_groups::GetIndices;
 use crate::symmetric_list_2d::SymList2D;
 
 
@@ -61,26 +63,26 @@ impl HamiltonianTensors{
 
       spin_multiplicities.push(particle0.isotope.spin_multiplicity());
 
+
       // nuclear Zeeman
       spin1_tensors.set(idx0, 
           construct_zeeman_tensor(&(gamma0*&eye),magnetic_field));
 
+
       // hyperfine
       let hf_ten = construct_hyperfine_tensor(detected_particle, particle0, 
           idx0, structure, config)?; 
-      /*
-      let mut hf_ten = SymmetricTensor3D::zeros();
-      for ii in 0..detected_particle.weighted_coordinates.len(){
-        let delta_r = &detected_particle.weighted_coordinates.xyz(ii) 
-          - &particle0.coordinates;
-        let w = detected_particle.weighted_coordinates.weight(ii);
-        
-        let ten = construct_point_dipole_dipole_tensor(gamma_e,gamma0,&delta_r);
-        
-        hf_ten = &hf_ten + &(w*&ten);
-      }
-      */
+
       spin2_tensors.set(0,idx0, hf_ten);
+
+      
+      // electric quadrupole coupling
+      let quadrupole_opt = construct_electric_quadrupole_tensor(particle0, idx0,
+          structure, config)?;
+
+      if let Some(quadrupole_ten) = quadrupole_opt{
+        spin2_tensors.set(idx0,idx0, quadrupole_ten);
+      }
 
 
       // nucleus-nucleus dipole-dipole
@@ -97,10 +99,50 @@ impl HamiltonianTensors{
          let dd_ten = construct_point_dipole_dipole_tensor(gamma1,gamma0,
               &delta_r01);
 
+
          spin2_tensors.set(idx1,idx0, dd_ten);
       }
+    }
 
 
+
+    if let Some(exchange_group_manager) = &structure.exchange_groups{
+      for (ex_id, exchange_group) in exchange_group_manager.exchange_groups
+        .iter().enumerate()
+      {
+        // Add tensors bassed on the identity of the exchange group.
+        match exchange_group{
+          ExchangeGroup::Methyl(c3rotor) | 
+            ExchangeGroup::PrimaryAmonium(c3rotor) =>{
+              let nut = exchange_group_manager.exchange_coupling[ex_id];
+              let j = -2.0*nut/3.0;
+
+              let j_tensor = eye.scale(j);
+
+              // Loop through all hydrogens.
+              for &h0 in c3rotor.indices.iter(){
+                let h0_indices = &structure.cell_indices[h0];
+                
+                // Loop through all hydrogens with indices less than the first.
+                for &h1 in c3rotor.indices.iter(){
+                  if h1 == h0 { break; }
+                  let h1_indices = &structure.cell_indices[h1];
+        
+                  // Loop through all periodic boudary condition copies.
+                  for cell_id in 0..h0_indices.len(){
+                    let Some(h0_id) = h0_indices[cell_id] else { continue; };
+                    let Some(h1_id) = h1_indices[cell_id] else { continue; };
+                    spin2_tensors.add(h0_id,h1_id, j_tensor.clone());
+                  }
+
+                }
+              }
+
+            },
+        }
+
+       
+      }
     }
 
     Ok(HamiltonianTensors{
@@ -178,6 +220,13 @@ impl<'a> Spin2Tensors{
     self.tensors.set(m,n,ten);
   }
   //----------------------------------------------------------------------------
+  pub fn add(&mut self, m: usize, n: usize, mut ten: SymmetricTensor3D){
+    if let Some(ten0) = self.tensors.get(m,n){
+      ten = &ten + &ten0;
+    }
+    self.tensors.set(m,n,ten);
+  }
+  //----------------------------------------------------------------------------
   pub fn remove(&mut self, m: usize, n: usize){
     self.tensors.remove(m,n);
   }
@@ -193,7 +242,28 @@ pub fn construct_zeeman_tensor(
   (-0.5/PI)*&(magnetic_field * gyromagnetic_ratio)
 }
 //------------------------------------------------------------------------------
-pub fn construct_hyperfine_tensor(detected_particle: &DetectedSpin, 
+fn construct_electric_quadrupole_tensor(
+    particle0: &Particle,particle_index: usize,
+    structure: &Structure, config: &Config)
+  -> Result<Option<SymmetricTensor3D>, CluEError>
+{
+  if particle0.isotope.spin_multiplicity() < 3 {
+    return Ok(None);
+  }
+
+  match structure.extract_electric_quadrupole_specifier(particle_index,&config)
+  {
+    Some(tensor_specifier) => {
+      let tensor = construct_symmetric_tensor_from_tensor_specifier(
+        &tensor_specifier, particle_index,&structure, &config)?;
+
+      Ok(Some(tensor))
+    },
+    None => Ok(None),
+  }
+}
+//------------------------------------------------------------------------------
+fn construct_hyperfine_tensor(detected_particle: &DetectedSpin, 
     particle0: &Particle, particle_index: usize, 
     structure: &Structure, config: &Config) 
   -> Result<SymmetricTensor3D, CluEError>
@@ -434,9 +504,9 @@ mod tests{
     // Temperature-Dependent Pulsed EPR Spectroscopy.
     // PLoS ONE 2016, 11 (6), e0157944.
     // https://doi.org/10.1371/journal.pone.0157944.
-    let e2qQh = 3.5*1e6; // Hz
+    let e2qqh = 3.5*1e6; // Hz
     let eta = 0.68;
-    let values = [e2qQh*(eta-1.0), e2qQh*(-eta-1.0), 2.0*e2qQh];
+    let values = [e2qqh*(eta-1.0), e2qqh*(-eta-1.0), 2.0*e2qqh];
     assert_eq!(values,[-1119999.9999999998, -5880000.000000001, 7000000.0]);
 
     let tensor_specifier = TensorSpecifier{

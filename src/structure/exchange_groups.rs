@@ -40,9 +40,9 @@ impl Translate for ExchangeGroup{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 
 #[derive(Debug, Clone)]
 pub struct C3Rotor{
-  center: Vector3D,
-  normal: Vector3D,
-  indices: [usize;3],
+  pub center: Vector3D,
+  pub normal: Vector3D,
+  pub indices: [usize;3],
 }
 
 //------------------------------------------------------------------------------
