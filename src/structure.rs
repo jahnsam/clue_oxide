@@ -242,6 +242,8 @@ impl Structure{
       config: &'a Config)
     -> Option<&'a IsotopeProperties>
   {
+    let particle_index = self.primary_cell_indices[particle_index];
+
     let Some(p_cfg_id) = self.particle_config_ids[particle_index] else{
       return None;
     };

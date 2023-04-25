@@ -21,6 +21,47 @@ impl SymmetricTensor3D{
                                            1.0]}
   }
   //----------------------------------------------------------------------------
+  pub fn rotate_trig(&self,
+      cos_theta: f64, cos_theta_squared: f64, 
+      sin_theta: f64, sin_theta_squared: f64,
+      cos_phi: f64, cos_phi_squared: f64, sin_phi: f64, sin_phi_squared: f64,
+      ) -> Self
+  {
+
+    let txx = self.xx();
+    let txy = self.xy();
+    let txz = self.xz();
+    let tyy = self.yy();
+    let tyz = self.yz();
+    let tzz = self.zz();
+
+    SymmetricTensor3D{ elements: [
+      sin_phi_squared*tyy - 2.0*cos_phi*sin_phi*(cos_theta*txy + sin_theta*tyz) 
+        +cos_phi_squared*(cos_theta_squared*txx + 2.0*cos_theta*sin_theta*txz 
+            + sin_theta_squared*tzz)
+      ,
+      cos_phi_squared*(cos_theta*txy + sin_theta*tyz) 
+        -sin_phi_squared*(cos_theta*txy + sin_theta*tyz) 
+        +cos_phi*sin_phi*(cos_theta_squared*txx + 2.0*cos_theta*sin_theta*txz 
+            - tyy + sin_theta_squared*tzz)
+      ,
+      -sin_theta*(cos_phi*cos_theta*txx - sin_phi*txy + cos_phi*sin_theta*txz) 
+        +cos_theta*(cos_phi*cos_theta*txz - sin_phi*tyz + cos_phi*sin_theta*tzz)
+      ,
+      cos_theta_squared*sin_phi_squared*txx + 2.0*cos_theta*sin_phi*(cos_phi*txy 
+          + sin_phi*sin_theta*txz) +cos_phi_squared*tyy 
+        + 2.0*cos_phi*sin_phi*sin_theta*tyz 
+        + sin_phi_squared*sin_theta_squared*tzz
+      ,
+      -sin_theta*(cos_theta*sin_phi*txx + cos_phi*txy + sin_phi*sin_theta*txz) 
+        + cos_theta*(cos_theta*sin_phi*txz + cos_phi*tyz 
+            + sin_phi*sin_theta*tzz)
+      ,
+      sin_theta_squared*txx - 2.0*cos_theta*sin_theta*txz 
+        + cos_theta_squared*tzz
+    ]}
+  }
+  //----------------------------------------------------------------------------
 
 
   pub fn scale(&self, a: f64) -> SymmetricTensor3D {
@@ -215,6 +256,21 @@ impl Vector3D{
       self.z()*self.z(), 
     ];
     SymmetricTensor3D::from(elements)
+  }
+  //----------------------------------------------------------------------------
+  pub fn rotate_trig(&self,
+      cos_theta: f64, sin_theta: f64, cos_phi: f64, sin_phi: f64
+      ) -> Self
+  {
+    let x = self.x();
+    let y = self.y();
+    let z = self.z();
+
+    Vector3D{ elements: [
+      cos_phi*cos_theta*x - sin_phi*y + cos_phi*sin_theta*z,
+      cos_theta*sin_phi*x + cos_phi*y + sin_phi*sin_theta*z,
+      -sin_theta*x + cos_theta*z
+    ]}
   }
   //----------------------------------------------------------------------------
 }

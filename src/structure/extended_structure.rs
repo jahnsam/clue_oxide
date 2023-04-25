@@ -52,9 +52,20 @@ impl Structure{
           return Err(CluEError::NoRadius);
         };
 
-        for particle in self.bath_particles.iter_mut(){
+        for (idx,particle) in self.bath_particles.iter_mut().enumerate(){
 
-          if particle.coordinates.norm() > radius{
+          let r: &Vector3D;
+          if let Some(exchange_group_manager) = &self.exchange_groups{
+            match exchange_group_manager.exchange_group_ids[idx]{
+              Some(id) 
+                => r = exchange_group_manager.exchange_groups[id].centroid(),
+              None => r = &particle.coordinates,
+            }
+          }else{
+            r = &particle.coordinates;
+          }
+
+          if r.norm() > radius{
             particle.active = false;
           }
         }
@@ -557,7 +568,7 @@ mod tests{
     assert!(n_h1 >= 1000);
     assert!(n_h1 <= 1200);
     assert!(n_h2 >= 1000);
-    assert!(n_h2 <= 1200);
+    assert!(n_h2 <= 1200); // TODO
     
   }
   //----------------------------------------------------------------------------
