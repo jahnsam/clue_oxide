@@ -2,6 +2,7 @@ use crate::clue_errors::CluEError;
 use crate::config::{Config,LoadGeometry};
 use crate::space_3d::Vector3D;
 use crate::structure::Structure;
+use crate::structure::exchange_groups::*;
 use crate::math;  
 
 use rand::seq::index::sample;
@@ -32,6 +33,8 @@ impl Structure{
     // non-void particles can potentially have multiple isotopic options. 
     self.set_isotopologue(rng, config)?;
 
+    self.update_exhange_groups(config)?;
+
     self.trim_system(config)?;
 
     Ok(())
@@ -61,6 +64,75 @@ impl Structure{
     Ok(())
   }
   
+  //----------------------------------------------------------------------------
+  fn update_exhange_groups(&mut self, config: &Config) -> Result<(),CluEError>
+  {
+    let Some(exchange_group_manager0) = &self.exchange_groups else {
+      return Ok(());
+    };
+
+    let n_ex = exchange_group_manager0.exchange_groups.len()
+      *self.cell_offsets.len();
+    
+    let mut exchange_groups = Vec::<ExchangeGroup>::with_capacity(n_ex);
+    let mut exchange_group_ids = self.bath_particles.iter().map(|p| None)
+      .collect::<Vec::<Option<usize>>>();
+    let mut exchange_couplings = Vec::<f64>::with_capacity(n_ex);
+
+    // Loop over unit cells.
+    for icell in 0..self.cell_offsets.len(){ 
+      for (ex_id, exchange_group_0) in exchange_group_manager0
+        .exchange_groups.iter().enumerate()
+      {
+        let indices_0 = exchange_group_0.indices();
+        let mut indices = Vec::<usize>::with_capacity(indices_0.len());
+
+        for &idx0 in indices_0.iter(){
+          let Some(idx) = self.cell_indices[idx0][icell] else{
+            break;
+          };
+          indices.push(idx);
+        }
+        if indices.len() != indices_0.len(){
+          continue;
+        }
+
+        let center = exchange_group_0.centroid() + &self.cell_offsets[icell];
+        let exchange_group: ExchangeGroup;
+        match exchange_group_0{
+          ExchangeGroup::Methyl(rotor) 
+          => exchange_group = ExchangeGroup::Methyl(
+              C3Rotor{ center, normal: rotor.normal.clone(), 
+              indices: [indices[0],indices[1],indices[2]]}),
+          ExchangeGroup::PrimaryAmonium(rotor)
+          => exchange_group = ExchangeGroup::PrimaryAmonium(
+              C3Rotor{ center, normal: rotor.normal.clone(), 
+              indices: [indices[0],indices[1],indices[2]]}),
+        }
+        exchange_groups.push(exchange_group);
+
+
+        for (ii,&idx) in indices.iter().enumerate(){
+          exchange_group_ids[idx] = exchange_group_manager0
+            .exchange_group_ids[ii].clone();
+        }
+
+
+        let exchange_coupling: f64 
+          = self.extract_exchange_coupling(indices[0],config);
+        exchange_couplings.push(exchange_coupling);
+
+     
+      }
+    }
+    self.exchange_groups = Some(ExchangeGroupManager{
+      exchange_groups,
+      exchange_group_ids,
+      exchange_couplings,
+    });
+    
+    Ok(())
+  }
   //----------------------------------------------------------------------------
   // TODO: TEST add_voidable_particles()
   fn add_voidable_particles(&mut self, 

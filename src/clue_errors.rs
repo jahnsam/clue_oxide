@@ -37,6 +37,7 @@ pub enum CluEError{
   ExpectedVecOfNFloatsRHS(usize,usize),
   ExpectedNumber(usize),
   IncorrectNumberOfAxes(usize,usize),
+  InorrectNumberOfCellOffsets(usize,usize),
   IndexOutOfBounds(usize,usize,usize),
   InvalidArgument(usize,String),
   InvalidAxes,
@@ -212,6 +213,9 @@ impl fmt::Display for CluEError{
 
       CluEError::IncorrectNumberOfAxes(n,n_ref)=> write!(f,
           "expected {} axes, but {} were provided",n_ref, n),
+
+      CluEError::InorrectNumberOfCellOffsets(n,n_ref)=> write!(f,
+          "expected {} cell offsets, but {} were provided",n_ref, n),
 
       CluEError::IndexOutOfBounds(line_number,idx, len) => write!(f,
           "line {}, cannot access element {} from array of length {}", 

@@ -195,17 +195,21 @@ impl Structure{
   }
   */
   //----------------------------------------------------------------------------
-  pub fn extract_hyperfine_specifier<'a>(&self, particle_index: usize,
-      config: &'a Config)
-    -> Option<&'a TensorSpecifier>
+  pub fn extract_exchange_coupling(&self, particle_index: usize,
+      config: &Config)
+    -> f64
   {
     let Some(isotope_properties) = self.extract_isotope_properties(
         particle_index,config) 
     else{
-      return None;
+      return 0.0;
     };
 
-    isotope_properties.hyperfine_coupling.as_ref()
+    if let Some(ex_coup) = isotope_properties.exchange_coupling {
+      ex_coup
+    }else{
+      0.0
+    }
   }
   //----------------------------------------------------------------------------
   pub fn extract_electric_quadrupole_specifier<'a>(&self, particle_index: usize,
@@ -219,6 +223,19 @@ impl Structure{
     };
 
     isotope_properties.electric_quadrupole_coupling.as_ref()
+  }
+  //----------------------------------------------------------------------------
+  pub fn extract_hyperfine_specifier<'a>(&self, particle_index: usize,
+      config: &'a Config)
+    -> Option<&'a TensorSpecifier>
+  {
+    let Some(isotope_properties) = self.extract_isotope_properties(
+        particle_index,config) 
+    else{
+      return None;
+    };
+
+    isotope_properties.hyperfine_coupling.as_ref()
   }
   //----------------------------------------------------------------------------
   pub fn extract_isotope_properties<'a>(&self, particle_index: usize,

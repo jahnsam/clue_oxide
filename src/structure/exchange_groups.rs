@@ -2,6 +2,8 @@ use crate::space_3d::Vector3D;
 
 pub trait Translate{ fn translate(&mut self, r: &Vector3D); }
 
+pub trait GetCentroid{fn centroid(&self) -> &Vector3D; }
+
 pub trait GetIndices{fn indices(&self) -> Vec::<usize>; }
 
 pub trait GetExchangeCoupling{fn exchange_coupling(&self) -> f64; }
@@ -10,7 +12,7 @@ pub trait GetExchangeCoupling{fn exchange_coupling(&self) -> f64; }
 pub struct ExchangeGroupManager{
   pub exchange_groups: Vec::<ExchangeGroup>,
   pub exchange_group_ids: Vec::<Option<usize>>,
-  pub exchange_coupling: Vec::<f64>, // one entry per exchange_group
+  pub exchange_couplings: Vec::<f64>, // one entry per exchange_group
 }
 
 #[derive(Debug, Clone)]
@@ -19,6 +21,14 @@ pub enum ExchangeGroup{
   PrimaryAmonium(C3Rotor),
 }
 
+impl GetCentroid for ExchangeGroup{
+  fn centroid(&self) -> &Vector3D{
+    match self{
+      ExchangeGroup::Methyl(rotor) => rotor.centroid(),
+      ExchangeGroup::PrimaryAmonium(rotor) => rotor.centroid(),
+    }
+  }
+}
 impl GetIndices for ExchangeGroup{
   fn indices(&self) -> Vec::<usize>{
     match self{
@@ -47,6 +57,11 @@ pub struct C3Rotor{
 
 //------------------------------------------------------------------------------
 
+impl GetCentroid for C3Rotor{
+  fn centroid(&self) -> &Vector3D {                                                
+    &self.center                                                           
+  }
+}
 impl C3Rotor{                                                                     
                                                                                  
 pub fn from(r_carbon: Vector3D,                                                   
@@ -71,13 +86,9 @@ pub fn from(r_carbon: Vector3D,
     normal = normal.scale(-1.0);                                                 
   }                                                                              
                                                                                  
-  C3Rotor{ center, normal, indices}                                                        
-                                                                                 
+  C3Rotor{ center, normal, indices}
 }                                                                                
-                                                                                 
-pub fn center(&self) -> &Vector3D {                                                
-  &self.center                                                           
-}
+
 
 pub fn normal(&self) -> &Vector3D {                                                
   &self.normal                                                      

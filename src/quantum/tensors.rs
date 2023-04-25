@@ -114,7 +114,7 @@ impl HamiltonianTensors{
         match exchange_group{
           ExchangeGroup::Methyl(c3rotor) | 
             ExchangeGroup::PrimaryAmonium(c3rotor) =>{
-              let nut = exchange_group_manager.exchange_coupling[ex_id];
+              let nut = exchange_group_manager.exchange_couplings[ex_id];
               let j = -2.0*nut/3.0;
 
               let j_tensor = eye.scale(j);

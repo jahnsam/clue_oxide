@@ -24,7 +24,7 @@ impl Structure{
 
     // TODO: one PBC on each side should be used to ensure reconect_bonds()
     // does not take a spin out of range.
-    self.reconnect_bonds();
+    self.reconnect_bonds()?;
     
     self.set_spins(config);
 
@@ -158,13 +158,15 @@ impl Structure{
   
   //----------------------------------------------------------------------------
   // The method uses the PBCs to move atoms near atoms they are bonded to.
-  fn reconnect_bonds(&mut self){
+  fn reconnect_bonds(&mut self) -> Result<(),CluEError>
+  {
 
     // TODO: Decide on better error handeling here.
     match self.cell_offsets.len(){
-      0 => return,
+      0 => return Ok(()),
       3 => (),
-      _ => panic!("There should be 3 cell offsets."),  
+      _ => return Err(CluEError::InorrectNumberOfCellOffsets(
+            self.cell_offsets.len(),3)),
     }
 
     const MAXBOND: f64 = 3.0; // Angstroms.
@@ -204,6 +206,7 @@ impl Structure{
       }
 
     }
+    Ok(())
  }
  //-----------------------------------------------------------------------------
  fn set_exchange_groups(&mut self){
@@ -216,9 +219,10 @@ impl Structure{
      exchange_group_ids.push(None);
    }
 
-   let mut exchange_coupling = Vec::<f64>::with_capacity(exchange_groups.len());
+   let mut exchange_couplings 
+     = Vec::<f64>::with_capacity(exchange_groups.len());
    for ii in 0..exchange_groups.len(){
-     exchange_coupling.push(0.0);
+     exchange_couplings.push(0.0);
      for h in exchange_groups[ii].indices(){
        exchange_group_ids[h] = Some(ii);
      }
@@ -227,7 +231,7 @@ impl Structure{
    self.exchange_groups = Some( ExchangeGroupManager{
      exchange_groups,
      exchange_group_ids,
-     exchange_coupling,
+     exchange_couplings,
    });
  }  
  //-----------------------------------------------------------------------------
