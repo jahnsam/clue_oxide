@@ -193,7 +193,15 @@ impl Config{
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::TunnelSplitting => {
-        set_to_some_f64(&mut isotope_properties.exchange_coupling,&expression)?;
+        let mut nut_opt = isotope_properties.exchange_coupling.clone();
+        set_to_some_f64(&mut nut_opt,&expression)?;
+        
+        if let Some(nut) = nut_opt{
+          isotope_properties.exchange_coupling = Some(-2.0*nut/3.0);
+        }else{
+          return Err(CluEError::CannotSetExchangeCoupling(
+                expression.line_number));
+        }
       }
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       _ => return Err(CluEError::InvalidToken(expression.line_number,
@@ -220,7 +228,7 @@ mod tests{
   fn test_parse_isotope_properties(){
 
     let expressions = get_tokens_from_line("\
-        tunnel_splitting = 80e3;\
+        tunnel_splitting = 60e3;\
         hyperfine_coupling = 12.3e2;\
         hyperfine_x = vector([-1,0,1]);\
         hyperfine_y = diff(particle, bonded(test_label1));\
@@ -245,7 +253,7 @@ mod tests{
     let hyperfine_coupling = d_properties.hyperfine_coupling.as_ref().unwrap();
     let quadrupole_coupling = d_properties.electric_quadrupole_coupling.as_ref().unwrap();
     
-    assert_eq!(d_properties.exchange_coupling, Some(80e3) );
+    assert_eq!(d_properties.exchange_coupling, Some(-40e3) );
 
     assert_eq!(hyperfine_coupling.values , Some([12.3e2, 12.3e2, 12.3e2]));
     assert_eq!(hyperfine_coupling.x_axis , Some(

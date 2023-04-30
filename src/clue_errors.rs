@@ -25,6 +25,7 @@ pub enum CluEError{
   CannotParseSecondaryParticleFilter(String),
   CannotPowTokens,
   CannotSampleBinomialDistribution(usize,f64),
+  CannotSetExchangeCoupling(usize),
   CannotSubTokens,
   CannotWriteFile(String),
   ClusterHasNoSignal(String),
@@ -166,6 +167,9 @@ impl fmt::Display for CluEError{
       CluEError::CannotSampleBinomialDistribution(n,p) => write!(f,
           "cannot sample from the binomial distribution B(n={},p={})",
           n,p),
+
+      CluEError::CannotSetExchangeCoupling(line_number) => write!(f,
+          "line {}, cannot set exchange coupling",line_number),
 
       CluEError::CannotSubTokens => write!(f,
           "cannot subtract tokens meaningfully"),
