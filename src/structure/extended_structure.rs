@@ -108,6 +108,17 @@ impl Structure{
           continue;
         }
 
+        let mut all_same_isotope = true;
+        for &idx in indices.iter(){
+          if self.bath_particles[indices[0]].isotope 
+            != self.bath_particles[idx].isotope{
+            all_same_isotope = false;
+          }
+        }
+        if !all_same_isotope{
+          continue;
+        }
+
         let center = exchange_group_0.centroid() + &self.cell_offsets[icell];
         let exchange_group: ExchangeGroup;
         match exchange_group_0{
@@ -120,6 +131,7 @@ impl Structure{
               C3Rotor{ center, normal: rotor.normal.clone(), 
               indices: [indices[0],indices[1],indices[2]]}),
         }
+
         exchange_groups.push(exchange_group);
 
 
@@ -445,7 +457,7 @@ mod tests{
   use crate::config::DetectedSpinCoordinates;
 
   use crate::config::particle_config::{ParticleConfig,
-    ParticleProperties,IsotopeDistribution,IsotopeAbundance};
+    ParticleProperties,IsotopeDistribution,IsotopeAbundance,IsotopeProperties};
   use crate::physical_constants::{Element,Isotope};
 
   use crate::config::LoadGeometry;
@@ -523,11 +535,27 @@ mod tests{
     filter.elements = vec![Element::Hydrogen];
     particle_configs[0].filter = Some(filter);
     
+
     let mut properties = ParticleProperties::new();
     properties.isotopic_distribution.isotope_abundances.push(
         IsotopeAbundance{isotope: Isotope::Hydrogen1, abundance: 0.5});
     properties.isotopic_distribution.isotope_abundances.push(
         IsotopeAbundance{isotope: Isotope::Hydrogen2, abundance: 0.5});
+
+    let j_h = -50e3;
+    let mut proton_properties = IsotopeProperties::new();
+    proton_properties.exchange_coupling = Some(j_h);
+
+    properties.isotope_properties.insert(
+        Isotope::Hydrogen1.to_string(),proton_properties);
+
+
+    let j_d = -1.0;
+    let mut deuteron_properties = IsotopeProperties::new();
+    deuteron_properties.exchange_coupling = Some(j_d);
+
+    properties.isotope_properties.insert(
+        Isotope::Hydrogen2.to_string(),deuteron_properties);
 
     particle_configs[0].properties = Some(properties);
     
@@ -569,6 +597,35 @@ mod tests{
     assert!(n_h1 <= 1200);
     assert!(n_h2 >= 1000);
     assert!(n_h2 <= 1200); // TODO
+
+
+    let exchange_group_manager = structure.exchange_groups.unwrap();
+    assert!(exchange_group_manager.exchange_groups.len() > 4);
+    assert!(exchange_group_manager.exchange_groups.len() <  125+20);
+
+      for (ex_id, exchange_group) in exchange_group_manager
+        .exchange_groups.iter().enumerate(){
+        
+
+        let indices = exchange_group.indices();
+        assert_eq!(indices.len(),3);
+
+        assert_eq!(structure.bath_particles[indices[0]].isotope,
+            structure.bath_particles[indices[1]].isotope);
+
+        assert_eq!(structure.bath_particles[indices[0]].isotope,
+            structure.bath_particles[indices[2]].isotope);
+
+        match structure.bath_particles[indices[0]].isotope{
+          Isotope::Hydrogen1 => assert_eq!(
+              exchange_group_manager.exchange_couplings[ex_id],j_h),
+          Isotope::Hydrogen2 => assert_eq!(
+              exchange_group_manager.exchange_couplings[ex_id],j_d),
+          _ => panic!("Isotope {:?} unexpected.",
+              structure.bath_particles[indices[0]].isotope),
+        }
+      }
+
     
   }
   //----------------------------------------------------------------------------
