@@ -87,6 +87,7 @@ pub enum CluEError{
   NoTimeIncrements,
   NoTimepoints,
   OptionAlreadySet(usize,String),
+  TensorNotSet(usize),
   TooManyRelationalOperators(usize),
   TooManyRHSArguments(usize),
   UnavailableSpinOp(usize,usize),
@@ -376,6 +377,9 @@ impl fmt::Display for CluEError{
 
       CluEError::UnmatchedDelimiter(line_number) => write!(f,
           "line {}, unmatched delimiter", line_number),
+
+      CluEError::TensorNotSet(index) => write!(f,
+          "no tensor set for particle {}",index),
 
       CluEError::TooManyRelationalOperators(line_number) => write!(f,
           "line {}, too many relational operators (=, <, >, in, ...), are present", 

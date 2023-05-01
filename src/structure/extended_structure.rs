@@ -52,21 +52,33 @@ impl Structure{
           return Err(CluEError::NoRadius);
         };
 
-        for (idx,particle) in self.bath_particles.iter_mut().enumerate(){
+        let n_particles = self.bath_particles.len();
+        for idx in 0..n_particles{
 
+          let indices: Vec::<usize>;
           let r: &Vector3D;
           if let Some(exchange_group_manager) = &self.exchange_groups{
             match exchange_group_manager.exchange_group_ids[idx]{
               Some(id) 
-                => r = exchange_group_manager.exchange_groups[id].centroid(),
-              None => r = &particle.coordinates,
+                => {
+                  r = exchange_group_manager.exchange_groups[id].centroid();
+                  indices = exchange_group_manager.exchange_groups[id]
+                    .indices().clone();
+                },
+              None => {
+                r = &self.bath_particles[idx].coordinates;
+                indices = vec![idx];
+              },
             }
           }else{
-            r = &particle.coordinates;
+            r = &self.bath_particles[idx].coordinates;
+            indices = vec![idx];
           }
 
           if r.norm() > radius{
-            particle.active = false;
+            for &index in indices.iter(){
+              self.bath_particles[index].active = false;
+            }
           }
         }
       },

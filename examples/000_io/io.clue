@@ -11,3 +11,7 @@ time_increments = [1e-7];
 cluster_method = cce;
 max_cluster_size = 2;
 magnetic_field = 1.2;
+
+#[filter(label = tempo)]
+  residues in [TEM];
+

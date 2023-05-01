@@ -53,11 +53,18 @@ impl HamiltonianTensors{
     spin1_tensors.set(0,
         construct_zeeman_tensor(&(gamma_e*&eye),magnetic_field));
 
+    let mut tensor_indices = Vec::<Option<usize>>::with_capacity(
+        structure.bath_particles.len());
+
     let mut idx0 = 0;
     for particle0 in structure.bath_particles.iter(){
 
-      if !particle0.active {continue;}
+      if !particle0.active {
+        tensor_indices.push(None);
+        continue;
+      }
       idx0 += 1;
+      tensor_indices.push(Some(idx0));
 
       let gamma0 = particle0.isotope.gyromagnetic_ratio();
 
@@ -114,8 +121,8 @@ impl HamiltonianTensors{
         match exchange_group{
           ExchangeGroup::Methyl(c3rotor) | 
             ExchangeGroup::PrimaryAmonium(c3rotor) =>{
-              let nut = exchange_group_manager.exchange_couplings[ex_id];
-              let j = -2.0*nut/3.0;
+              let j = exchange_group_manager.exchange_couplings[ex_id];
+              //let j = -2.0*nut/3.0;
 
               let j_tensor = eye.scale(j);
 
@@ -132,7 +139,19 @@ impl HamiltonianTensors{
                   for cell_id in 0..h0_indices.len(){
                     let Some(h0_id) = h0_indices[cell_id] else { continue; };
                     let Some(h1_id) = h1_indices[cell_id] else { continue; };
-                    spin2_tensors.add(h0_id,h1_id, j_tensor.clone());
+                    if !structure.bath_particles[h0_id].active
+                      || !structure.bath_particles[h1_id].active
+                    {
+                      continue;
+                    }
+
+                    let Some(h0_idx) = tensor_indices[h0_id] else{
+                      return Err(CluEError::TensorNotSet(h0_id));
+                    };
+                    let Some(h1_idx) = tensor_indices[h1_id] else{
+                      return Err(CluEError::TensorNotSet(h1_id));
+                    };
+                    spin2_tensors.add(h0_idx,h1_idx, j_tensor.clone());
                   }
 
                 }
