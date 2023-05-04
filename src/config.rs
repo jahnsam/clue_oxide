@@ -137,7 +137,7 @@ impl Config{
       PulseSequence::CarrPurcell(n_pi_pulses) => {
         let mut t = 0.0;
         for (idx, &n_dt) in n_dts.iter().enumerate(){
-          let dt = (*n_pi_pulses as f64)*dts[idx];
+          let dt = (*n_pi_pulses as f64 + 1.0)*dts[idx];
           for _ii in 0..n_dt{
             self.time_axis.push(t);
             t += dt;

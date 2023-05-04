@@ -90,8 +90,8 @@ pub fn propagate_pulse_sequence(
       u_beta = du_betas[idt].dot(&u_beta);
       u_alpha = du_alphas[idt].dot(&u_alpha);
 
-      u_beta_dag = u_beta.map(|u_ij| u_ij.conj() );
-      u_alpha_dag = u_alpha.map(|u_ij| u_ij.conj() );
+      u_beta_dag = u_beta.t().map(|u_ij| u_ij.conj() );
+      u_alpha_dag = u_alpha.t().map(|u_ij| u_ij.conj() );
     }
   }
 
