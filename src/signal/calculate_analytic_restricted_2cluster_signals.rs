@@ -10,6 +10,7 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use num_complex::Complex;
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn calculate_analytic_restricted_2cluster_signals(
     mut cluster_set: ClusterSet, 
     tensors: &HamiltonianTensors, config: &Config,
@@ -112,4 +113,35 @@ pub fn hahn_three_spin_modulation_depth(delta_hf: f64,b:f64) -> f64{
 pub fn hahn_three_spin_modulation_frequency(delta_hf: f64,b:f64) -> f64{
   (delta_hf*delta_hf + b*b).sqrt()/8.0
 }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+#[cfg(test)]
+mod tests{
+  use super::*;
+
+  //----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_hahn_three_spin_modulation_depth(){
+
+    let delta_hfs = [1e-2, 1e-1, 1.0, 1e1, 1e2];
+    let bs = [1e-2, 1e-1, 1.0, 1e1, 1e2];
+
+    for &delta_hf in  delta_hfs.iter(){
+      assert_eq!(hahn_three_spin_modulation_depth(delta_hf,delta_hf), 1.0);
+
+      for &b in bs.iter(){
+        assert!(hahn_three_spin_modulation_depth(delta_hf,b) <= 1.0);
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
+}
+
+
+
+
+
+
 
