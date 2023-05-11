@@ -477,7 +477,7 @@ mod tests{
     let expressions = get_tokens_from_line("\
         pulse_sequence = hahn;
         number_timepoints = [100,91];
-        time_increments = [1e-8, 1e-7];
+        time_increments = [0.5e-8, 0.5e-7];
         ").unwrap();
 
     let mut config = Config::new();

@@ -85,7 +85,9 @@ pub fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
     return Ok(Some(Signal::new()));
   }; 
 
-  let b = dipdip.zz();
+  // For a point dipole b_zz = -(b_xx + b_yy), but
+  // -(b_xx + b_yy) account for isotropic coupling as well.
+  let b = -(dipdip.xx() + dipdip.yy() );
   let delta_hf = (hf0.zz() - hf1.zz()).abs();
   
   //let omega = (delta_hf*delta_hf + b*b).sqrt();
@@ -110,6 +112,9 @@ pub fn hahn_three_spin_modulation_depth(delta_hf: f64,b:f64) -> f64{
   (2.0*b*delta_hf/( delta_hf*delta_hf + b*b) ).powi(2)
 }
 //------------------------------------------------------------------------------
+/// This function return the modulation frequency to the three spin Hahn echo
+/// in unit matching the inputs, which are assumed to have the same units as
+/// each other.
 pub fn hahn_three_spin_modulation_frequency(delta_hf: f64,b:f64) -> f64{
   (delta_hf*delta_hf + b*b).sqrt()/8.0
 }

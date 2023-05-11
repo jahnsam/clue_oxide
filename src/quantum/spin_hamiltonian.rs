@@ -656,11 +656,12 @@ mod tests {
     let spin_ops = ClusterSpinOperators::new(&vec![2],2).unwrap();
 
     let mut config = Config::new();
-    config.number_timepoints = vec![21];
+    let nt = 21;
+    config.number_timepoints = vec![nt];
     let delta_hf = a1 - a2;
     let freq = hahn_three_spin_modulation_frequency(delta_hf,b);
     config.time_increments = vec![0.05/freq];
-    config.pulse_sequence = Some(PulseSequence::CarrPurcell(2));
+    config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
 
     config.set_defaults();
     config.construct_time_axis().unwrap();
@@ -674,7 +675,7 @@ mod tests {
     let signal = propagate_pulse_sequence(&density_matrix, &hamiltonian, 
         &config).unwrap();
 
-    assert_eq!(signal.data.len(),21);
+    assert_eq!(signal.data.len(),nt);
 
     let ref_signal_opt = analytic_restricted_2cluster_signal(
         &spin_indices,&tensors,&config).unwrap();
@@ -684,7 +685,13 @@ mod tests {
 
     for (ii,v) in signal.data.iter().enumerate(){
       let v0 = ref_signal.data[ii];
-      assert!((v-v0).norm() < 1e-9);
+      let err: f64;
+      if (v+v0).norm() < 1e12{
+        err = (v-v0).norm();
+      }else{
+        err = (2.0+(v-v0)/(v+v0)).norm();
+      }
+      assert!(err < 1e-9);
     }
   }
   //----------------------------------------------------------------------------

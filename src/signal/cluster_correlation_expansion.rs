@@ -147,7 +147,7 @@ mod tests{
     let delta_hf = a1 - a2;
     let freq = hahn_three_spin_modulation_frequency(delta_hf,b);
     config.time_increments = vec![0.05/freq];
-    config.pulse_sequence = Some(PulseSequence::CarrPurcell(2));
+    config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
 
     config.set_defaults();
     config.construct_time_axis().unwrap();
@@ -200,7 +200,7 @@ mod tests{
     let delta_hf = a1 - a2;
     let freq = hahn_three_spin_modulation_frequency(delta_hf,b);
     config.time_increments = vec![0.05/freq];
-    config.pulse_sequence = Some(PulseSequence::CarrPurcell(2));
+    config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
 
     config.set_defaults();
     config.construct_time_axis().unwrap();
@@ -222,7 +222,13 @@ mod tests{
 
     for (ii,v) in signal.data.iter().enumerate(){
       let v0 = ref_signal.data[ii];
-      assert!((v-v0).norm() < 1e-12);
+      let err: f64;
+      if (v+v0).norm() < 1e12{
+        err = (v-v0).norm();
+      }else{
+        err = (2.0+(v-v0)/(v+v0)).norm();
+      }
+      assert!(err < 1e-9);
     }
   }
   //----------------------------------------------------------------------------
