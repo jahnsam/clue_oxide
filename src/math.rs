@@ -24,11 +24,15 @@ pub fn ceil(x: f64) -> f64{
 //------------------------------------------------------------------------------
 
 pub fn unique<T>(vec: Vec::<T>) -> Vec::<T>
-where T: std::cmp::Eq  + std::hash::Hash
+where T: std::cmp::Eq  + std::hash::Hash + std::cmp::Ord
 {
-  vec.into_iter().collect::<HashSet<_>>()
+  let mut out = vec.into_iter().collect::<HashSet<_>>()
       .into_iter()
-      .collect()
+      .collect::<Vec::<T>>();
+
+  out.sort();
+
+  out
 }
 //------------------------------------------------------------------------------
 
@@ -51,7 +55,6 @@ mod tests{
   fn test_unique(){
     let a = vec![1,1,2,3,2];
     let mut a = unique(a);
-    a.sort();
     assert_eq!(a,vec![1,2,3]);
   }
   //----------------------------------------------------------------------------

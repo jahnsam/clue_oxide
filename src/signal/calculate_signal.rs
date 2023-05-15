@@ -56,6 +56,12 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
   };
 
   let mut cluster_set = find_clusters(&adjacency_list, max_cluster_size)?;
+
+  // TODO: add toggle in config for remove_partial_methyls
+  if let Some(exchange_group_manager) = &structure.exchange_groups{
+    cluster_set.remove_partial_methyls(exchange_group_manager);
+  }
+
   for (size_idx,clusters_of_size) in cluster_set.clusters.iter().enumerate(){
     println!("Found {} clusters of size {}.",clusters_of_size.len(),size_idx+1);
   }

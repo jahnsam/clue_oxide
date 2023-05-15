@@ -42,6 +42,7 @@ pub enum CluEError{
   IndexOutOfBounds(usize,usize,usize),
   InvalidArgument(usize,String),
   InvalidAxes,
+  InvalidClusterPartitionKey,
   InvalidConfigFile(String),
   InvalidPulseSequence(usize),
   InvalidToken(usize,String),
@@ -231,6 +232,9 @@ impl fmt::Display for CluEError{
 
       CluEError::InvalidArgument(line_number,expected_arg) => write!(f,
           "line {}, argument should be a(n) {}",line_number, expected_arg),
+
+      CluEError::InvalidClusterPartitionKey => write!(f,
+          "invalid cluster partition key"),
 
       CluEError::InvalidConfigFile(filename) => write!(f,
           "cannot not read config file \"{}\"", filename),

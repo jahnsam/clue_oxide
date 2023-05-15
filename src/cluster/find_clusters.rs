@@ -7,9 +7,32 @@ use crate::cluster::Cluster;
 use std::collections::HashMap;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone,PartialEq)]
 pub struct ClusterSet{
   pub clusters: Vec::<Vec::<Cluster>>,
   pub cluster_indices: Vec::<HashMap::<Vec::<usize>,usize>>, 
+}
+//------------------------------------------------------------------------------
+impl ClusterSet{
+  pub fn from(clusters:Vec::<Vec::<Cluster>>) -> Self
+  {
+    let mut cluster_indices 
+      = Vec::<HashMap::<Vec::<usize>,usize>>::with_capacity(clusters.len());
+
+    for clu_size in 0..clusters.len(){
+
+      let mut new_cluster_indices 
+        = HashMap::<Vec::<usize>,usize>::with_capacity(clusters[clu_size].len());
+
+      for (idx,cluster) in clusters[clu_size].iter().enumerate(){
+        new_cluster_indices.insert(cluster.vertices().clone(),idx);
+      }
+
+      cluster_indices.push(new_cluster_indices);
+    }
+
+    ClusterSet{clusters,cluster_indices}
+  }
 }
 //------------------------------------------------------------------------------
 pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize) 

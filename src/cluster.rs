@@ -6,6 +6,7 @@ pub mod build_adjacency_list;
 pub mod connected_subgraphs;
 pub mod find_clusters;
 pub mod get_subclusters;
+pub mod methyl_clusters;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone,PartialEq)]
 pub struct Cluster{
