@@ -21,6 +21,16 @@ pub enum ExchangeGroup{
   PrimaryAmonium(C3Rotor),
 }
 
+impl ToString for ExchangeGroup{
+  fn to_string(&self) -> String{
+    match self{
+      ExchangeGroup::Methyl(rotor) => format!("methyl_{}",rotor.to_string()),
+      ExchangeGroup::PrimaryAmonium(rotor) 
+        => format!("primary_amonium_{}",rotor.to_string()),
+    }
+  }
+}
+//------------------------------------------------------------------------------
 impl GetCentroid for ExchangeGroup{
   fn centroid(&self) -> &Vector3D{
     match self{
@@ -56,7 +66,12 @@ pub struct C3Rotor{
 }
 
 //------------------------------------------------------------------------------
-
+impl ToString for C3Rotor{
+  fn to_string(&self) -> String{
+    format!("{}_{}_{}", self.indices[0],self.indices[1],self.indices[2])
+  }
+}
+//------------------------------------------------------------------------------
 impl GetCentroid for C3Rotor{
   fn centroid(&self) -> &Vector3D {                                                
     &self.center                                                           
