@@ -1,4 +1,7 @@
 use std::collections::HashSet;
+use std::fmt::Debug;
+use std::hash::{Hash,Hasher};
+use std::collections::hash_map::DefaultHasher;
 
 pub fn are_vecs_equal<T: std::cmp::PartialEq>
 (vec0: &[T], vec1: &[T])-> bool{
@@ -33,6 +36,13 @@ where T: std::cmp::Eq  + std::hash::Hash + std::cmp::Ord
   out.sort();
 
   out
+}
+//------------------------------------------------------------------------------
+pub fn str_hash<T: Debug>(input: &T) -> u64 {
+  let in_str = format!("{:?}",input);
+  let mut out = DefaultHasher::new();
+  in_str.hash(&mut out);
+  out.finish()
 }
 //------------------------------------------------------------------------------
 

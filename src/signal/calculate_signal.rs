@@ -42,6 +42,8 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config)
   -> Result<(),CluEError>
 {
   let structure = Structure::build_structure(rng,config)?;
+  
+  let strcture_hash = math::str_hash(&structure);
 
   if let Some(filename) = &config.write_structure_pdb{
     structure.write_pdb(&format!("{}.pdb",filename))?;

@@ -54,6 +54,7 @@ pub struct Config{
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
+  pub root_dir: String,
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
   pub temperature: Option<f64>,
@@ -92,6 +93,9 @@ impl Config{
         Some(_) => self.density_matrix = Some(DensityMatrixMethod::Thermal),
         None => self.density_matrix = Some(DensityMatrixMethod::Identity),
       }
+    }
+    if self.root_dir.is_empty(){
+      self.root_dir = "./".to_string();
     }
   }
   //----------------------------------------------------------------------------

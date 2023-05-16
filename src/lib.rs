@@ -42,6 +42,8 @@ pub fn run(config: Config) -> Result<(),CluEError>{
 
   config.write_time_axis()?;
 
+  let config_hash = math::str_hash(&config);
+
   calculate_signal::average_structure_signal(&mut rng, &config)?;
 
   Ok(())
