@@ -11,6 +11,7 @@ pub enum CluEError{
   CannotConvertToFloat(usize,String),
   CannotConvertSerialToIndex(u32),
   CannotConvertToVector(usize),
+  CannotCreateDir(String),
   CannotDiagonalizeHamiltonian(String),
   CannotDivTokens,
   CannotFindCellID(usize),
@@ -88,6 +89,8 @@ pub enum CluEError{
   NoTimeIncrements,
   NoTimepoints,
   OptionAlreadySet(usize,String),
+  SaveNameEmpty,
+  SaveNameNotSet,
   TensorNotSet(usize),
   TooManyRelationalOperators(usize),
   TooManyRHSArguments(usize),
@@ -132,6 +135,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotDiagonalizeHamiltonian(matrix) => write!(f,
           "cannot diagonalize Hamiltonian,\n {}",matrix),
+
+      CluEError::CannotCreateDir(path) => write!(f,
+          "cannot create directory \"{}\"",path),
 
       CluEError::CannotDivTokens => write!(f,
           "cannot divide tokens meaningfully"),
@@ -381,6 +387,12 @@ impl fmt::Display for CluEError{
 
       CluEError::UnmatchedDelimiter(line_number) => write!(f,
           "line {}, unmatched delimiter", line_number),
+
+      CluEError::SaveNameEmpty => write!(f,
+          "save name is empty"),
+
+      CluEError::SaveNameNotSet => write!(f,
+          "save name not set"),
 
       CluEError::TensorNotSet(index) => write!(f,
           "no tensor set for particle {}",index),

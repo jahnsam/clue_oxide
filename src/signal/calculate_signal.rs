@@ -38,15 +38,21 @@ use crate::math;
 //------------------------------------------------------------------------------
 // This averages the spin decoherence signal over multiple input structures,
 // multiple input PDBs for example.
-pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config) 
-  -> Result<(),CluEError>
+pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
+    path: &str) -> Result<(),CluEError>
 {
   let structure = Structure::build_structure(rng,config)?;
   
-  let strcture_hash = math::str_hash(&structure);
+  let structure_hash = math::str_hash(&structure);
+
+  let save_path = format!("{}/system-{}",path.to_string(),structure_hash);
+  match std::fs::create_dir_all(save_path.clone()){
+    Ok(_) => (),
+    Err(_) => return Err(CluEError::CannotCreateDir(save_path)),
+  }
 
   if let Some(filename) = &config.write_structure_pdb{
-    structure.write_pdb(&format!("{}.pdb",filename))?;
+    structure.write_pdb(&format!("{}/{}.pdb",save_path, filename))?;
   }
 
   let tensors = HamiltonianTensors::generate(&structure, config)?;

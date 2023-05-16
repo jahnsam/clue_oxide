@@ -54,9 +54,10 @@ pub struct Config{
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
-  pub root_dir: String,
+  pub root_dir: Option<String>,
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
+  pub save_name: Option<String>,
   pub temperature: Option<f64>,
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
@@ -94,8 +95,11 @@ impl Config{
         None => self.density_matrix = Some(DensityMatrixMethod::Identity),
       }
     }
-    if self.root_dir.is_empty(){
-      self.root_dir = "./".to_string();
+    if self.root_dir == None{
+      self.root_dir = Some("./".to_string());
+    }
+    if self.save_name == None{
+      self.save_name = Some("CluE-".to_string());
     }
   }
   //----------------------------------------------------------------------------
@@ -153,10 +157,9 @@ impl Config{
     Ok(())
   }
   //----------------------------------------------------------------------------
-  pub fn write_time_axis(&self) -> Result<(),CluEError>{
+  pub fn write_time_axis(&self,save_path: String) -> Result<(),CluEError>{
     io::write_data(& vec![self.time_axis.clone()], 
-        "time_axis.csv",// TODO enable user control of name
-        vec!["time_axis".to_string()])
+        &format!("{}/time_axis.csv",save_path), vec!["time_axis".to_string()])
   }
   //----------------------------------------------------------------------------
   pub fn find_particle_config(&self, label: &str) 

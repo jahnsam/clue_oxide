@@ -40,11 +40,29 @@ pub fn run(config: Config) -> Result<(),CluEError>{
     None => rng = ChaCha20Rng::from_entropy(),
   }
 
-  config.write_time_axis()?;
-
   let config_hash = math::str_hash(&config);
+  let mut save_path = String::new();
+  if let Some(root_dir) = &config.root_dir{
+    save_path = root_dir.to_string();
+  }
 
-  calculate_signal::average_structure_signal(&mut rng, &config)?;
+  if let Some(save_name) = &config.save_name{
+    if save_name.is_empty(){
+      return Err(CluEError::SaveNameEmpty);
+    }
+    save_path = format!("{}/{}{}",save_path,save_name,config_hash);
+  }else{
+    return Err(CluEError::SaveNameNotSet);
+  };
+
+  match std::fs::create_dir_all(save_path.clone()){
+    Ok(_) => (),
+    Err(_) => return Err(CluEError::CannotCreateDir(save_path)),
+  }
+
+  config.write_time_axis(save_path.clone())?;
+
+  calculate_signal::average_structure_signal(&mut rng, &config,&save_path)?;
 
   Ok(())
 }
