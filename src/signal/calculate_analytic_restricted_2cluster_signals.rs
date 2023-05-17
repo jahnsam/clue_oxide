@@ -12,8 +12,9 @@ use num_complex::Complex;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn calculate_analytic_restricted_2cluster_signals(
-    mut cluster_set: ClusterSet, 
-    tensors: &HamiltonianTensors, config: &Config,
+    cluster_set: &mut ClusterSet, 
+    tensors: &HamiltonianTensors, config: &Config, 
+    save_path_opt: &Option<String>
     ) ->Result<(), CluEError>
 {
 
@@ -60,8 +61,9 @@ pub fn calculate_analytic_restricted_2cluster_signals(
     }
   }
 
-  signal.write_to_csv("out.csv");
-
+  if let Some(save_path) = &save_path_opt{
+    signal.write_to_csv(save_path);
+  }
   Ok(())
 }
 //------------------------------------------------------------------------------

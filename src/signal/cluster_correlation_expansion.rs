@@ -14,8 +14,9 @@ use std::collections::HashMap;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn do_cluster_correlation_expansion(
-    mut cluster_set: ClusterSet, spin_ops: &ClusterSpinOperators,
-    tensors: &HamiltonianTensors, config: &Config,
+    cluster_set: &mut ClusterSet, spin_ops: &ClusterSpinOperators,
+    tensors: &HamiltonianTensors, config: &Config, 
+    save_path_opt: &Option<String>
     ) -> Result<Vec::<Signal>,CluEError>
 {
 
@@ -96,7 +97,10 @@ pub fn do_cluster_correlation_expansion(
 
     order_n_signals.push(signal.clone());
   }
-  signal.write_to_csv("out.csv");
+
+  if let Some(save_path) = save_path_opt{
+    signal.write_to_csv(save_path);
+  }
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------
@@ -163,8 +167,8 @@ mod tests{
 
     let mut cluster_set = find_clusters(&adjacency_list, 3).unwrap();
 
-    let order_n_signals = do_cluster_correlation_expansion(cluster_set, 
-        &spin_ops, &tensors, &config).unwrap();
+    let order_n_signals = do_cluster_correlation_expansion(&mut cluster_set, 
+        &spin_ops, &tensors, &config, &None).unwrap();
 
     let spin_indices = vec![1,2];
     let ref_signal_opt = analytic_restricted_2cluster_signal(

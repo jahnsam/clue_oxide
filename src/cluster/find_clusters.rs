@@ -14,6 +14,10 @@ pub struct ClusterSet{
 }
 //------------------------------------------------------------------------------
 impl ClusterSet{
+  pub fn len(&self) -> usize{
+    self.clusters.len()
+  }
+  //----------------------------------------------------------------------------
   pub fn from(clusters:Vec::<Vec::<Cluster>>) -> Self
   {
     let mut cluster_indices 

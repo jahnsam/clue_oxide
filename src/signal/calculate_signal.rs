@@ -1,9 +1,12 @@
 use crate::config::{Config,ClusterMethod};
 use crate::CluEError;
+use crate::cluster::methyl_clusters::partition_cluster_set_by_exchange_groups;
+use crate::cluster::find_clusters::ClusterSet;
 use crate::Structure;
 use crate::HamiltonianTensors;
 use crate::build_adjacency_list;
 use crate::find_clusters;
+use crate::signal::Signal;
 use crate::signal::cluster_correlation_expansion::*;
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   calculate_analytic_restricted_2cluster_signals};
@@ -45,14 +48,14 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
   
   let structure_hash = math::str_hash(&structure);
 
-  let save_path = format!("{}/system-{}",path.to_string(),structure_hash);
-  match std::fs::create_dir_all(save_path.clone()){
+  let save_dir = format!("{}/system-{}",path.to_string(),structure_hash);
+  match std::fs::create_dir_all(save_dir.clone()){
     Ok(_) => (),
-    Err(_) => return Err(CluEError::CannotCreateDir(save_path)),
+    Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
   }
 
   if let Some(filename) = &config.write_structure_pdb{
-    structure.write_pdb(&format!("{}/{}.pdb",save_path, filename))?;
+    structure.write_pdb(&format!("{}/{}.pdb",save_dir, filename))?;
   }
 
   let tensors = HamiltonianTensors::generate(&structure, config)?;
@@ -80,16 +83,53 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
 
   match cluster_method{
     ClusterMethod::AnalyticRestricted2CCE => 
-      calculate_analytic_restricted_2cluster_signals(cluster_set, &tensors,
-          config)?,
+      calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
+          config,&None)?,
     ClusterMethod::CCE => {
       let spin_multiplicity_set =
         math::unique(tensors.spin_multiplicities.clone());
       let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
           max_cluster_size)?;
-      do_cluster_correlation_expansion(cluster_set, &spin_ops, &tensors, 
-          config)?;
+      do_cluster_correlation_expansion(&mut cluster_set, &spin_ops, &tensors, 
+          config,&None)?;
     },
+  }
+
+  // TODO: add toggle in config
+  calculate_methyl_partition_cce(cluster_set, &structure, &config, &save_dir)?;
+
+  Ok(())
+} 
+//------------------------------------------------------------------------------
+fn calculate_methyl_partition_cce(
+    cluster_set: ClusterSet, structure: &Structure, config: &Config, 
+    save_dir: &String)
+  -> Result<(),CluEError>
+{
+  if let Some(exchange_group_manager) = &structure.exchange_groups{
+    let cluster_partitions = partition_cluster_set_by_exchange_groups(
+        cluster_set, exchange_group_manager)?;
+
+    let part_dir = "methyl_partitions".to_string();
+
+    let n_tot = config.number_timepoints.iter().sum::<usize>();
+
+    for (key_name, value_cluster_set) in cluster_partitions.iter(){
+
+      let mut part_signal = Signal::ones(n_tot);
+
+      for size_idx in 0..(*value_cluster_set).len() {
+        for cluster in (*value_cluster_set).clusters[size_idx].iter(){
+          if let Ok(Some(aux_signal)) = &cluster.signal{
+            part_signal = &part_signal * &aux_signal;
+          }
+        }
+      }
+
+      let part_save_path = format!("{}/{}/{}.csv",
+          save_dir,part_dir,key_name);
+      part_signal.write_to_csv(&part_save_path);
+    }
   }
 
   //let signal = do_cluster_correlation_expansion_product(&cluster_set,config)?;
