@@ -7,7 +7,6 @@ use crate::space_3d::{SymmetricTensor3D,Vector3D};
 use crate::structure::{DetectedSpin,Structure};
 use crate::structure::particle::Particle;
 use crate::structure::exchange_groups::ExchangeGroup;
-use crate::structure::exchange_groups::GetIndices;
 use crate::symmetric_list_2d::SymList2D;
 
 

@@ -10,7 +10,6 @@ use crate::signal::Signal;
 use crate::signal::cluster_correlation_expansion::*;
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   calculate_analytic_restricted_2cluster_signals};
-use crate::signal::cluster_correlation_expansion::*;
 use rand_chacha::ChaCha20Rng;
 use crate::quantum::spin_hamiltonian::*;
 use crate::math;
@@ -128,7 +127,7 @@ fn calculate_methyl_partition_cce(
 
       let part_save_path = format!("{}/{}/{}.csv",
           save_dir,part_dir,key_name);
-      part_signal.write_to_csv(&part_save_path);
+      part_signal.write_to_csv(&part_save_path)?;
     }
   }
 

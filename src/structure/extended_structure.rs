@@ -98,13 +98,13 @@ impl Structure{
       *self.cell_offsets.len();
     
     let mut exchange_groups = Vec::<ExchangeGroup>::with_capacity(n_ex);
-    let mut exchange_group_ids = self.bath_particles.iter().map(|p| None)
+    let mut exchange_group_ids = self.bath_particles.iter().map(|_p| None)
       .collect::<Vec::<Option<usize>>>();
     let mut exchange_couplings = Vec::<f64>::with_capacity(n_ex);
 
     // Loop over unit cells.
     for icell in 0..self.cell_offsets.len(){ 
-      for (ex_id, exchange_group_0) in exchange_group_manager0
+      for (_ex_id, exchange_group_0) in exchange_group_manager0
         .exchange_groups.iter().enumerate()
       {
         let indices_0 = exchange_group_0.indices();

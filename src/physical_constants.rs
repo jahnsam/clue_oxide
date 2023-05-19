@@ -1287,7 +1287,7 @@ impl Isotope{
      "143Nd" =>  Ok(Isotope::Neodymium143), 
      "144Nd" =>  Ok(Isotope::Neodymium144), 
      "145Nd" =>  Ok(Isotope::Neodymium145), 
-     "141Pr" =>  Ok(Isotope::Promethium141), 
+     "141Pm" =>  Ok(Isotope::Promethium141), 
      "147Sm" =>  Ok(Isotope::Samarium147), 
      "149Sm" =>  Ok(Isotope::Samarium149), 
      "151Sm" =>  Ok(Isotope::Samarium151), 

@@ -127,6 +127,7 @@ fn build_n_clusters(
   Ok( (new_clusters,new_cluster_indices) )
 }
 //------------------------------------------------------------------------------
+/*
 // TODO
 fn remove_subclusters_of(
     cluster_set: &mut ClusterSet,
@@ -156,6 +157,7 @@ fn remove_subclusters_of(
     cluster_set.cluster_indices[clu_size] = kept_cluster_indices;
   }
 }
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -461,6 +463,7 @@ mod tests{
     } 
   }
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_remove_subclusters_of(){
 
@@ -524,5 +527,6 @@ mod tests{
       assert_eq!(clusters[size_idx][idx].vertices,*v);
     } 
   }
+  */
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

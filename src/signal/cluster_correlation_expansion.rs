@@ -10,8 +10,6 @@ use crate::cluster::Cluster;
 
 use rayon::prelude::*;
 
-use std::collections::HashMap;
-
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn do_cluster_correlation_expansion(
     cluster_set: &mut ClusterSet, spin_ops: &ClusterSpinOperators,
@@ -99,7 +97,7 @@ pub fn do_cluster_correlation_expansion(
   }
 
   if let Some(save_path) = save_path_opt{
-    signal.write_to_csv(save_path);
+    signal.write_to_csv(save_path)?;
   }
   Ok(order_n_signals)
 }

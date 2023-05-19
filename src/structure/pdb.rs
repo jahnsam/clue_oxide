@@ -331,8 +331,6 @@ fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Structure{
   pub fn write_pdb(&self,filename: &str) -> Result<(),CluEError>{
-    let pdb_str = self.to_string_pdb()?;
-
 
     let n_active = self.number_active();
 

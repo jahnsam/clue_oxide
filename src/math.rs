@@ -64,7 +64,7 @@ mod tests{
   #[test]
   fn test_unique(){
     let a = vec![1,1,2,3,2];
-    let mut a = unique(a);
+    let a = unique(a);
     assert_eq!(a,vec![1,2,3]);
   }
   //----------------------------------------------------------------------------

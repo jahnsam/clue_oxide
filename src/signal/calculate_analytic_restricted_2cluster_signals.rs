@@ -7,7 +7,6 @@ use crate::physical_constants::{ONE,PI};
 use crate::math;
 
 use rayon::prelude::*;
-use std::collections::HashMap;
 use num_complex::Complex;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -62,7 +61,7 @@ pub fn calculate_analytic_restricted_2cluster_signals(
   }
 
   if let Some(save_path) = &save_path_opt{
-    signal.write_to_csv(save_path);
+    signal.write_to_csv(save_path)?;
   }
   Ok(())
 }

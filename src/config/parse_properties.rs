@@ -1,7 +1,7 @@
 use crate::clue_errors::CluEError;
 use crate::Config;
 use crate::config::Token;
-use crate::config::token_stream;
+//use crate::config::token_stream;
 use crate::config::particle_config::ParticleConfig;
 use crate::config::token_expressions::*;
 use crate::config::particle_config::{IsotopeProperties,ParticleProperties,
@@ -75,7 +75,7 @@ impl Config{
       _ => return Err(CluEError::NoRelationalOperators(expression.line_number)),
     }
    
-    let tokens = token_stream::extract_rhs(expression)?;
+    //let tokens = token_stream::extract_rhs(expression)?;
 
     let already_set = ||{
       CluEError::OptionAlreadySet(
@@ -87,7 +87,7 @@ impl Config{
 
         let mut hf_values = Vec::<f64>::new();
       
-        set_to_vec_f64(&mut hf_values, &expression);
+        set_to_vec_f64(&mut hf_values, &expression)?;
       
 
         if isotope_properties.hyperfine_coupling == None {
@@ -140,7 +140,7 @@ impl Config{
 
         let mut qc_values = Vec::<f64>::new();
       
-        set_to_vec_f64(&mut qc_values, &expression);
+        set_to_vec_f64(&mut qc_values, &expression)?;
       
 
         if isotope_properties.electric_quadrupole_coupling == None {

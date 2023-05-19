@@ -47,6 +47,7 @@ impl Cluster{
     self.vertices.len()
   }
   //----------------------------------------------------------------------------
+  /*
   fn contains(&self, subcluster: &Cluster) -> bool{
 
     for n in subcluster.vertices.iter(){
@@ -71,6 +72,7 @@ impl Cluster{
     }
     false
   }
+  */
   //----------------------------------------------------------------------------
   /*
   write(filename: &str) -> Result<(),CluEError>{
@@ -94,8 +96,9 @@ impl Cluster{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[cfg(test)]
 mod tests{
-  use super::*;
+  //use super::*;
 
+  /*
   #[allow(non_snake_case)]
   #[test]
   fn test_Cluster(){
@@ -112,5 +115,6 @@ mod tests{
     assert!(!cluster0.contains(&cluster2));
     assert!(!cluster0.contains(&cluster3));
   }
+  */
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

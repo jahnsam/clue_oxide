@@ -386,7 +386,6 @@ impl Config{
               return Err(CluEError::InvalidPulseSequence(
                     expression.line_number));
             }
-            let mut n_pi_opt: Option<usize> = None;
             let rhs = token_stream::read_strings_as_integers(rhs.clone(), 
                 expression.line_number)?;
             if let Token::Int(n_pi) = rhs[2]{

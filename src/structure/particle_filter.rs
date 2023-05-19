@@ -283,7 +283,7 @@ impl SecondaryParticleFilter{
       structure: &Structure, config: &Config ) -> Result<Vec::<usize>,CluEError>
   {
 
-    let Some((id, p_cfg)) = config.find_particle_config(&label) else{
+    let Some((_id, p_cfg)) = config.find_particle_config(&label) else{
       return Err(CluEError::MissingFilter(label.to_string()));
     };
 

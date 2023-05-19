@@ -21,7 +21,7 @@ pub fn partition_cluster_set_by_exchange_groups(cluster_set: ClusterSet,
   let mut n_cluster_partitions 
     = HashMap::<String,Vec::<usize>>::with_capacity(n_groups);
   for clu_size in 0..max_size{
-    for (idx,cluster) in cluster_set.clusters[clu_size].iter().enumerate(){
+    for (_idx,cluster) in cluster_set.clusters[clu_size].iter().enumerate(){
       let key = get_cluster_partition_key(cluster,exchange_group_manager);
 
       let mut counts: Vec::<usize> = vec![0;max_size];
@@ -41,7 +41,7 @@ pub fn partition_cluster_set_by_exchange_groups(cluster_set: ClusterSet,
     = HashMap::<String,Vec::<Vec<Cluster>>>::with_capacity(n_groups);
 
     for clu_size in 0..cluster_set.clusters.len(){
-      for (idx,cluster) in cluster_set.clusters[clu_size].iter().enumerate(){
+      for (_idx,cluster) in cluster_set.clusters[clu_size].iter().enumerate(){
         let key = get_cluster_partition_key(cluster,exchange_group_manager);
 
         let Some(counts) = n_cluster_partitions.get(&key) else
@@ -95,7 +95,7 @@ fn get_cluster_partition_key(cluster: &Cluster,
   }
 
   let mut key = exchange_group_manager.exchange_groups[key_ids[0]].to_string();
-  for (ii,&id) in key_ids.iter().skip(1).enumerate(){
+  for (_ii,&id) in key_ids.iter().skip(1).enumerate(){
     key = format!("{}_{}",key,
         exchange_group_manager.exchange_groups[id].to_string());
   }
@@ -263,7 +263,7 @@ mod tests{
           &exchange_group_manager).unwrap();
 
 
-    let mut counts = ref_counts.iter().map(|x| 0)
+    let mut counts = ref_counts.iter().map(|_x| 0)
       .collect::<Vec::<usize>>();
 
     for (_key, value_cluster_set) in cluster_partitions.iter(){

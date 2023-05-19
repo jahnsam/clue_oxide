@@ -327,9 +327,9 @@ impl<'a> ClusterSpinOperators {
     }
 
     Ok(ClusterSpinOperators{
-        max_size: max_size,
+        max_size,
         spin_multiplicities: spin_multiplicities.clone(),
-        cluster_spin_ops: cluster_spin_ops,
+        cluster_spin_ops,
         })
   }
 
@@ -634,15 +634,13 @@ mod tests {
   use crate::signal::calculate_analytic_restricted_2cluster_signals::{
     analytic_restricted_2cluster_signal,
     hahn_three_spin_modulation_frequency,
-    hahn_three_spin_modulation_depth};
+    //hahn_three_spin_modulation_depth
+  };
 
 
   //----------------------------------------------------------------------------
   #[test]
   fn test_propagate_pulse_sequence(){
-    let density_matrix = CxMat::eye(4);
-
-    let spin_ops = ClusterSpinOperators::new(&vec![2],2);
 
     let z0 = 33.0e9;
     let z1 = 80.0e6;
