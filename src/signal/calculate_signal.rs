@@ -13,30 +13,6 @@ use crate::signal::calculate_analytic_restricted_2cluster_signals::{
 use rand_chacha::ChaCha20Rng;
 use crate::quantum::spin_hamiltonian::*;
 use crate::math;
-// TODO: 
-//  Each convergence function should have the option to skip convergence
-//  and return the next level's result.
-//
-// TODO:
-//  All funcs/converge_signal_for_clusters_cutoffs() should have the ability to 
-//  return the cluster cutoffs so that the orientation average can pick one set
-//  of cutoffs to apply to every orientation.
-//
-// TODO:
-//  Allow saving of all, some, or only the final signal.
-//  BASENAME_sructure_config_grid_ori_sstate_nCCE_cutoffs_cluster.csv
-//  format!("BASENAME_str{}_cfg{}_grd{}_ori{}_ss{}_CCE{}_r{}_hf{}_dip{}_clu{}.csv",
-//                "TEMPO",cfg_seed,lebedev28,13,bath_seed, 4.  12,  3e4,  1e3)
-//  if name.len() > max_len{
-//  name = hash_func(name);
-//  save_key_value_to_file(); }
-// 
-// TODO: 
-//  Implement a checkpoint system to restart an interupted simulation.
-//  Generate systematic name, before calculations and if it exists,
-//  load the data rather than recalculating.
-//
-//
 //------------------------------------------------------------------------------
 // This averages the spin decoherence signal over multiple input structures,
 // multiple input PDBs for example.

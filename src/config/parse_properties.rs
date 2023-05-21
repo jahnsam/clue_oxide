@@ -84,11 +84,6 @@ impl Config{
       Token::HyperfineCoupling | Token::HyperfineX | 
         Token::HyperfineY | Token::HyperfineZ =>{
 
-        let mut hf_values = Vec::<f64>::new();
-      
-        set_to_vec_f64(&mut hf_values,expression)?;
-      
-
         if isotope_properties.hyperfine_coupling.is_none() {
           isotope_properties.hyperfine_coupling = Some(TensorSpecifier::new());
         }
@@ -100,6 +95,11 @@ impl Config{
         match expression.lhs[0]{
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::HyperfineCoupling => {
+        
+            let mut hf_values = Vec::<f64>::new();
+        
+            set_to_vec_f64(&mut hf_values,expression)?;
+            
             if hyperfine.values.is_some(){
               return Err(already_set());
             }
@@ -125,8 +125,10 @@ impl Config{
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::HyperfineZ => {
+
             set_to_some_vector_specifier(&mut hyperfine.z_axis, expression,
                 label)?;
+
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           _ => return Err(CluEError::InvalidToken(expression.line_number,
@@ -136,11 +138,6 @@ impl Config{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::ElectricQuadrupoleCoupling | Token::ElectricQuadrupoleX
         | Token::ElectricQuadrupoleY | Token::ElectricQuadrupoleZ =>{
-
-        let mut qc_values = Vec::<f64>::new();
-      
-        set_to_vec_f64(&mut qc_values, expression)?;
-      
 
         if isotope_properties.electric_quadrupole_coupling.is_none() {
           isotope_properties.electric_quadrupole_coupling =
@@ -155,6 +152,11 @@ impl Config{
         match expression.lhs[0]{
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::ElectricQuadrupoleCoupling => {
+
+            let mut qc_values = Vec::<f64>::new();
+      
+            set_to_vec_f64(&mut qc_values, expression)?;
+      
             if quadrupole.values.is_some(){
               return Err(already_set());
             }
@@ -282,4 +284,5 @@ mod tests{
             SecondaryParticleFilter::Particle, "test_label0".to_string(),
             ) ) );
     }
+  //----------------------------------------------------------------------------
 }

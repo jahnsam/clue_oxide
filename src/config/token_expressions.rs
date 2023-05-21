@@ -477,4 +477,32 @@ mod tests{
     let result = find_lhs_rhs_delimiter_index(&tokens,0);
     assert_eq!(result,Err(CluEError::TooManyRelationalOperators(0)));
   }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_set_to_some_vector_specifier(){
+    
+    let mut target: Option<VectorSpecifier> = None;
+
+    let expression = TokenExpression{ 
+      lhs: vec![Token::HyperfineX], 
+      rhs: Some(vec![Token::UserInputValue("vector".to_string()), 
+          Token::ParenthesisOpen, Token::SquareBracketOpen, Token::Minus, 
+          Token::UserInputValue("1".to_string()), Token::Comma, 
+          Token::UserInputValue("0".to_string()), Token::Comma, 
+          Token::UserInputValue("1".to_string()), Token::SquareBracketClose, 
+          Token::ParenthesisClose]), 
+      relationship: Some(Token::Equals), 
+      line_number: 3 };
+
+    let label = "label";
+
+    set_to_some_vector_specifier(&mut target, &expression,&label).unwrap();
+
+    println!("DB: {:?}",target);
+    assert_eq!(target,Some(
+          VectorSpecifier::Vector(
+            Vector3D::from([-1.0, 0.0, 1.0])
+            )
+          ));
+  }
 }
