@@ -3,7 +3,7 @@ use crate::clue_errors::CluEError;
 use crate::config::Config;
 use crate::config::particle_config::TensorSpecifier;
 use crate::physical_constants::{HBAR, JOULES_TO_HERTZ,MU0,PI};
-use crate::space_3d::{SymmetricTensor3D,Vector3D};
+use crate::space_3d::{SymmetricTensor3D,UnitSpherePoint,Vector3D};
 use crate::structure::{DetectedSpin,Structure};
 use crate::structure::particle::Particle;
 use crate::structure::exchange_groups::ExchangeGroup;
@@ -29,6 +29,11 @@ impl HamiltonianTensors{
   //----------------------------------------------------------------------------
   pub fn is_empty(&self) -> bool{
     self.spin1_tensors.is_empty()
+  }
+  //----------------------------------------------------------------------------
+  pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
+    self.spin1_tensors.rotate_active(dir);
+    self.spin2_tensors.rotate_active(dir);
   }
   //----------------------------------------------------------------------------
   pub fn generate(structure: &Structure, config: &Config) 
@@ -221,6 +226,12 @@ impl<'a> Spin1Tensors{
     self.tensors.is_empty()
   }
   //----------------------------------------------------------------------------
+  pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
+    for tensor in self.tensors.iter_mut().flatten(){
+      *tensor = tensor.rotate_active(dir);
+    }
+  }
+  //----------------------------------------------------------------------------
 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -256,6 +267,18 @@ impl<'a> Spin2Tensors{
   //----------------------------------------------------------------------------
   pub fn remove(&mut self, m: usize, n: usize){
     self.tensors.remove(m,n);
+  }
+  //----------------------------------------------------------------------------
+  pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
+
+    let dim = self.tensors.dim();
+    for m in 1..dim{
+      for n in 0..=m{
+        if let Some(ten) = self.tensors.get(m,n){
+          self.tensors.set(m,n, ten.rotate_active(dir) );
+        } 
+      }
+    }
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

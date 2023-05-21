@@ -21,7 +21,7 @@ impl SymmetricTensor3D{
                                            1.0]}
   }
   //----------------------------------------------------------------------------
-  pub fn rotate_to(&self, dir: &UnitSpherePoint) -> Self
+  pub fn rotate_active(&self, dir: &UnitSpherePoint) -> Self
   {
 
     let txx = self.xx();
@@ -267,7 +267,7 @@ impl Vector3D{
     SymmetricTensor3D::from(elements)
   }
   //----------------------------------------------------------------------------
-  pub fn rotate_to(&self, dir: &UnitSpherePoint) -> Self
+  pub fn rotate_active(&self, dir: &UnitSpherePoint) -> Self
   {
     let x = self.x();
     let y = self.y();
@@ -520,6 +520,61 @@ mod tests{
   use super::*;
   use crate::physical_constants::PI;
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_rotate_active(){
+
+    let tol = 1e-12;
+    let x_axis = Vector3D::from([1.0,0.0,0.0]);
+    let y_axis = Vector3D::from([0.0,1.0,0.0]);
+    let z_axis = Vector3D::from([0.0,0.0,1.0]);
+    let ten = SymmetricTensor3D::from([2.0, 0.0, 0.0,
+                                            3.0, 0.0,
+                                                 5.0 ]);
+
+    let phi_list = (0..=10).map(|x| (x as f64)/10.0*PI*2.0)
+      .collect::<Vec::<f64>>();
+
+    let theta_list = (0..=10).map(|x| (2.0*(x as f64)/10.0 - 1.0f64).acos())
+      .collect::<Vec::<f64>>();
+
+    for &theta in theta_list.iter(){
+      let ct = theta.cos();
+      let st = theta.sin();
+
+      for &phi in phi_list.iter(){
+        let cp = phi.cos();
+        let sp = phi.sin();
+
+        let point = UnitSpherePoint::new(theta,phi);
+
+        let rot_vec = x_axis.rotate_active(&point);
+        let rot_x = Vector3D::from([ct*cp, ct*sp, -st]);
+        assert!( (&rot_vec-&rot_x).norm() < tol );
+
+        let rot_vec = y_axis.rotate_active(&point);
+        let rot_y = Vector3D::from([-sp, cp, 0.0]);
+        assert!( (&rot_vec-&rot_y).norm() < tol );
+
+        let rot_vec = z_axis.rotate_active(&point);
+        let rot_z = Vector3D::from([st*cp,st*sp,ct]);
+        assert!( (&rot_vec-&rot_z).norm() < tol );
+
+        let rot_ten = ten.rotate_active(&point);
+        let ref_ten = &(
+            &(&rot_x.self_outer()*2.0) + &(&rot_y.self_outer()*3.0))
+          + &(&rot_z.self_outer()*5.0);
+
+        assert!((rot_ten.xx()-ref_ten.xx()).abs() < tol );
+        assert!((rot_ten.xy()-ref_ten.xy()).abs() < tol );
+        assert!((rot_ten.xz()-ref_ten.xz()).abs() < tol );
+        assert!((rot_ten.yy()-ref_ten.yy()).abs() < tol );
+        assert!((rot_ten.yz()-ref_ten.yz()).abs() < tol );
+        assert!((rot_ten.zz()-ref_ten.zz()).abs() < tol );
+      }
+    }
+
+  }
   //----------------------------------------------------------------------------
   #[allow(non_snake_case)]
   #[test]

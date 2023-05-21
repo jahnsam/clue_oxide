@@ -498,7 +498,6 @@ mod tests{
 
     set_to_some_vector_specifier(&mut target, &expression,&label).unwrap();
 
-    println!("DB: {:?}",target);
     assert_eq!(target,Some(
           VectorSpecifier::Vector(
             Vector3D::from([-1.0, 0.0, 1.0])

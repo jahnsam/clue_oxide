@@ -17,6 +17,8 @@ impl<T> SymList2D<T>{
     SymList2D{dim, elements}
   }
   //----------------------------------------------------------------------------
+  pub fn dim(&self) -> usize {self.dim}
+  //----------------------------------------------------------------------------
   pub fn get(& self, row: usize, col: usize) -> Option<&T>{
     let idx = get_uppertriangle_index(row,col,self.dim);
     
