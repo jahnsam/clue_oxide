@@ -170,11 +170,9 @@ fn is_token_over(word: &str,is_within_quote: bool) -> bool{
   if is_within_quote{
     return word == "\"";
   }
-  match word{
+  matches!( word,
     "\n" | " " | "," |"[" | "]" | "{" | "}" |"(" | ")" | "<" | ">" | ";" 
-      | "=" | "+" | "-" | "*" | "/" | "^" | "!" | "\"" => true,
-      _ => false,
-  }
+      | "=" | "+" | "-" | "*" | "/" | "^" | "!" | "\"")
 }
 //------------------------------------------------------------------------------
 // This function consumes a lexer and retutns a vector of raw tokens.
@@ -290,10 +288,11 @@ fn prune_tokens(in_tokens: Vec::<Token>)
       continue
     }
 
-    if block_commenting > 0 {
-      continue;
-    }else if block_commenting < 0 {
-      return Err(CluEError::UnmatchedBlockComment(line_number))
+    match block_commenting.cmp(&0){
+      std::cmp::Ordering::Greater => continue,
+      std::cmp::Ordering::Equal => (),  
+      std::cmp::Ordering::Less 
+        => return Err(CluEError::UnmatchedBlockComment(line_number)),
     }
 
 

@@ -1,6 +1,8 @@
 use crate::clue_errors::*;
 use crate::physical_constants::Isotope;
 use std::ops::{Add,Sub,Mul,Div};
+
+use std::fmt;
 //------------------------------------------------------------------------------
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token{
@@ -90,99 +92,99 @@ pub enum Token{
  Whitespace,
  WriteStructurePDB,
 }
-impl Token{
-  pub fn to_string(&self) -> String{
+impl fmt::Display for Token{
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
-      Token::Bang => "!".to_string(), 
-      Token::BondedIndices => "bonded_indices".to_string(),
-      Token::BondedElements => "bonded_elements".to_string(),
-      Token::BlockCommentEnd => "*/".to_string(), 
-      Token::BlockCommentStart => "/*".to_string(), 
-      Token::CarrPurcell => "cp".to_string(),
-      Token::CCE => "cce".to_string(),
-      Token::CentroidOverSerials => "centroid_over_serials".to_string(),
-      Token::ClusterMethod => "cluster_method".to_string(),
-      Token::Clusters => "clusters".to_string(),
-      Token::Comma => ",".to_string(),
-      Token::Config => "config".to_string(),
-      Token::CurlyBracketClose => "}".to_string(),
-      Token::CurlyBracketOpen => "{".to_string(),
-      Token::DetectedSpinPosition => "detected_spin_position".to_string(),
-      Token::DoubleQuote => "\"".to_string(),
+      Token::Bang => write!(f,"!"), 
+      Token::BondedIndices => write!(f,"bonded_indices"),
+      Token::BondedElements => write!(f,"bonded_elements"),
+      Token::BlockCommentEnd => write!(f,"*/"), 
+      Token::BlockCommentStart => write!(f,"/*"), 
+      Token::CarrPurcell => write!(f,"cp"),
+      Token::CCE => write!(f,"cce"),
+      Token::CentroidOverSerials => write!(f,"centroid_over_serials"),
+      Token::ClusterMethod => write!(f,"cluster_method"),
+      Token::Clusters => write!(f,"clusters"),
+      Token::Comma => write!(f,","),
+      Token::Config => write!(f,"config"),
+      Token::CurlyBracketClose => write!(f,"}}"),
+      Token::CurlyBracketOpen => write!(f,"{{"),
+      Token::DetectedSpinPosition => write!(f,"detected_spin_position"),
+      Token::DoubleQuote => write!(f,"\""),
       Token::ElectricQuadrupoleCoupling  
-        => "electric_quadrupole_coupling".to_string(),
-      Token::ElectricQuadrupoleX  => "electric_quadrupole_x".to_string(),
-      Token::ElectricQuadrupoleY  => "electric_quadrupole_y".to_string(),
-      Token::ElectricQuadrupoleZ  => "electric_quadrupole_z".to_string(),
-      Token::Element => "element".to_string(),
-      Token::Elements => "elements".to_string(),
-      Token::EOL => "\n".to_string(),
-      Token::Equals => "=".to_string(),
-      Token::Filter => "filter".to_string(),
-      Token::Float(x) => x.to_string(),
-      Token::GreaterThan => ">".to_string(),
-      Token::GreaterThanEqualTo => ">=".to_string(),
-      Token::Hahn => "hahn".to_string(),
-      Token::Hat => "^".to_string(),
-      Token::HyperfineCoupling => "hyperfine_coupling".to_string(),
-      Token::HyperfineX => "hyperfine_x".to_string(),
-      Token::HyperfineY => "hyperfine_y".to_string(),
-      Token::HyperfineZ => "hyperfine_z".to_string(),
-      Token::In => "in".to_string(),
-      Token::Indices => "indices".to_string(),
-      Token::InputStructureFile => "input_structure_file".to_string(),
-      Token::Int(n) => n.to_string(),
-      Token::Isotope => "isotope".to_string(),
-      Token::Label => "label".to_string(),
-      Token::LessThan => "<".to_string(),
-      Token::LessThanEqualTo => "<=".to_string(),
-      Token::LineComment => "//".to_string(), 
-      Token::MagneticField => "magnetic_field".to_string(),
-      Token::MaxClusterSize => "max_cluster_size".to_string(),
-      Token::Minus => "-".to_string(),
-      Token::Mode(mode) => mode.to_string(),
+        => write!(f,"electric_quadrupole_coupling"),
+      Token::ElectricQuadrupoleX  => write!(f,"electric_quadrupole_x"),
+      Token::ElectricQuadrupoleY  => write!(f,"electric_quadrupole_y"),
+      Token::ElectricQuadrupoleZ  => write!(f,"electric_quadrupole_z"),
+      Token::Element => write!(f,"element"),
+      Token::Elements => write!(f,"elements"),
+      Token::EOL => writeln!(f),
+      Token::Equals => write!(f,"="),
+      Token::Filter => write!(f,"filter"),
+      Token::Float(x) => write!(f,"{}",x),
+      Token::GreaterThan => write!(f,">"),
+      Token::GreaterThanEqualTo => write!(f,">="),
+      Token::Hahn => write!(f,"hahn"),
+      Token::Hat => write!(f,"^"),
+      Token::HyperfineCoupling => write!(f,"hyperfine_coupling"),
+      Token::HyperfineX => write!(f,"hyperfine_x"),
+      Token::HyperfineY => write!(f,"hyperfine_y"),
+      Token::HyperfineZ => write!(f,"hyperfine_z"),
+      Token::In => write!(f,"in"),
+      Token::Indices => write!(f,"indices"),
+      Token::InputStructureFile => write!(f,"input_structure_file"),
+      Token::Int(n) => write!(f,"{}",n),
+      Token::Isotope => write!(f,"isotope"),
+      Token::Label => write!(f,"label"),
+      Token::LessThan => write!(f,"<"),
+      Token::LessThanEqualTo => write!(f,"<="),
+      Token::LineComment => write!(f,"//"), 
+      Token::MagneticField => write!(f,"magnetic_field"),
+      Token::MaxClusterSize => write!(f,"max_cluster_size"),
+      Token::Minus => write!(f,"-"),
+      Token::Mode(mode) => write!(f,"{}",mode),
       Token::NeighborCutoffDeltaHyperfine 
-        => "neighbor_cutoff_delta_hyperfine".to_string(),
+        => write!(f,"neighbor_cutoff_delta_hyperfine"),
       Token::NeighborCutoffDipoleDipole 
-        => "neighbor_cutoff_dipole_dipole".to_string(),
+        => write!(f,"neighbor_cutoff_dipole_dipole"),
       Token::NeighborCutoff3SpinHahnModDepth 
-        => "neighbor_cutoff_3_spin_hahn_mod_depth".to_string(),
+        => write!(f,"neighbor_cutoff_3_spin_hahn_mod_depth"),
       Token::NeighborCutoff3SpinHahnTaylor4 
-        => "neighbor_cutoff_3_spin_hahn_taylor_4".to_string(),
-      Token::Not => "not".to_string(),
-      Token::NotEqual => "!=".to_string(),
-      Token::NotIn => "not in".to_string(),
-      Token::NumberTimepoints => "*".to_string(),
-      Token::Path => "path".to_string(),
-      Token::ParenthesisClose => ")".to_string(),
-      Token::ParenthesisOpen => "(".to_string(),
-      Token::Plus => "+".to_string(),
-      Token::PulseSequence => "pulse_sequence".to_string(),
-      Token::R2CCE => "r2cce".to_string(),
-      Token::Radius => "radius".to_string(),
-      Token::Residue => "residue".to_string(),
-      Token::Residues => "residues".to_string(),
-      Token::ResSeqNums => "residue_sequence_numbers".to_string(),
-      Token::RNGSeed => "rng_seed".to_string(),
-      Token::Semicolon => ";".to_string(),
-      Token::Serials => "serials".to_string(),
-      Token::Sharp => "#".to_string(),
-      Token::Slash => "/".to_string(),
-      Token::Spins => "spins".to_string(),
-      Token::SquareBracketClose => "]".to_string(),
-      Token::SquareBracketOpen => "[".to_string(),
-      Token::Structures => "structures".to_string(),
-      Token::Tensors => "tensors".to_string(),
-      Token::TimeIncrements => "time_increments".to_string(),
-      Token::Times => "*".to_string(),
-      Token::TunnelSplitting => "tunnel_splitting".to_string(),
-      Token::Type => "type".to_string(),
-      Token::UserInputValue(string) => (*string).clone(),
-      Token::VectorF64(v) => format!("{:?}",v), 
-      Token::VectorI32(v) => format!("{:?}",v), 
-      Token::VectorString(v) => format!("{:?}",v), 
-      Token::Whitespace => " ".to_string(),
-      Token::WriteStructurePDB => "write_structure_pdb".to_string(),
+        => write!(f,"neighbor_cutoff_3_spin_hahn_taylor_4"),
+      Token::Not => write!(f,"not"),
+      Token::NotEqual => write!(f,"!="),
+      Token::NotIn => write!(f,"not in"),
+      Token::NumberTimepoints => write!(f,"*"),
+      Token::Path => write!(f,"path"),
+      Token::ParenthesisClose => write!(f,")"),
+      Token::ParenthesisOpen => write!(f,"("),
+      Token::Plus => write!(f,"+"),
+      Token::PulseSequence => write!(f,"pulse_sequence"),
+      Token::R2CCE => write!(f,"r2cce"),
+      Token::Radius => write!(f,"radius"),
+      Token::Residue => write!(f,"residue"),
+      Token::Residues => write!(f,"residues"),
+      Token::ResSeqNums => write!(f,"residue_sequence_numbers"),
+      Token::RNGSeed => write!(f,"rng_seed"),
+      Token::Semicolon => write!(f,";"),
+      Token::Serials => write!(f,"serials"),
+      Token::Sharp => write!(f,"#"),
+      Token::Slash => write!(f,"/"),
+      Token::Spins => write!(f,"spins"),
+      Token::SquareBracketClose => write!(f,"]"),
+      Token::SquareBracketOpen => write!(f,"["),
+      Token::Structures => write!(f,"structures"),
+      Token::Tensors => write!(f,"tensors"),
+      Token::TimeIncrements => write!(f,"time_increments"),
+      Token::Times => write!(f,"*"),
+      Token::TunnelSplitting => write!(f,"tunnel_splitting"),
+      Token::Type => write!(f,"type"),
+      Token::UserInputValue(string) => write!(f,"{}",string),
+      Token::VectorF64(v) => write!(f,"{:?}",v), 
+      Token::VectorI32(v) => write!(f,"{:?}",v), 
+      Token::VectorString(v) => write!(f,"{:?}",v), 
+      Token::Whitespace => write!(f," "),
+      Token::WriteStructurePDB => write!(f,"write_structure_pdb"),
     }
   }
 }
@@ -612,35 +614,24 @@ impl Token{
 }
 //------------------------------------------------------------------------------
 pub fn is_relational_operator(token: &Token) -> bool{
-  match token{
-    Token::Equals => true,
-    Token::GreaterThan => true,
-    Token::GreaterThanEqualTo => true,
-    Token::In => true,
-    Token::LessThan => true,
-    Token::LessThanEqualTo => true,
-    Token::NotEqual => true,
-    Token::NotIn => true,
-    _ => false,
-  }
+  matches!( token,
+    Token::Equals | Token::GreaterThan | Token::GreaterThanEqualTo
+    | Token::In | Token::LessThan | Token::LessThanEqualTo | Token::NotEqual 
+    | Token::NotIn
+    )
 }
 //------------------------------------------------------------------------------
 pub fn is_opening_delimiter(token: &Token) -> bool{
-  match token{
-    Token::ParenthesisOpen => true,
-    Token::SquareBracketOpen => true,
-    Token::CurlyBracketOpen => true,
-    _ => false,
-  }
+  matches!(token,
+    Token::ParenthesisOpen | Token::SquareBracketOpen | Token::CurlyBracketOpen
+    )
 }
 //------------------------------------------------------------------------------
 pub fn is_closing_delimiter(token: &Token) -> bool{
-  match token{
-    Token::ParenthesisClose => true,
-    Token::SquareBracketClose => true,
-    Token::CurlyBracketClose => true,
-    _ => false,
-  }
+  matches!(token,
+    Token::ParenthesisClose | Token::SquareBracketClose 
+    | Token::CurlyBracketClose
+    )
 }
 //------------------------------------------------------------------------------
 pub fn find_token(target: &Token, tokens: &[Token]) -> Vec::<usize>{
@@ -718,7 +709,7 @@ impl ModeAttribute{
     } else if isotope_indices.len() == 1 
       && tokens[isotope_indices[0]+1] == Token::Equals{
        if  let Token::UserInputValue(value)=&tokens[isotope_indices[0]+2]{
-        let isotope_value = Isotope::from(&value)?;
+        let isotope_value = Isotope::from(value)?;
         isotope = Some(isotope_value);
       }else{
         return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
@@ -764,7 +755,9 @@ impl ModeAttribute{
     Ok(ModeAttribute{ mode,isotope, label, path})
   }
   //----------------------------------------------------------------------------
-  pub fn to_string(&self) -> String{
+}
+impl fmt::Display for ModeAttribute{
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
   
     let mode_str = self.mode.to_string();
 
@@ -782,7 +775,7 @@ impl ModeAttribute{
       path_str = "".to_string();
     }
 
-    format!("#[{}{}{}]",mode_str,label_str,path_str)
+    write!(f,"#[{}{}{}]",mode_str,label_str,path_str)
 
   }
 }
@@ -811,14 +804,16 @@ impl ConfigMode{
     }
   }
   //----------------------------------------------------------------------------
-  pub fn to_string(&self) -> String{
+}
+impl fmt::Display for ConfigMode{
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
-      ConfigMode::Clusters => "clusters".to_string(),
-      ConfigMode::Config => "config".to_string(),
-      ConfigMode::Filter => "filter".to_string(),
-      ConfigMode::Spins => "spins".to_string(),
-      ConfigMode::Structures => "structures".to_string(),
-      ConfigMode::Tensors => "tensors".to_string(),
+      ConfigMode::Clusters => write!(f,"clusters"),
+      ConfigMode::Config => write!(f,"config"),
+      ConfigMode::Filter => write!(f,"filter"),
+      ConfigMode::Spins => write!(f,"spins"),
+      ConfigMode::Structures => write!(f,"structures"),
+      ConfigMode::Tensors => write!(f,"tensors"),
     }
   }
 }

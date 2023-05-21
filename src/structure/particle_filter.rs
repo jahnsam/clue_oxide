@@ -70,7 +70,7 @@ impl ParticleFilter{
     Default::default()
   }
   //----------------------------------------------------------------------------
-  pub fn filter_indices(&self, structure: &Structure,indices: &Vec::<usize>) 
+  pub fn filter_indices(&self, structure: &Structure,indices: &[usize]) 
     -> Vec::<usize>
   {
     indices.iter().filter_map( |idx| {
@@ -124,8 +124,8 @@ impl ParticleFilter{
 
       // Residue
       if let Some(res) = &particle.residue{ 
-        if (!self.residues.is_empty() && !self.residues.contains(&res))
-         || self.not_residues.contains(&res){
+        if (!self.residues.is_empty() && !self.residues.contains(res))
+         || self.not_residues.contains(res){
           return None;
       }}
 
@@ -139,8 +139,8 @@ impl ParticleFilter{
 
       // Isotope
       let isotope = &particle.isotope; 
-      if (!self.isotopes.is_empty() && !self.isotopes.contains(&isotope))
-       || self.not_isotopes.contains(&isotope){
+      if (!self.isotopes.is_empty() && !self.isotopes.contains(isotope))
+       || self.not_isotopes.contains(isotope){
         return None;
       }
 
@@ -283,7 +283,7 @@ impl SecondaryParticleFilter{
       structure: &Structure, config: &Config ) -> Result<Vec::<usize>,CluEError>
   {
 
-    let Some((_id, p_cfg)) = config.find_particle_config(&label) else{
+    let Some((_id, p_cfg)) = config.find_particle_config(label) else{
       return Err(CluEError::MissingFilter(label.to_string()));
     };
 
@@ -326,11 +326,11 @@ impl VectorSpecifier{
       VectorSpecifier::Diff(sec_fltr_0,label_0,sec_fltr_1,label_1) =>{
 
 
-        let mut indices_0 = sec_fltr_0.filter(particle_index, &label_0, 
-            &structure, &config)?;
+        let mut indices_0 = sec_fltr_0.filter(particle_index, label_0, 
+            structure, config)?;
 
-        let mut indices_1 = sec_fltr_1.filter(particle_index, &label_1, 
-            &structure, &config)?;
+        let mut indices_1 = sec_fltr_1.filter(particle_index, label_1, 
+            structure, config)?;
 
 
         if indices_0.len() == 2 && indices_1.len() == 2{

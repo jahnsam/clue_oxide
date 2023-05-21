@@ -7,10 +7,10 @@ pub struct AdjacencyList{
 }
 impl AdjacencyList{
 
-  pub fn len(&self) -> usize{
-    self.list.len()
-  }
-
+  //----------------------------------------------------------------------------
+  pub fn len(&self) -> usize{ self.list.len() }
+  //----------------------------------------------------------------------------
+  pub fn is_empty(&self) -> bool{ self.list.is_empty() }
   //----------------------------------------------------------------------------
   pub fn active_with_capacity(n: usize) -> Self{
     let mut list = Vec::< Option<Vec::<usize>> >::with_capacity(n);
@@ -61,7 +61,7 @@ impl AdjacencyList{
 
   //----------------------------------------------------------------------------
   fn activate(&mut self, n: usize){
-    if self.list[n] == None{
+    if self.list[n].is_none(){
       self.list[n] = Some(Vec::new());
     }
   }
@@ -77,7 +77,7 @@ impl AdjacencyList{
     }
   }
   //----------------------------------------------------------------------------
-  pub fn get_neighbors<'a>(&'a self, n: usize) -> Option<&'a Vec::<usize>>{
+  pub fn get_neighbors(& self, n: usize) -> Option<& Vec::<usize>>{
     if let Some(neighbors) = &self.list[n]{
       return Some(neighbors);
     }
@@ -87,7 +87,7 @@ impl AdjacencyList{
   pub fn n_active_vertices(&self) -> usize{
     let mut counter = 0;
     for ii in 0..self.len(){
-      if let Some(_) = self.list[ii]{
+      if self.list[ii].is_some(){
         counter += 1;
       }
     }
@@ -100,7 +100,7 @@ impl AdjacencyList{
     let mut vertices = Vec::<usize>::with_capacity(counter);
 
     for ii in 0..self.len(){
-      if let Some(_) = self.list[ii]{
+      if self.list[ii].is_some(){
         vertices.push(ii);
       }
     }

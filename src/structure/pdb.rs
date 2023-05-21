@@ -18,8 +18,9 @@ pub fn parse_pdb(filename: &str,target_model: usize)
 
    let (n_atoms, _n_models) = count_pdb_atoms(filename)?;
    
-   let (bath_particles, serial_to_index) 
-     = parse_atoms(filename, n_atoms, target_model)?;
+   let particle_map = parse_atoms(filename, n_atoms, target_model)?;
+   let ParticleMap{ particles: bath_particles, map : serial_to_index} 
+     = particle_map;
 
    let connections = parse_connections(filename,n_atoms,serial_to_index)?;
 
@@ -97,8 +98,13 @@ fn parse_connections(filename: &str ,n_atoms: usize,
    Ok(connections)
 }
 //------------------------------------------------------------------------------
+struct ParticleMap{
+  particles: Vec::<Particle>,
+  map: HashMap::<u32,Option<usize>>
+}
+//------------------------------------------------------------------------------
 fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize) 
-  -> Result<(Vec::<Particle>, HashMap::<u32,Option<usize>>),CluEError>
+  -> Result<ParticleMap,CluEError>
 {
    let mut serial_to_index = HashMap::<u32,Option<usize>>::new(); 
    let mut unknown_elements = HashMap::<String,usize>::new(); 
@@ -121,9 +127,8 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
      };
      if model_idx==target_model 
        && (line.contains("ATOM") || line.contains("HETATM")) {
-       let particle: Particle;
-       match parse_atom_line(&line){
-         Ok(p) => particle = p,
+       let particle: Particle = match parse_atom_line(&line){
+         Ok(p) => p,
          Err((CluEError::CannotParseElement(unk_el),serial)) => {
            serial_to_index.insert(serial,None);
            if let Some(value) = unknown_elements.get_mut(&unk_el){
@@ -134,13 +139,12 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
            continue;
          }
          Err((err,_)) => return Err(err),
-       }
+       };
 
        //if model_idx == 0{
          if let Some(serial) = particle.serial{
-           if !serial_to_index.contains_key(&serial){
-             serial_to_index.insert(serial,Some(bath_particles.len()));
-           }
+           serial_to_index.entry(serial)
+             .or_insert_with(|| Some(bath_particles.len()));
          }
        //}
 
@@ -155,7 +159,10 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
      println!("Could not parse {} instances of element \"{}\".",
          unk_count, unk_el);
    }
-   Ok((bath_particles,serial_to_index))
+
+   Ok( ParticleMap{
+     particles: bath_particles,
+     map: serial_to_index})
 }
 //------------------------------------------------------------------------------
 /*
@@ -248,11 +255,10 @@ fn parse_atom_line(line: &str) -> Result<Particle,(CluEError,u32)>{
     return Err((CluEError::CannotParseLine(line.to_string()),0));
   }
 
-  let element: Element;
-  match Element::from(line[76..=77].trim()) {
-    Ok(elmt) => element = elmt,
+  let element: Element = match Element::from(line[76..=77].trim()) {
+    Ok(elmt) => elmt,
     Err(err) => return Err((err,serial))
-  }
+  };
 
   Ok(Particle{
       element,
@@ -357,7 +363,7 @@ impl Structure{
     let pdb_det_str = self.get_detected_particle_pdb_string()?;
 
     //if let Err(_) = writeln!(file, "{}",pdb_str) {
-    if let Err(_) = stream.write(pdb_det_str.as_bytes()){
+    if stream.write(pdb_det_str.as_bytes()).is_err(){
       return Err(CluEError::CannotWriteFile(filename.to_string()) );
     }
 
@@ -371,7 +377,7 @@ impl Structure{
 
       
       let stream_result = stream.write(line.as_bytes());
-      if let Err(_) = stream_result{
+      if stream_result.is_err(){
         return Err(CluEError::CannotWriteFile(filename.to_string()) );
       }
       
@@ -379,7 +385,7 @@ impl Structure{
     }
 
     let stream_result = stream.flush();
-    if let Err(_) = stream_result{
+    if stream_result.is_err(){
       return Err(CluEError::CannotWriteFile(filename.to_string()) );
     }
 

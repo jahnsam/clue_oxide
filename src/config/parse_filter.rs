@@ -26,16 +26,15 @@ impl Config{
       }
     }
 
-    let particle_config: &mut ParticleConfig; 
-    match found_particle_config{
-      Some(idx) => particle_config = &mut self.particles[idx],
+    let particle_config: &mut ParticleConfig = match found_particle_config{
+      Some(idx) => &mut self.particles[idx],
       None => {
         self.particles.push(ParticleConfig::new((*label).clone()));
         let idx = self.particles.len() - 1; 
-        particle_config = &mut self.particles[idx];}
-    }
+        &mut self.particles[idx]}
+    };
 
-    if particle_config.filter == None{
+    if particle_config.filter.is_none(){
       particle_config.filter = Some(ParticleFilter::new());
     }
     let Some(filter) = &mut particle_config.filter else{
@@ -45,12 +44,11 @@ impl Config{
 
 
     // Get relational symbol.
-    let include: bool;
-    match expression.relationship{
-      Some(Token::In) | Some(Token::Equals) => include = true,
-      Some(Token::NotIn) | Some(Token::NotEqual) => include = false,
+    let include: bool = match expression.relationship{
+      Some(Token::In) | Some(Token::Equals) => true,
+      Some(Token::NotIn) | Some(Token::NotEqual) => false,
       _ => return Err(CluEError::NoRelationalOperators(expression.line_number)),
-    }
+    };
    
 
 

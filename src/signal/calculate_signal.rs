@@ -47,7 +47,7 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
   
   let structure_hash = math::str_hash(&structure);
 
-  let save_dir = format!("{}/system-{}",path.to_string(),structure_hash);
+  let save_dir = format!("{}/system-{}",path,structure_hash);
   match std::fs::create_dir_all(save_dir.clone()){
     Ok(_) => (),
     Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
@@ -95,7 +95,7 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
   }
 
   // TODO: add toggle in config
-  calculate_methyl_partition_cce(cluster_set, &structure, &config, &save_dir)?;
+  calculate_methyl_partition_cce(cluster_set, &structure, config, &save_dir)?;
 
   Ok(())
 } 
@@ -118,9 +118,9 @@ fn calculate_methyl_partition_cce(
       let mut part_signal = Signal::ones(n_tot);
 
       for size_idx in 0..(*value_cluster_set).len() {
-        for cluster in (*value_cluster_set).clusters[size_idx].iter(){
+        for cluster in value_cluster_set.clusters[size_idx].iter(){
           if let Ok(Some(aux_signal)) = &cluster.signal{
-            part_signal = &part_signal * &aux_signal;
+            part_signal = &part_signal * aux_signal;
           }
         }
       }

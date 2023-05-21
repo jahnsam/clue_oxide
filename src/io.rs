@@ -20,7 +20,7 @@ pub fn write_data<T>(data: &Vec::<Vec::<T>>, filename: &str,
     }
 }
 //------------------------------------------------------------------------------
-fn write_vecs_to_csv<T>(data: &Vec::<Vec::<T>>,filename: &str,
+fn write_vecs_to_csv<T>(data: &[Vec::<T>],filename: &str,
     headers: Vec::<String>) 
   -> Result<(),Box<dyn Error>> where T: std::fmt::Display
 {

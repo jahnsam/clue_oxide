@@ -41,16 +41,16 @@ pub fn calculate_analytic_restricted_2cluster_signals(
     let idx = ibatch*batch_size;
     clusters[1].par_iter_mut().skip(idx).take(batch_size).for_each(
         |cluster| {
-          (*cluster).signal = analytic_restricted_2cluster_signal(
-            &cluster.vertices(), tensors, config);
+          cluster.signal = analytic_restricted_2cluster_signal(
+            cluster.vertices(), tensors, config);
         });
 
-    let idx_end: usize;
-    if idx+batch_size < clusters[1].len() {
-      idx_end = idx + batch_size;
+    let idx_end = if idx+batch_size < clusters[1].len() {
+      idx + batch_size
     }else{
-      idx_end = clusters[1].len();
-    }
+      clusters[1].len()
+    };
+
     for ii in idx..idx_end{
       let Ok(Some(aux_signal)) = &clusters[1][ii].signal else{
         return Err(CluEError::ClusterHasNoSignal(clusters[1][ii].to_string()));

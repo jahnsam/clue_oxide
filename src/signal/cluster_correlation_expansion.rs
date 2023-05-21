@@ -41,17 +41,16 @@ pub fn do_cluster_correlation_expansion(
 
         clusters[cluster_size-1].par_iter_mut().skip(idx).take(batch_size)
           .for_each(|cluster| 
-              (*cluster).signal = calculate_cluster_signal(&cluster.vertices(),
+              cluster.signal = calculate_cluster_signal(cluster.vertices(),
                 spin_ops,tensors,config)
         );
 
 
-        let idx_end: usize;
-        if idx+batch_size < clusters[cluster_size-1].len() {
-          idx_end = idx + batch_size;
+        let idx_end = if idx+batch_size < clusters[cluster_size-1].len(){
+          idx + batch_size
         }else{
-         idx_end = clusters[cluster_size-1].len();
-        }
+         clusters[cluster_size-1].len()
+        };
  
         for ii in idx..idx_end{
           let cluster = &clusters[cluster_size-1][ii];
@@ -80,7 +79,7 @@ pub fn do_cluster_correlation_expansion(
             {
               let subcluster = &clusters[subcluster_size-1][*subcluster_idx];
               match &subcluster.signal{
-                Ok(Some(subsignal)) =>  aux_signal = &aux_signal/&subsignal,
+                Ok(Some(subsignal)) =>  aux_signal = &aux_signal/subsignal,
                 Ok(None) => continue,
                 Err(err) => return Err(err.clone()),
               }

@@ -17,6 +17,10 @@ impl Signal{
     self.data.len()
   }
   //----------------------------------------------------------------------------
+  pub fn is_empty(&self) -> bool{
+    self.data.is_empty()
+  }
+  //----------------------------------------------------------------------------
   pub fn new() -> Self {Signal::default()}
   //----------------------------------------------------------------------------
   pub fn ones(n: usize) -> Self {
@@ -71,7 +75,7 @@ impl Signal{
     -> Result<(),Box<dyn Error>>
   {
     let mut wtr = csv::Writer::from_path(filename)?;
-    wtr.write_record(&["signal"])?;
+    wtr.write_record(["signal"])?;
     for v in self.data.iter(){
       wtr.write_record(&[v.to_string()])?;
     }
@@ -101,7 +105,7 @@ pub fn write_vec_signals(signals: &Vec::<Signal>, filename: &str,
     }
 }
 //------------------------------------------------------------------------------
-fn write_vec_signals_to_csv(signals: &Vec::<Signal>,filename: &str,
+fn write_vec_signals_to_csv(signals: &[Signal],filename: &str,
     headers: Vec::<String>) -> Result<(),Box<dyn Error>>
 {
   let n_data = signals[0].data.len();

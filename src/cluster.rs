@@ -35,8 +35,8 @@ impl ToString for Cluster{
 
     let mut string = format!("[{}", cluster[0] );
 
-    for ii in 1..cluster.len(){
-      string = format!("{},{}",string,cluster[ii]);
+    for vertex in cluster.iter().skip(1){
+      string = format!("{},{}",string,vertex);
     } 
     format!("{}]",string)
   }

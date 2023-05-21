@@ -851,12 +851,11 @@ impl Isotope{
   //----------------------------------------------------------------------------
   pub fn gyromagnetic_ratio(&self) -> f64{
 
-    let mu: f64;
-    if *self == Isotope::Electron{
-      mu = MUB;
+    let mu: f64 = if *self == Isotope::Electron{
+      MUB
     }else{
-      mu = MUN;
-    }
+      MUN
+    };
 
     mu*self.g_value()/HBAR
   

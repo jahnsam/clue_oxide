@@ -121,7 +121,7 @@ impl ClusterSet{
       let mut to_keep = Vec::<usize>::with_capacity(n_clusters);
       
       for (idx,cluster) in self.clusters[clu_size].iter().enumerate(){
-        if cluster.contains_partial_methyl(&exchange_group_manager){ continue; }
+        if cluster.contains_partial_methyl(exchange_group_manager){ continue; }
         to_keep.push(idx);
       }
 
@@ -149,8 +149,8 @@ pub fn contains_partial_methyl(&self,exchange_group_manager:
 {
   let mut count_map = HashMap::<usize,usize>::with_capacity(self.len());
   for &idx in self.vertices().iter(){
-    match exchange_group_manager.exchange_group_ids[idx]{
-      Some(key) => {
+    if let Some(key) = exchange_group_manager.exchange_group_ids[idx]{
+      
         let mut count: usize = 0;
         if let Some(n) = count_map.get(&key){
           count = *n;
@@ -158,8 +158,6 @@ pub fn contains_partial_methyl(&self,exchange_group_manager:
         count += 1;
 
         count_map.insert(key,count);
-      },
-      None => (),
     }
   }
 

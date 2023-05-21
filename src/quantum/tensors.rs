@@ -27,6 +27,10 @@ impl HamiltonianTensors{
     self.spin1_tensors.len()
   }
   //----------------------------------------------------------------------------
+  pub fn is_empty(&self) -> bool{
+    self.spin1_tensors.is_empty()
+  }
+  //----------------------------------------------------------------------------
   pub fn generate(structure: &Structure, config: &Config) 
     -> Result<Self,CluEError>
   {
@@ -185,7 +189,7 @@ impl<'a> Spin1Tensors{
     
     let mut tensors 
      = Vec::<Option<Vector3D>>::with_capacity(number);
-    for _ii in 0..(number as usize) {
+    for _ii in 0..number {
       tensors.push(None);
     }
 
@@ -212,6 +216,11 @@ impl<'a> Spin1Tensors{
   pub fn len(&self) -> usize{
     self.tensors.len()
   }
+  //----------------------------------------------------------------------------
+  pub fn is_empty(&self) -> bool{
+    self.tensors.is_empty()
+  }
+  //----------------------------------------------------------------------------
 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -240,7 +249,7 @@ impl<'a> Spin2Tensors{
   //----------------------------------------------------------------------------
   pub fn add(&mut self, m: usize, n: usize, mut ten: SymmetricTensor3D){
     if let Some(ten0) = self.tensors.get(m,n){
-      ten = &ten + &ten0;
+      ten = &ten + ten0;
     }
     self.tensors.set(m,n,ten);
   }
@@ -269,11 +278,11 @@ fn construct_electric_quadrupole_tensor(
     return Ok(None);
   }
 
-  match structure.extract_electric_quadrupole_specifier(particle_index,&config)
+  match structure.extract_electric_quadrupole_specifier(particle_index,config)
   {
     Some(tensor_specifier) => {
       let tensor = construct_symmetric_tensor_from_tensor_specifier(
-        &tensor_specifier, particle_index,&structure, &config)?;
+        tensor_specifier, particle_index,structure, config)?;
 
       Ok(Some(tensor))
     },
@@ -289,10 +298,10 @@ fn construct_hyperfine_tensor(detected_particle: &DetectedSpin,
 
   let tensor: SymmetricTensor3D;
   if let Some(tensor_specifier) = structure
-    .extract_hyperfine_specifier(particle_index,&config)
+    .extract_hyperfine_specifier(particle_index,config)
   {
     tensor = construct_symmetric_tensor_from_tensor_specifier(
-        &tensor_specifier, particle_index,&structure, &config)?;
+        tensor_specifier, particle_index,structure, config)?;
   }else{
 
     let gamma_e = detected_particle.isotope.gyromagnetic_ratio();
@@ -340,10 +349,8 @@ pub fn construct_point_dipole_dipole_tensor(
   let h_perp = get_perpendicular_dipole_dipole_frequency(gyromagnetic_ratio_1,
       gyromagnetic_ratio_2,r);
 
-  let ten = h_perp*&(&SymmetricTensor3D::eye() - &n3nt); 
+  h_perp*&(&SymmetricTensor3D::eye() - &n3nt)
 
-  ten
-  
 }
 //------------------------------------------------------------------------------
 /// This function takes three values and three vectors and constructs

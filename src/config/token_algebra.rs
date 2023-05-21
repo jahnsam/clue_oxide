@@ -7,14 +7,10 @@ use crate::config::token_stream::*;
 // The function answers the question 
 // "does this token represent a number/set of numbers?".
 fn is_numeric(token: &Token) -> bool{
-  match token{
-    Token::Float(_x) => true,
-    Token::Int(_n) => true,
-    Token::VectorF64(_v) => true,
-    Token::VectorI32(_v) => true,
-    _ => false
-
-  }
+  matches!( token,
+    Token::Float(_) | Token::Int(_) 
+    | Token::VectorF64(_) | Token::VectorI32(_)
+    )
 }
 //------------------------------------------------------------------------------
 // This function takes three tokens, two numeric tokens separated by a basic
@@ -49,8 +45,7 @@ pub fn contract_operator_inverse_operator_tokens(
     return Ok(tokens);
   }
 
-  let start_idx: usize;
-  if tokens[0] == Token::Minus{
+  let start_idx: usize = if tokens[0] == Token::Minus{
     let next_token = tokens[1].clone();
     if !is_numeric(&next_token){ 
       return Err(CluEError::ExpectedNumber(line_number));
@@ -58,11 +53,11 @@ pub fn contract_operator_inverse_operator_tokens(
     let neg_first_token = basic_token_algebraic_operations(
          [next_token, Token::Times,Token::Int(-1)], line_number)?;
     out.push(neg_first_token);
-    start_idx = 2;
+    2
   }else{
     out.push(tokens[0].clone());
-    start_idx = 1;
-  }
+    1
+  };
 
   let mut skip_next = 0;
 
@@ -353,24 +348,23 @@ fn contract_numeric_vectors(tokens: Vec::<Token>, as_f64: bool,
     let idx_c = indices_close[ii];
 
     read_to = *idx_o;
-    for idx in read_from .. read_to{
-      out.push(tokens[idx].clone());
+    for token in tokens.iter().take(read_to).skip(read_from){
+      out.push(token.clone());
     }
     read_from = idx_c + 1;
 
 
-    let array: Token;
-    if as_f64{
-      array = to_float_vector(tokens[*idx_o..=idx_c].to_vec(),line_number)?;
+    let array: Token = if as_f64{
+      to_float_vector(tokens[*idx_o..=idx_c].to_vec(),line_number)?
     }else{
-      array = to_integer_vector(tokens[*idx_o..=idx_c].to_vec(),line_number)?;
-    }
+      to_integer_vector(tokens[*idx_o..=idx_c].to_vec(),line_number)?
+    };
     out.push(array);
   }
 
   read_to = tokens.len();
-  for idx in read_from .. read_to{
-    out.push(tokens[idx].clone());
+  for token in tokens.iter().take(read_to).skip(read_from){
+    out.push(token.clone());
   }
 
   contract_pemdas(out, line_number)

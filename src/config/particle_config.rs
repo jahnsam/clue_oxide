@@ -67,26 +67,14 @@ impl ParticleConfig{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug,Clone,PartialEq,Default)]
 pub struct ParticleProperties{
   pub cosubstitute: Option<SecondaryParticleFilter>,
   pub extracell_isotopic_distribution:  Option<IsotopeDistribution>,
   pub isotopic_distribution:  IsotopeDistribution,
   pub isotope_properties: HashMap::<String,IsotopeProperties>,
 }
-impl Default for ParticleProperties{
-  fn default() -> Self{
-    ParticleProperties{
-      cosubstitute: None,
-      extracell_isotopic_distribution:  None,
-      isotopic_distribution:  IsotopeDistribution::default(),
-      isotope_properties: HashMap::<String,IsotopeProperties>::new(),
-      //exchange_coupling: 0.0,
-      //hyperfine: None,
-      //electric_quadrupole_coupling: None,
-    }
-  }
-}
+
 impl ParticleProperties{
   pub fn new() -> Self{
     Default::default()
@@ -110,20 +98,10 @@ impl IsotopeProperties{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-// TODO: Is force_no_pbc=true the same as extracell_void_probability=Some(0.0)?
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug,Clone,PartialEq,Default)]
 pub struct IsotopeDistribution{
   pub isotope_abundances: Vec::<IsotopeAbundance>,
   pub extracell_void_probability: Option<f64>,
-}
-
-impl Default for IsotopeDistribution{
-  fn default() -> Self{
-    IsotopeDistribution{
-      isotope_abundances: Vec::<IsotopeAbundance>::new(),
-      extracell_void_probability: None,
-    }
-  }
 }
 
 #[derive(Debug,Clone,PartialEq)]

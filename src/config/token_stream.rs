@@ -53,9 +53,7 @@ pub fn get_vector_elements(tokens: Vec::<Token>, line_number: usize)
     vector_elements =  split_on_token(
       tokens[idx0+1..idx1].to_vec(), Token::Comma);
   }else{
-    let mut temp =  Vec::<Vec::<Token>>::with_capacity(1);
-    temp.push(tokens);
-    vector_elements = temp;
+    vector_elements = vec![tokens];
   }
 
   Ok(vector_elements)
@@ -69,8 +67,8 @@ pub fn count_delimiter_pairs(tokens: &[Token],
     line_number: usize)
   -> Result<usize, CluEError>{
   
-  let n_open = count_token(&opening_delimiter, tokens);  
-  let n_close = count_token(&closing_delimiter, tokens);  
+  let n_open = count_token(opening_delimiter, tokens);  
+  let n_close = count_token(closing_delimiter, tokens);  
   
 
   if n_open != n_close
@@ -289,8 +287,8 @@ pub fn split_on_token(tokens: Vec::<Token>, split_on: Token)
       let mut num_tokens_in_statement = 0;
       
       let mut read_to = tokens.len();
-      for ii in read_from..tokens.len(){
-        if tokens[ii] == split_on { 
+      for (ii,token) in tokens.iter().enumerate().skip(read_from){
+        if *token == split_on { 
           read_to = ii;
           break;
         }
@@ -301,8 +299,8 @@ pub fn split_on_token(tokens: Vec::<Token>, split_on: Token)
       // Get statement.
       let mut statement = Vec::<Token>::with_capacity(num_tokens_in_statement);
 
-      for ii in read_from..read_to{
-        statement.push(tokens[ii].clone());
+      for token in tokens.iter().take(read_to).skip(read_from){
+        statement.push(token.clone());
       }
 
       read_from = read_to + 1;
@@ -349,7 +347,7 @@ pub fn find_brackets(tokens: &[Token], line_number: usize)
 {
   // Find brackets.
 
-  let n_pairs = count_delimiter_pairs(&tokens, 
+  let n_pairs = count_delimiter_pairs(tokens, 
       &Token::SquareBracketOpen, &Token::SquareBracketClose,
       line_number)?;
   
@@ -362,10 +360,10 @@ pub fn find_brackets(tokens: &[Token], line_number: usize)
   }
 
 
-  let index0 = find_token(&Token::SquareBracketOpen, &tokens);
+  let index0 = find_token(&Token::SquareBracketOpen, tokens);
   let index0 = index0[0];
 
-  let index1 = find_token(&Token::SquareBracketClose, &tokens);
+  let index1 = find_token(&Token::SquareBracketClose, tokens);
   let index1 = index1[0];
 
 

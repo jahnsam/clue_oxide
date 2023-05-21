@@ -32,6 +32,7 @@ pub enum CluEError{
   ClusterHasNoSignal(String),
   ConfigModeNotRecognized(String),
   EmptyVector(usize),
+  ExpectedClusterSetWithNSizes(usize,usize),
   ExpectedEquality(usize),
   ExpectedFloatRHS(usize),
   ExpectedIntRHS(usize),
@@ -202,6 +203,10 @@ impl fmt::Display for CluEError{
 
       CluEError::EmptyVector(line_number) => write!(f,
           "line {}, supplied vector is emptry", line_number),
+
+      CluEError::ExpectedClusterSetWithNSizes(n_exp,n_act) => write!(f,
+          "expected a cluster set with {} sizes, but got {} sizes",
+          n_exp, n_act),
 
       CluEError::ExpectedEquality(line_number) => write!(f,
           "line {}, expected an equaliy",line_number),

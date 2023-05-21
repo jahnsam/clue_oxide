@@ -39,12 +39,12 @@ impl CommandLineInput{
     it.next();
     for arg in it{
 
-      if (*arg).substring(0,2)=="--".to_string(){
+      if (*arg).substring(0,2)== "--"{
         cli.parse_long_option(arg)?;
         continue;
       }
       
-      if(*arg).substring(0,1)=="-".to_string(){
+      if(*arg).substring(0,1)== "-"{
         cli.parse_short_options((*arg).substring(1,(*arg).len()))?;
         continue;
       }
@@ -62,9 +62,9 @@ impl CommandLineInput{
         return Err(CluEError::UnrecognizedOption(arg.to_string() )),
     }
 
-    if self.config_file ==None {
+    if self.config_file.is_none() {
       self.next_arg = NextArg::InputConfig;
-    }else if self.output_file == None{
+    }else if self.output_file.is_none(){
       self.next_arg = NextArg::Output;
     }else{
       self.next_arg = NextArg::Unknown;
@@ -93,7 +93,7 @@ impl CommandLineInput{
     for ii in 0..n_opts{
       let opt = options.substring(ii,ii+1);
 
-      self.parse_short_option(&opt)?;
+      self.parse_short_option(opt)?;
     }
     Ok(())
   

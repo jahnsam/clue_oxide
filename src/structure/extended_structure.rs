@@ -132,24 +132,22 @@ impl Structure{
         }
 
         let center = exchange_group_0.centroid() + &self.cell_offsets[icell];
-        let exchange_group: ExchangeGroup;
-        match exchange_group_0{
+        let exchange_group: ExchangeGroup = match exchange_group_0{
           ExchangeGroup::Methyl(rotor) 
-          => exchange_group = ExchangeGroup::Methyl(
-              C3Rotor{ center, normal: rotor.normal.clone(), 
+          => ExchangeGroup::Methyl(C3Rotor{center,normal: rotor.normal.clone(), 
               indices: [indices[0],indices[1],indices[2]]}),
           ExchangeGroup::PrimaryAmonium(rotor)
-          => exchange_group = ExchangeGroup::PrimaryAmonium(
-              C3Rotor{ center, normal: rotor.normal.clone(), 
+          => ExchangeGroup::PrimaryAmonium(C3Rotor{ 
+              center, normal: rotor.normal.clone(),
               indices: [indices[0],indices[1],indices[2]]}),
-        }
+        };
 
         exchange_groups.push(exchange_group);
 
 
         for (ii,&idx) in indices.iter().enumerate(){
           exchange_group_ids[idx] = exchange_group_manager0
-            .exchange_group_ids[ii].clone();
+            .exchange_group_ids[ii];
         }
 
 
@@ -300,13 +298,12 @@ impl Structure{
           let isotopic_distribution: &IsotopeDistribution;
           if unit_cell_id == 0{
             isotopic_distribution = &properties.isotopic_distribution;
-          }else{
-            if let Some(iso) = &properties.extracell_isotopic_distribution{
+          }else if let Some(iso) = &properties.extracell_isotopic_distribution{
               isotopic_distribution = iso;
-            }else{
-              isotopic_distribution = &properties.isotopic_distribution;
-            } 
-          }
+          }else{
+            isotopic_distribution = &properties.isotopic_distribution;
+          } 
+          
 
           for iso in isotopic_distribution.isotope_abundances.iter(){
             cdf += iso.abundance;
@@ -355,9 +352,8 @@ impl Structure{
         if let Some(config_id) = self.particle_config_ids[particle_idx0]{
           // Check if this particle has any custom properties.
           if let Some(properties) = &config.particles[config_id].properties{
-            // TODO: check void probability.
-            if let Some(_) = properties.isotopic_distribution
-              .extracell_void_probability{
+            if properties.isotopic_distribution.extracell_void_probability
+              .is_some(){
               self.cell_indices[particle_idx0].push(None); 
               continue;
             }

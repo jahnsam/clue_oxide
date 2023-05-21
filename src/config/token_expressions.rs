@@ -27,8 +27,7 @@ impl TokenExpression{
 
     if tokens[0]==Token::Sharp{
       let mode = ModeAttribute::from(tokens)?;
-      let mut lhs = Vec::<Token>::with_capacity(1);
-      lhs.push(Token::Mode(mode));
+      let lhs = vec![Token::Mode(mode)];
       return Ok(TokenExpression{lhs, rhs: None, relationship: None,line_number});
     }
 
@@ -46,10 +45,10 @@ impl TokenExpression{
 
     for (ii,token) in tokens.iter().enumerate(){
 
-      if ii < idx{
-        lhs.push(token.clone());
-      }else if ii > idx{
-        rhs.push(token.clone());
+      match ii.cmp(&idx){
+        std::cmp::Ordering::Less => lhs.push(token.clone()),
+        std::cmp::Ordering::Equal => (),
+        std::cmp::Ordering::Greater => rhs.push(token.clone()),
       }
     }
 
@@ -66,25 +65,20 @@ impl TokenExpression{
 //------------------------------------------------------------------------------
 pub fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize) 
   -> Result<Option<usize>,CluEError>{
-  let mut found_token = false;
-  let mut index: usize = 0;
 
-  for ii in 0..tokens.len(){
-    if is_relational_operator(&tokens[ii]){
-      if !found_token{
-        found_token = true;
-        index = ii;
+  let mut index_opt: Option<usize> = None;
+
+  for (ii, token) in tokens.iter().enumerate(){
+    if is_relational_operator(token){
+      if index_opt.is_none(){
+        index_opt = Some(ii); 
       }else{
         return Err(CluEError::TooManyRelationalOperators(line_number));
       }
     }
   }
-  if found_token{
-    return Ok(Some(index));
-  }else{
-    //return Err(CluEError::NoRelationalOperators(line_number));
-    return Ok(None);
-  }
+
+  Ok(index_opt)
 }
 
 //------------------------------------------------------------------------------
@@ -343,7 +337,7 @@ pub fn set_to_some_vector_specifier(
               expression.line_number));
       };
 
-      let value_token = to_f64_token((&tokens[idx0..=idx1]).to_vec(), 
+      let value_token = to_f64_token((tokens[idx0..=idx1]).to_vec(), 
           expression.line_number)?;
       
       if let Token::VectorF64(vec) = value_token{ 
@@ -405,7 +399,7 @@ pub fn vec_tokens_to_vec_elements(tokens: Vec::<Token>)
   Ok(value_token)
 }
 //------------------------------------------------------------------------------
-pub fn get_function_arguments(tokens: &Vec::<Token>,line_number: usize) 
+pub fn get_function_arguments(tokens: &[Token],line_number: usize) 
   -> Result<Vec::<Token>,CluEError>
 {
   let parentheses = find_outermost_parentheses(tokens,line_number)?;
@@ -415,8 +409,8 @@ pub fn get_function_arguments(tokens: &Vec::<Token>,line_number: usize)
 
   let arg_length = arg_end - arg_start - 1;
   let mut arg_tokens = Vec::<Token>::with_capacity(arg_length);
-  for ii in arg_start+1..arg_end{
-    arg_tokens.push(tokens[ii].clone());
+  for token in tokens.iter().take(arg_end).skip(arg_start+1){
+    arg_tokens.push(token.clone());
   }
 
   Ok(arg_tokens)

@@ -134,7 +134,7 @@ impl Structure{
   pub fn find<'a>(&'a self, particle_filter: &ParticleFilter)
     -> Vec::<&'a Particle>
   {
-    let indices = particle_filter.filter(&self);
+    let indices = particle_filter.filter(self);
     let mut out = Vec::<&Particle>::with_capacity(indices.len());
 
     for idx in indices{
@@ -160,9 +160,8 @@ impl Structure{
 
     let idx0 = self.primary_cell_indices[idx];
    
-    let mol_id = self.molecule_ids[idx0];// + cell_id*self.molecules.len();
+    self.molecule_ids[idx0]
 
-    mol_id
   }
   //----------------------------------------------------------------------------
   /*

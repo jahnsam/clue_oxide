@@ -129,7 +129,7 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
   }
 
   let z = density_matrix.trace().unwrap();
-  density_matrix = density_matrix/z;
+  density_matrix /= z;
   Ok(density_matrix)
 }
 //------------------------------------------------------------------------------

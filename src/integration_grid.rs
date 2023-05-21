@@ -81,6 +81,8 @@ impl IntegrationGrid{
   //----------------------------------------------------------------------------
   pub fn len(&self) -> usize { self.weights.len() }
   //----------------------------------------------------------------------------
+  pub fn is_empty(&self) -> bool { self.weights.is_empty() }
+  //----------------------------------------------------------------------------
   pub fn weight(&self, index: usize) -> f64{ 
     self.weights[index]
   }

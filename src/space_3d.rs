@@ -21,11 +21,7 @@ impl SymmetricTensor3D{
                                            1.0]}
   }
   //----------------------------------------------------------------------------
-  pub fn rotate_trig(&self,
-      cos_theta: f64, cos_theta_squared: f64, 
-      sin_theta: f64, sin_theta_squared: f64,
-      cos_phi: f64, cos_phi_squared: f64, sin_phi: f64, sin_phi_squared: f64,
-      ) -> Self
+  pub fn rotate_to(&self, dir: &UnitSpherePoint) -> Self
   {
 
     let txx = self.xx();
@@ -34,6 +30,18 @@ impl SymmetricTensor3D{
     let tyy = self.yy();
     let tyz = self.yz();
     let tzz = self.zz();
+
+    let cos_theta = dir.cos_theta();
+    let cos_theta_squared = dir.cos_theta_squared();
+
+    let sin_theta = dir.sin_theta();
+    let sin_theta_squared = dir.sin_theta_squared();
+
+    let cos_phi = dir.cos_phi();
+    let cos_phi_squared = dir.cos_phi_squared();
+
+    let sin_phi = dir.sin_phi();
+    let sin_phi_squared = dir.sin_phi_squared();
 
     SymmetricTensor3D{ elements: [
       sin_phi_squared*tyy - 2.0*cos_phi*sin_phi*(cos_theta*txy + sin_theta*tyz) 
@@ -65,9 +73,9 @@ impl SymmetricTensor3D{
 
 
   pub fn scale(&self, a: f64) -> SymmetricTensor3D {
-    let mut elements = self.elements.clone();
+    let mut elements = self.elements;
     for x in elements.iter_mut(){
-      *x = (*x)*a;
+      *x *= a;
     }
     SymmetricTensor3D{elements}
   }
@@ -224,7 +232,8 @@ impl Vector3D{
     self.scale(1.0/r)                                                            
   }  
   //----------------------------------------------------------------------------
-  pub fn dot(&self, other: &Vector3D) -> f64 {                                     
+  pub fn dot(&self, other: &Vector3D) -> f64 {
+
     assert_eq!(self.elements.len(),other.elements.len());
     let mut out = 0.0;
     for ii in 0..self.elements.len(){
@@ -258,13 +267,17 @@ impl Vector3D{
     SymmetricTensor3D::from(elements)
   }
   //----------------------------------------------------------------------------
-  pub fn rotate_trig(&self,
-      cos_theta: f64, sin_theta: f64, cos_phi: f64, sin_phi: f64
-      ) -> Self
+  pub fn rotate_to(&self, dir: &UnitSpherePoint) -> Self
   {
     let x = self.x();
     let y = self.y();
     let z = self.z();
+
+    let cos_theta = dir.cos_theta();
+    let sin_theta = dir.sin_theta();
+
+    let cos_phi = dir.cos_phi();
+    let sin_phi = dir.sin_phi();
 
     Vector3D{ elements: [
       cos_phi*cos_theta*x - sin_phi*y + cos_phi*sin_theta*z,
@@ -379,19 +392,18 @@ pub fn minimize_absolute_difference_for_vector3d_step(
   let mut err0 = (&v1-v0).norm();
   let mut err = (&v1-&(v0 + step)).norm();
 
-  let  delta_v: Vector3D;
-  if err < err0{
-    delta_v = step.clone()
+  let delta_v: Vector3D = if err < err0{
+    step.clone()
   }else{
-    delta_v = -step.clone()
-  }
+    -step.clone()
+  };
 
   
   loop{
   
     let v2 = &v1 + &delta_v;
     err0 = err;
-    err =  (&v2-&v0).norm();
+    err =  (&v2-v0).norm();
     if err <= err0{
       v1 = v2;
     }else{
@@ -437,6 +449,72 @@ impl std::ops::Mul<&SymmetricTensor3D> for &Vector3D
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+pub struct UnitSpherePoint{ 
+  theta: f64,
+  phi: f64,
+  cos_theta: f64, cos_theta_squared: f64,
+  sin_theta: f64, sin_theta_squared: f64,
+  cos_phi: f64, cos_phi_squared: f64, 
+  sin_phi: f64, sin_phi_squared: f64
+}
+
+impl UnitSpherePoint{
+  pub fn new(theta: f64, phi: f64) -> Self{
+
+    let cos_theta = theta.cos();
+    let sin_theta = theta.sin();
+    
+    let cos_theta_squared = cos_theta*cos_theta;
+    let sin_theta_squared = sin_theta*sin_theta;
+
+    let cos_phi = phi.cos();
+    let sin_phi = phi.sin();
+
+    let cos_phi_squared = cos_phi*cos_phi;
+    let sin_phi_squared = sin_phi*sin_phi;
+
+    UnitSpherePoint{ 
+      theta,
+      phi,
+      cos_theta, cos_theta_squared,
+      sin_theta, sin_theta_squared,
+      cos_phi, cos_phi_squared, 
+      sin_phi, sin_phi_squared
+    }
+  }
+  //----------------------------------------------------------------------------
+  pub fn from(r: Vector3D) -> Self{
+    let theta = r.theta();
+    let phi = r.phi();
+
+    UnitSpherePoint::new(theta,phi)
+  }
+  //----------------------------------------------------------------------------
+  pub fn theta(&self) -> f64{ self.theta }
+  //----------------------------------------------------------------------------
+  pub fn cos_theta(&self) -> f64{ self.cos_theta }
+  //----------------------------------------------------------------------------
+  pub fn cos_theta_squared(&self) -> f64{ self.cos_theta_squared }
+  //----------------------------------------------------------------------------
+  pub fn sin_theta(&self) -> f64{ self.sin_theta }
+  //----------------------------------------------------------------------------
+  pub fn sin_theta_squared(&self) -> f64{ self.sin_theta_squared }
+  //----------------------------------------------------------------------------
+  pub fn phi(&self) -> f64{ self.phi }
+  //----------------------------------------------------------------------------
+  pub fn cos_phi(&self) -> f64{ self.cos_phi }
+  //----------------------------------------------------------------------------
+  pub fn cos_phi_squared(&self) -> f64{ self.cos_phi_squared }
+  //----------------------------------------------------------------------------
+  pub fn sin_phi(&self) -> f64{ self.sin_phi }
+  //----------------------------------------------------------------------------
+  pub fn sin_phi_squared(&self) -> f64{ self.sin_phi_squared }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[cfg(test)]
 mod tests{
   use super::*;
@@ -679,4 +757,28 @@ mod tests{
     }
   }
   //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
+  #[test]
+  fn test_UnitSpherePoint(){
+  
+    let theta = PI/6.0;
+    let phi = PI/3.0;
+
+    let point = UnitSpherePoint::new(theta,phi);
+
+    let tol = 1e-12; 
+    assert!( (point.theta() - theta).abs() < tol );
+    assert!( (point.phi() - phi).abs() < tol );
+    
+    assert!( (point.cos_theta() - 0.8660254037844).abs() < tol );
+    assert!( (point.cos_theta_squared() - 0.75).abs() < tol );
+    assert!( (point.sin_theta() - 0.5).abs() < tol );
+    assert!( (point.sin_theta_squared() - 0.25).abs() < tol );
+
+    assert!( (point.sin_phi() - 0.8660254037844).abs() < tol );
+    assert!( (point.sin_phi_squared() - 0.75).abs() < tol );
+    assert!( (point.cos_phi() - 0.5).abs() < tol );
+    assert!( (point.cos_phi_squared() - 0.25).abs() < tol );
+  }
 }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

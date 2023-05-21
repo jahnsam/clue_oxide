@@ -14,21 +14,22 @@ pub struct ClusterSet{
 }
 //------------------------------------------------------------------------------
 impl ClusterSet{
-  pub fn len(&self) -> usize{
-    self.clusters.len()
-  }
+  //----------------------------------------------------------------------------
+  pub fn len(&self) -> usize{ self.clusters.len() }
+  //----------------------------------------------------------------------------
+  pub fn is_empty(&self) -> bool{ self.clusters.is_empty() }
   //----------------------------------------------------------------------------
   pub fn from(clusters:Vec::<Vec::<Cluster>>) -> Self
   {
     let mut cluster_indices 
       = Vec::<HashMap::<Vec::<usize>,usize>>::with_capacity(clusters.len());
 
-    for clu_size in 0..clusters.len(){
+    for clusters_of_size in clusters.iter(){
 
       let mut new_cluster_indices 
-        = HashMap::<Vec::<usize>,usize>::with_capacity(clusters[clu_size].len());
+        = HashMap::<Vec::<usize>,usize>::with_capacity(clusters_of_size.len());
 
-      for (idx,cluster) in clusters[clu_size].iter().enumerate(){
+      for (idx,cluster) in clusters_of_size.iter().enumerate(){
         new_cluster_indices.insert(cluster.vertices().clone(),idx);
       }
 
@@ -68,10 +69,24 @@ pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize)
   for clu_size in 1..max_size{
 
     // Build n-clusters from (n-1)-clusters.
-    if let Ok((n_clusters,n_cluster_indices))
-     = build_n_clusters(&mut clusters[clu_size -1],&adjacency_list){
-      clusters.push(n_clusters);
-      cluster_indices.push(n_cluster_indices);
+    if let Ok(n_cluster_set)
+     = build_n_clusters(&clusters[clu_size -1],adjacency_list){
+      let ClusterSet{clusters: nn_clusters,cluster_indices: nn_cluster_indices} 
+       = n_cluster_set; 
+      
+      if nn_clusters.len() != 1 {
+        return Err(CluEError::ExpectedClusterSetWithNSizes(1,
+              nn_clusters.len()) );
+      }
+      if nn_cluster_indices.len() != 1{
+        return Err(CluEError::ExpectedClusterSetWithNSizes(1,
+              nn_cluster_indices.len()) );
+      }
+      for n_clusters in nn_clusters{ clusters.push(n_clusters);}
+      for n_cluster_indices in nn_cluster_indices{
+        cluster_indices.push(n_cluster_indices);
+      }
+
     }else{
         return Err(CluEError::NoClustersOfSize(clu_size+1));
     }
@@ -89,32 +104,35 @@ pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize)
 fn build_n_clusters(
     n_minus_1_clusters: &Vec::<Cluster>, 
     adjacency_list: &AdjacencyList)
-  -> Result<(Vec::<Cluster>, HashMap::<Vec::<usize>,usize>),CluEError>
+  -> Result<ClusterSet,CluEError>
 {
 
   let mut new_clusters = Vec::<Cluster>::new();
   let mut new_cluster_indices = HashMap::new();
   if n_minus_1_clusters.is_empty(){ 
-    return Ok( (new_clusters,new_cluster_indices) );
+    return Ok( ClusterSet{ 
+      clusters: vec![new_clusters],
+      cluster_indices: vec![new_cluster_indices],
+    } );
   }
 
   for cluster in n_minus_1_clusters.iter() {
 
-    for idx in (*cluster).vertices.iter(){
+    for idx in cluster.vertices.iter(){
       if let Some(neighbors) = adjacency_list.get_neighbors(*idx){
 
         for vertex in neighbors.iter(){
       
-          let mut new_indices: Vec::<usize> = (*cluster).vertices.clone();
+          let mut new_indices: Vec::<usize> = cluster.vertices.clone();
           new_indices.push(*vertex);
           new_indices = math::unique(new_indices);
 
-          if new_indices.len() == (*cluster).vertices.len(){ continue; }
+          if new_indices.len() == cluster.vertices.len(){ continue; }
         
           new_indices.sort();
 
           let  new_cluster = Cluster::from(new_indices.clone());
-          if let Some(_) = new_cluster_indices.get(&new_indices){
+          if new_cluster_indices.get(&new_indices).is_some(){
             continue;
           }
           new_cluster_indices.insert(new_indices,new_clusters.len());
@@ -124,7 +142,10 @@ fn build_n_clusters(
     }
   }
 
-  Ok( (new_clusters,new_cluster_indices) )
+  Ok( ClusterSet{ 
+    clusters: vec![new_clusters],
+    cluster_indices: vec![new_cluster_indices],
+    } )
 }
 //------------------------------------------------------------------------------
 /*

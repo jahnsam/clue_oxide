@@ -28,7 +28,7 @@ fn main() {
 
   // Parse comand line input.
   let input = CommandLineInput::new(args).unwrap_or_else(|err|{
-    eprintln!("CluE Error:\n  {}.",err.to_string());
+    eprintln!("CluE Error:\n  {}.",err);
     eprintln!("Try \"clue --help\" for more information.");
     std::process::exit(1);
   });
@@ -62,7 +62,7 @@ fn main() {
   // Parse input files.
   let mut config = Config::read_input(input).unwrap_or_else(
       |err| {
-        eprintln!("CluE Error:\n  {}.",err.to_string());
+        eprintln!("CluE Error:\n  {}.",err);
         std::process::exit(1);
       });
 
@@ -70,14 +70,14 @@ fn main() {
 
   config.construct_time_axis().unwrap_or_else(
       |err| {
-        eprintln!("CluE Error:\n  {}.",err.to_string());
+        eprintln!("CluE Error:\n  {}.",err);
         std::process::exit(1);
       });
 
   // Run simulations.
   clue_oxide::run(config).unwrap_or_else(
       |err| {
-        eprintln!("CluE Error:\n  {}.",err.to_string());
+        eprintln!("CluE Error:\n  {}.",err);
         std::process::exit(1);
       });
 

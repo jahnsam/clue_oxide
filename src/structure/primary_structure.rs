@@ -81,11 +81,11 @@ impl Structure{
     }
 
     // TODO: move to config?
-    let Some(isotope) = config.detected_spin_identity.clone() else{
+    let Some(isotope) = config.detected_spin_identity else{
       return Err(CluEError::NoCentralSpinIdentity);
     };
     
-    let Some(transition) = config.detected_spin_transition.clone() else{
+    let Some(transition) = config.detected_spin_transition else{
       return Err(CluEError::NoCentralSpinTransition);
     };
 
@@ -221,9 +221,9 @@ impl Structure{
 
    let mut exchange_couplings 
      = Vec::<f64>::with_capacity(exchange_groups.len());
-   for ii in 0..exchange_groups.len(){
+   for (ii,exchange_group) in exchange_groups.iter().enumerate(){
      exchange_couplings.push(0.0);
-     for h in exchange_groups[ii].indices(){
+     for h in exchange_group.indices(){
        exchange_group_ids[h] = Some(ii);
      }
    }
@@ -332,7 +332,7 @@ impl Structure{
       // Check if there are custom properties for this particle.
       let Some(id) = self.particle_config_ids[idx0] else{continue;};
       let Some(properties) = &config.particles[id].properties else{continue;};
-      if cosubstitution_group_ids[idx]!=None{
+      if cosubstitution_group_ids[idx].is_some(){
         continue;
       }
 
@@ -351,7 +351,7 @@ impl Structure{
 
     }
     for id in cosubstitution_group_ids.iter_mut(){
-      if *id != None {continue;}
+      if (*id).is_some() {continue;}
       *id = Some(current_cosub_id);
       current_cosub_id += 1;
     }
@@ -381,7 +381,7 @@ impl Structure{
 // This function finds all the particles that cosubstitute with particle idx,
 // and records them in cosubstitution_group_ids.
 fn update_cosubstitution_ids(
-    cosubstitution_group_ids: &mut Vec::<Option<usize>>,
+    cosubstitution_group_ids: &mut [Option<usize>],
     idx: usize,
     current_cosub_id: usize,
     filter: ParticleFilter,

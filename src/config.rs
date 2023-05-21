@@ -74,31 +74,31 @@ impl Config{
   /// but will likely be the same for most simulations.  
   /// Any field that is already `Some` will be left alone.
   pub fn set_defaults(&mut self){
-    if self.cluster_batch_size == None{
+    if self.cluster_batch_size.is_none(){
       self.cluster_batch_size = Some(10000);
     }
-    if self.detected_spin_identity == None{
+    if self.detected_spin_identity.is_none(){
       self.detected_spin_identity = Some(Isotope::Electron);
     }
-    if self.detected_spin_transition == None{
+    if self.detected_spin_transition.is_none(){
       self.detected_spin_transition = Some([0,1]);
     }
-    if self.load_geometry == None{
+    if self.load_geometry.is_none(){
       self.load_geometry = Some(LoadGeometry::Sphere);
     }
-    if self.pdb_model_index == None{
+    if self.pdb_model_index.is_none(){
       self.pdb_model_index = Some(0);
     }
-    if self.density_matrix == None{
+    if self.density_matrix.is_none(){
       match self.temperature{
         Some(_) => self.density_matrix = Some(DensityMatrixMethod::Thermal),
         None => self.density_matrix = Some(DensityMatrixMethod::Identity),
       }
     }
-    if self.root_dir == None{
+    if self.root_dir.is_none(){
       self.root_dir = Some("./".to_string());
     }
-    if self.save_name == None{
+    if self.save_name.is_none(){
       self.save_name = Some("CluE-".to_string());
     }
   }

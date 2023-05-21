@@ -17,7 +17,7 @@ impl<T> SymList2D<T>{
     SymList2D{dim, elements}
   }
   //----------------------------------------------------------------------------
-  pub fn get<'a>(&'a self, row: usize, col: usize) -> Option<&'a T>{
+  pub fn get(& self, row: usize, col: usize) -> Option<&T>{
     let idx = get_uppertriangle_index(row,col,self.dim);
     
     match &self.elements[idx] {
@@ -46,14 +46,12 @@ fn get_uppertriangle_index(row: usize, col: usize, dim: usize) -> usize {
   let dim = dim as i32;
   
   if row>col {
-    let row0 = row;
-    row = col;
-    col = row0;
+    std::mem::swap(&mut row, &mut col)
   }
 
   let idx = (-row*row +(2*dim - 1)*row + 2*col)/2;
 
-  return idx as usize;
+  idx as usize
 }
 
 

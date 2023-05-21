@@ -27,16 +27,15 @@ impl Config{
       }
     }
 
-    let particle_config: &mut ParticleConfig; 
-    match found_particle_config{
-      Some(idx) => particle_config = &mut self.particles[idx],
+    let particle_config: &mut ParticleConfig = match found_particle_config{
+      Some(idx) => &mut self.particles[idx],
       None => {
         self.particles.push(ParticleConfig::new((*label).clone()));
         let idx = self.particles.len() - 1; 
-        particle_config = &mut self.particles[idx];}
-    }
+        &mut self.particles[idx]}
+    };
 
-    if particle_config.properties == None{
+    if particle_config.properties.is_none(){
       particle_config.properties = Some(ParticleProperties::new());
     }
     let Some(properties) = &mut particle_config.properties else{
@@ -46,7 +45,7 @@ impl Config{
 
     match isotope_opt{
       Some(isotope) => parse_isotope_properties(properties,expression,
-          &label, &isotope),
+          label, &isotope),
       None => Ok(()),//parse_element_properties()
     } 
   }
@@ -87,10 +86,10 @@ impl Config{
 
         let mut hf_values = Vec::<f64>::new();
       
-        set_to_vec_f64(&mut hf_values, &expression)?;
+        set_to_vec_f64(&mut hf_values,expression)?;
       
 
-        if isotope_properties.hyperfine_coupling == None {
+        if isotope_properties.hyperfine_coupling.is_none() {
           isotope_properties.hyperfine_coupling = Some(TensorSpecifier::new());
         }
         let Some(hyperfine) = &mut isotope_properties.hyperfine_coupling else{
@@ -101,7 +100,7 @@ impl Config{
         match expression.lhs[0]{
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::HyperfineCoupling => {
-            if hyperfine.values != None{
+            if hyperfine.values.is_some(){
               return Err(already_set());
             }
 
@@ -116,18 +115,18 @@ impl Config{
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::HyperfineX => {
-            set_to_some_vector_specifier(&mut hyperfine.x_axis, &expression,
-                &label)?;
+            set_to_some_vector_specifier(&mut hyperfine.x_axis, expression,
+                label)?;
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::HyperfineY => {
-            set_to_some_vector_specifier(&mut hyperfine.y_axis, &expression,
-                &label)?;
+            set_to_some_vector_specifier(&mut hyperfine.y_axis, expression,
+                label)?;
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::HyperfineZ => {
-            set_to_some_vector_specifier(&mut hyperfine.z_axis, &expression,
-                &label)?;
+            set_to_some_vector_specifier(&mut hyperfine.z_axis, expression,
+                label)?;
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           _ => return Err(CluEError::InvalidToken(expression.line_number,
@@ -140,10 +139,10 @@ impl Config{
 
         let mut qc_values = Vec::<f64>::new();
       
-        set_to_vec_f64(&mut qc_values, &expression)?;
+        set_to_vec_f64(&mut qc_values, expression)?;
       
 
-        if isotope_properties.electric_quadrupole_coupling == None {
+        if isotope_properties.electric_quadrupole_coupling.is_none() {
           isotope_properties.electric_quadrupole_coupling =
             Some(TensorSpecifier::new());
         }
@@ -156,7 +155,7 @@ impl Config{
         match expression.lhs[0]{
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::ElectricQuadrupoleCoupling => {
-            if quadrupole.values != None{
+            if quadrupole.values.is_some(){
               return Err(already_set());
             }
  
@@ -173,18 +172,18 @@ impl Config{
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::ElectricQuadrupoleX => {
-            set_to_some_vector_specifier(&mut quadrupole.x_axis, &expression,
-                &label)?;
+            set_to_some_vector_specifier(&mut quadrupole.x_axis, expression,
+                label)?;
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::ElectricQuadrupoleY => {
-            set_to_some_vector_specifier(&mut quadrupole.y_axis, &expression,
-                &label)?;
+            set_to_some_vector_specifier(&mut quadrupole.y_axis, expression,
+                label)?;
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::ElectricQuadrupoleZ => {
-            set_to_some_vector_specifier(&mut quadrupole.z_axis, &expression,
-                &label)?;
+            set_to_some_vector_specifier(&mut quadrupole.z_axis, expression,
+                label)?;
           },
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           _ => return Err(CluEError::InvalidToken(expression.line_number,
@@ -193,8 +192,8 @@ impl Config{
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::TunnelSplitting => {
-        let mut nut_opt = isotope_properties.exchange_coupling.clone();
-        set_to_some_f64(&mut nut_opt,&expression)?;
+        let mut nut_opt = isotope_properties.exchange_coupling;
+        set_to_some_f64(&mut nut_opt,expression)?;
         
         if let Some(nut) = nut_opt{
           isotope_properties.exchange_coupling = Some(-2.0*nut/3.0);
