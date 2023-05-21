@@ -1,4 +1,5 @@
 use crate::space_3d::Vector3D;
+use crate::clue_errors::*;
 
 use lebedev_laikov;
 
@@ -33,7 +34,7 @@ impl IntegrationGrid{
   ///       1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802,
   ///       5294, 5810\}.
   ///
-  pub fn lebedev(n: usize) -> Self{
+  pub fn lebedev(n: usize) -> Result<Self,CluEError>{
 
     const LEBEDEVGRIDSIZES: [usize;32] = [
                6,   14,   26,   38,   50,   74,   86,  110,  146,  170, 
@@ -41,7 +42,9 @@ impl IntegrationGrid{
             1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 
             5294, 5810];
 
-    assert!(LEBEDEVGRIDSIZES.contains(&n));
+    if !LEBEDEVGRIDSIZES.contains(&n){
+      return Err(CluEError::NotALebedevGrid(n));
+    }
 
     let (x, y, z, weights) = lebedev_laikov::ld_vecs(n);
 
@@ -57,10 +60,17 @@ impl IntegrationGrid{
 
     }
 
-    IntegrationGrid{dim,points,weights}
+    Ok(IntegrationGrid{dim,points,weights})
 
   }
 
+  //----------------------------------------------------------------------------
+  pub fn z_3d() -> Self{
+    let dim = 3;
+    let points = vec![0.0, 0.0, 1.0];
+    let weights = vec![1.0];
+    IntegrationGrid{dim,points,weights}
+  }
   //----------------------------------------------------------------------------
   pub fn new(dim: usize) -> Self {
     let points = Vec::<f64>::new();
@@ -104,9 +114,11 @@ impl IntegrationGrid{
     self.points[idx+2]
   }
   //----------------------------------------------------------------------------
-  pub fn xyz(&self, index: usize) -> Vector3D{
-    assert_eq!(self.dim,3);
-    Vector3D::from( [ self.x(index), self.y(index), self.z(index) ] )
+  pub fn xyz(&self, index: usize) -> Result<Vector3D,CluEError>{
+    if self.dim != 3{
+      return Err(CluEError::NotA3DVector(self.dim));
+    }
+    Ok(Vector3D::from( [ self.x(index), self.y(index), self.z(index) ] ))
   }
   //----------------------------------------------------------------------------
   pub fn mean(&self) -> Vec::<f64>{
@@ -177,7 +189,7 @@ mod tests{
 
   #[test]
   fn test_lebedev(){
-    let grid = IntegrationGrid::lebedev(6);
+    let grid = IntegrationGrid::lebedev(6).unwrap();
     let norm: f64 = grid.weights.iter().sum();
     assert!( (norm- 1.0).abs() <1e12);
 
@@ -195,7 +207,8 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_remove_3d_hemisphere(){
-    let grid = IntegrationGrid::lebedev(6).remove_3d_hemisphere();
+    let grid = IntegrationGrid::lebedev(6).expect("not a Lebedev grid")
+      .remove_3d_hemisphere();
     let norm: f64 = grid.weights.iter().sum();
     assert!( (norm- 1.0).abs() <1e12);
     assert_eq!(grid.points, vec![

@@ -27,11 +27,14 @@ use crate::cluster::build_adjacency_list::build_adjacency_list;
 use crate::cluster::find_clusters::find_clusters;
 use crate::signal::calculate_signal;
 
+use num_complex::Complex;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 /// This function follows the config instruction to central simulate spin 
 /// decoherence.
-pub fn run(config: Config) -> Result<(),CluEError>{
+pub fn run(config: Config) 
+  -> Result<( Vec::<f64>, Vec::<Complex::<f64>> ),CluEError>
+{
 
 
   let mut rng: ChaCha20Rng;
@@ -62,8 +65,15 @@ pub fn run(config: Config) -> Result<(),CluEError>{
 
   config.write_time_axis(save_path.clone())?;
 
-  calculate_signal::average_structure_signal(&mut rng, &config,&save_path)?;
+  let order_n_signals 
+    = calculate_signal::calculate_structure_signal(&mut rng, &config,
+      &Some(save_path) )?;
 
-  Ok(())
+
+  let time_axis = config.get_time_axis()?;
+
+  let max_size = order_n_signals.len();
+
+  Ok((time_axis.clone(), order_n_signals[max_size-1].data.clone()))
 }
 

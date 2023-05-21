@@ -46,6 +46,7 @@ pub enum Token{
  Int(i32),
  Isotope,
  Label,
+ Lebedev,
  LessThan,
  LessThanEqualTo,
  LineComment, 
@@ -68,6 +69,7 @@ pub enum Token{
  PulseSequence,
  R2CCE,
  Radius,
+ Random,
  Residue,
  Residues,                                                     
  ResSeqNums,                                                   
@@ -136,6 +138,7 @@ impl fmt::Display for Token{
       Token::Int(n) => write!(f,"{}",n),
       Token::Isotope => write!(f,"isotope"),
       Token::Label => write!(f,"label"),
+      Token::Lebedev => write!(f,"lebedev"),
       Token::LessThan => write!(f,"<"),
       Token::LessThanEqualTo => write!(f,"<="),
       Token::LineComment => write!(f,"//"), 
@@ -162,6 +165,7 @@ impl fmt::Display for Token{
       Token::PulseSequence => write!(f,"pulse_sequence"),
       Token::R2CCE => write!(f,"r2cce"),
       Token::Radius => write!(f,"radius"),
+      Token::Random => write!(f,"random"),
       Token::Residue => write!(f,"residue"),
       Token::Residues => write!(f,"residues"),
       Token::ResSeqNums => write!(f,"residue_sequence_numbers"),
@@ -223,6 +227,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "indices" => Some(Token::Indices), 
     "isotope" => Some(Token::Isotope),
     "label" => Some(Token::Label),
+    "lebedev" => Some(Token::Lebedev),
     "hahn" => Some(Token::Hahn),
     "^" => Some(Token::Hat),
     "hyperfine_coupling" => Some(Token::HyperfineCoupling),
@@ -254,6 +259,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "pulse_sequence" => Some(Token::PulseSequence),
     "r2cce" => Some(Token::R2CCE),
     "radius" => Some(Token::Radius),
+    "random" => Some(Token::Random),
     "residue" => Some(Token::Residue),
     "residues" => Some(Token::Residues),
     "residue_sequence_numbers" => Some(Token::ResSeqNums),
@@ -868,11 +874,13 @@ mod tests{
         Token::InputStructureFile);
     assert_eq!(identify_token("isotope").unwrap(), Token::Isotope);
     assert_eq!(identify_token("label").unwrap(), Token::Label);
+    assert_eq!(identify_token("lebedev").unwrap(), Token::Lebedev);
     assert_eq!(identify_token("<").unwrap(), Token::LessThan);
     assert_eq!(identify_token("<=").unwrap(), Token::LessThanEqualTo);
     assert_eq!(identify_token("//").unwrap(), Token::LineComment);
     assert_eq!(identify_token("magnetic_field").unwrap(), Token::MagneticField);
-    assert_eq!(identify_token("max_cluster_size").unwrap(), Token::MaxClusterSize);
+    assert_eq!(identify_token("max_cluster_size").unwrap(), 
+        Token::MaxClusterSize);
     assert_eq!(identify_token("-").unwrap(), Token::Minus);
     assert_eq!(identify_token("neighbor_cutoff_delta_hyperfine").unwrap(), 
         Token::NeighborCutoffDeltaHyperfine);
@@ -893,6 +901,7 @@ mod tests{
     assert_eq!(identify_token("+").unwrap(), Token::Plus);
     assert_eq!(identify_token("pulse_sequence").unwrap(), Token::PulseSequence);
     assert_eq!(identify_token("radius").unwrap(), Token::Radius);
+    assert_eq!(identify_token("random").unwrap(), Token::Random);
     assert_eq!(identify_token("residue").unwrap(), Token::Residue);
     assert_eq!(identify_token("rng_seed").unwrap(), Token::RNGSeed);
     assert_eq!(identify_token(";").unwrap(), Token::Semicolon);

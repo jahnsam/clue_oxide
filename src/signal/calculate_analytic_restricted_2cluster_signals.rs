@@ -14,7 +14,7 @@ pub fn calculate_analytic_restricted_2cluster_signals(
     cluster_set: &mut ClusterSet, 
     tensors: &HamiltonianTensors, config: &Config, 
     save_path_opt: &Option<String>
-    ) ->Result<(), CluEError>
+    ) ->Result<Vec::<Signal>, CluEError>
 {
 
   
@@ -63,7 +63,8 @@ pub fn calculate_analytic_restricted_2cluster_signals(
   if let Some(save_path) = &save_path_opt{
     signal.write_to_csv(save_path)?;
   }
-  Ok(())
+  order_n_signals.push(signal);
+  Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------
 pub fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,

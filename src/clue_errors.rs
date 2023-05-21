@@ -82,6 +82,8 @@ pub enum CluEError{
   NoSpinOpForClusterSize(usize,usize),
   NoSpinOpWithMultiplicity(usize),
   NoStructureFile,
+  NotA3DVector(usize),
+  NotALebedevGrid(usize),
   NotAnOperator(usize,String),
   NotAProperSubset(String,String),
   NoTemperature,
@@ -348,6 +350,16 @@ impl fmt::Display for CluEError{
       CluEError::NoRelationalOperators(line_number) => write!(f,
           "line {}, no relational operators (=, <, >, in, ...), are present", 
           line_number),
+
+      CluEError::NotA3DVector(dim) => write!(f,
+          "vector is {}-dimensional, not 3-dimensional", 
+          dim),
+
+      CluEError::NotALebedevGrid(n_ori) => write!(f,
+          "\"{}\" is not a valid Lebedev grid; please choose n_ori in \
+{{6, 14, 26, 38, 50, 74, 86, 110, 146, 170, \
+194,  230, 266, 302, 350, 434, 590, 770, 974, 1202, \
+1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802,5294, 5810}}",n_ori),
 
       CluEError::NotAnOperator(line_number, token) => write!(f,
           "line {}, cannot interpret \"{}\" as an operator", line_number,token),

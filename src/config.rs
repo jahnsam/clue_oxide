@@ -51,6 +51,7 @@ pub struct Config{
   //pbc_style: PBCStyle,
   //error_tolerance: f64,
   //use_periodic_boundary_conditions: bool,
+  pub orientation_averaging: Option<OrientationAveraging>,
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
@@ -212,6 +213,11 @@ pub enum ClusterMethod{
 pub enum PulseSequence{
   CarrPurcell(usize),
   //RefocusedEcho,
+}
+
+#[derive(Debug,Clone,PartialEq)]
+pub enum OrientationAveraging{
+  Lebedev(usize),
 }
 /*
 

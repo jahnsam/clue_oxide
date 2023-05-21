@@ -32,6 +32,23 @@ impl Signal{
     Signal{data}
   }
   //----------------------------------------------------------------------------
+  pub fn zeros(n: usize) -> Self {
+    let mut data = Vec::<Complex<f64>>::with_capacity(n);
+
+    for _ii in 0..n{
+      data.push(Complex::<f64>{re:0.0,im: 0.0});
+    }
+    Signal{data}
+  }
+  //----------------------------------------------------------------------------
+  pub fn scale(&mut self, scale_factor: Complex<f64>){
+
+    for z in self.data.iter_mut(){
+      *z *= scale_factor;
+    }
+
+  }
+  //----------------------------------------------------------------------------
   pub fn read_from_csv(filename: &str) -> Result<Self,CluEError>
   {
     match Self::read_single_signal_from_csv(filename){

@@ -1,39 +1,113 @@
-use crate::config::{Config,ClusterMethod};
+use crate::config::{Config,ClusterMethod,OrientationAveraging};
 use crate::CluEError;
 use crate::cluster::methyl_clusters::partition_cluster_set_by_exchange_groups;
 use crate::cluster::find_clusters::ClusterSet;
 use crate::Structure;
 use crate::HamiltonianTensors;
+use crate::integration_grid::IntegrationGrid;
 use crate::build_adjacency_list;
 use crate::find_clusters;
 use crate::signal::Signal;
 use crate::signal::cluster_correlation_expansion::*;
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   calculate_analytic_restricted_2cluster_signals};
-use rand_chacha::ChaCha20Rng;
 use crate::quantum::spin_hamiltonian::*;
 use crate::math;
+use crate::space_3d::UnitSpherePoint;
+
+use num_complex::Complex;
+use rand_chacha::ChaCha20Rng;
 //------------------------------------------------------------------------------
 // This averages the spin decoherence signal over multiple input structures,
 // multiple input PDBs for example.
-pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
-    path: &str) -> Result<(),CluEError>
+pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
+    path_opt: &Option<String>) -> Result<Vec::<Signal>,CluEError>
 {
   let structure = Structure::build_structure(rng,config)?;
   
-  let structure_hash = math::str_hash(&structure);
 
-  let save_dir = format!("{}/system-{}",path,structure_hash);
-  match std::fs::create_dir_all(save_dir.clone()){
-    Ok(_) => (),
-    Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
-  }
+  let save_dir_opt = match path_opt{
+    Some(path) => {
+      
+      let structure_hash = math::str_hash(&structure);
+      
+      let save_dir = format!("{}/system-{}",path,structure_hash);
+      match std::fs::create_dir_all(save_dir.clone()){
+        Ok(_) => (),
+        Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
+      }
+  
+      if let Some(filename) = &config.write_structure_pdb{
+        structure.write_pdb(&format!("{}/{}.pdb",save_dir, filename))?;
+      }
+      Some(save_dir)
+    },
+    None => None,
+  };
 
-  if let Some(filename) = &config.write_structure_pdb{
-    structure.write_pdb(&format!("{}/{}.pdb",save_dir, filename))?;
+
+  let Some(max_cluster_size) = config.max_cluster_size else{
+    return Err(CluEError::NoMaxClusterSize);
+  };
+  let mut order_n_signals = Vec::<Signal>::with_capacity(max_cluster_size);
+
+  let n_tot = config.number_timepoints.iter().sum::<usize>();
+  
+  for _size_idx in 0..max_cluster_size{
+    order_n_signals.push(Signal::zeros(n_tot));
   }
 
   let tensors = HamiltonianTensors::generate(&structure, config)?;
+
+  let integration_grid = match config.orientation_averaging{
+    Some(OrientationAveraging::Lebedev(n_ori)) 
+      => IntegrationGrid::lebedev(n_ori)?,
+    None => IntegrationGrid::z_3d(),
+  };
+
+  for iori in 0..integration_grid.len(){
+    let rot_dir = UnitSpherePoint::from(integration_grid.xyz(iori)?);
+    
+    let mut ori_sigs = calculate_signal_at_orientation(
+        rot_dir,tensors.clone(), &structure,config, &save_dir_opt )?;
+
+    let weight = Complex::<f64>{ re: integration_grid.weight(iori), im: 0.0};
+    for size_idx in 0..max_cluster_size{
+      ori_sigs[size_idx].scale(weight);
+      order_n_signals[size_idx] 
+        = &order_n_signals[size_idx] + &ori_sigs[size_idx];
+    }
+
+  }
+
+   let time_axis = config.get_time_axis()?;
+  Ok(order_n_signals)
+}
+//------------------------------------------------------------------------------
+fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
+    mut tensors: HamiltonianTensors, structure: &Structure,
+    config: &Config, path_opt: &Option<String>)
+  -> Result<Vec::<Signal>,CluEError>
+{
+  
+  let save_dir_opt = match path_opt{
+    Some(path) => {
+      
+      let save_dir = format!("{}/orientations/theta_{}_phi_{}",path,
+          rot_dir.theta(), rot_dir.phi());
+      
+      match std::fs::create_dir_all(save_dir.clone()){
+        Ok(_) => (),
+        Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
+      }
+
+      Some(save_dir)
+    },
+    None => None,
+  };
+  
+
+  tensors.rotate_active(&rot_dir);
 
   let adjacency_list = build_adjacency_list(&tensors, config)?;
 
@@ -56,7 +130,7 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
     return Err(CluEError::NoClusterMethod);
   };
 
-  match cluster_method{
+  let order_n_signals = match cluster_method{
     ClusterMethod::AnalyticRestricted2CCE => 
       calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
           config,&None)?,
@@ -66,19 +140,24 @@ pub fn average_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
       let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
           max_cluster_size)?;
       do_cluster_correlation_expansion(&mut cluster_set, &spin_ops, &tensors, 
-          config,&None)?;
+          config,&None)?
     },
-  }
+  };
+
+
+  // TODO: calculate nuclear contributions
+
 
   // TODO: add toggle in config
-  calculate_methyl_partition_cce(cluster_set, &structure, config, &save_dir)?;
+  calculate_methyl_partition_cce(cluster_set, &structure, config, 
+      &save_dir_opt)?;
 
-  Ok(())
+  Ok(order_n_signals)
 } 
 //------------------------------------------------------------------------------
 fn calculate_methyl_partition_cce(
     cluster_set: ClusterSet, structure: &Structure, config: &Config, 
-    save_dir: &String)
+    save_dir_opt: &Option<String>)
   -> Result<(),CluEError>
 {
   if let Some(exchange_group_manager) = &structure.exchange_groups{
@@ -101,9 +180,11 @@ fn calculate_methyl_partition_cce(
         }
       }
 
-      let part_save_path = format!("{}/{}/{}.csv",
-          save_dir,part_dir,key_name);
-      part_signal.write_to_csv(&part_save_path)?;
+      if let Some(save_dir) = save_dir_opt{
+        let part_save_path = format!("{}/{}/{}.csv",
+            save_dir,part_dir,key_name);
+        part_signal.write_to_csv(&part_save_path)?;
+      }
     }
   }
 

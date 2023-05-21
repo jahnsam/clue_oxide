@@ -15,6 +15,7 @@ use crate::symmetric_list_2d::SymList2D;
 //use std::io::{Error, Write};
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone)] 
 pub struct HamiltonianTensors{
   pub spin_multiplicities: Vec::<usize>,
   pub spin1_tensors: Spin1Tensors, // O(S)
@@ -184,6 +185,7 @@ impl HamiltonianTensors{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone)] 
 pub struct Spin1Tensors{
   tensors: Vec::< Option<Vector3D> >,
 }
@@ -238,6 +240,7 @@ impl<'a> Spin1Tensors{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone)] 
 pub struct Spin2Tensors{
   tensors: SymList2D::<SymmetricTensor3D>,
 }
@@ -332,8 +335,8 @@ fn construct_hyperfine_tensor(detected_particle: &DetectedSpin,
     
     let mut hf_ten = SymmetricTensor3D::zeros();
     for ii in 0..detected_particle.weighted_coordinates.len(){
-      let delta_r = &detected_particle.weighted_coordinates.xyz(ii) 
-        - &particle0.coordinates;
+      let r = detected_particle.weighted_coordinates.xyz(ii).unwrap(); 
+      let delta_r = &r - &particle0.coordinates;
     
       let w = detected_particle.weighted_coordinates.weight(ii);
     
