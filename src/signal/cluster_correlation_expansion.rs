@@ -95,9 +95,9 @@ pub fn do_cluster_correlation_expansion(
     order_n_signals.push(signal.clone());
   }
 
-  if let Some(save_path) = save_path_opt{
-    signal.write_to_csv(save_path)?;
-  }
+  //if let Some(save_path) = save_path_opt{
+  //  signal.write_to_csv(save_path)?;
+  //}
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------

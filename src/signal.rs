@@ -103,9 +103,12 @@ impl Signal{
 }
 
 //------------------------------------------------------------------------------
-pub fn write_vec_signals(signals: &Vec::<Signal>, filename: &str,
-    headers: Vec::<String>) -> Result<(),CluEError>
+pub fn write_vec_signals(signals: &Vec::<Signal>, filename: &str) 
+  -> Result<(),CluEError>
 {
+
+   let headers = get_signal_headers(signals.len());
+  
    if headers.len() != signals.len(){
      return Err(CluEError::MissingHeader(filename.to_string()));
    }
@@ -120,6 +123,16 @@ pub fn write_vec_signals(signals: &Vec::<Signal>, filename: &str,
       Ok(()) => Ok(()),
       Err(_) => Err(CluEError::CannotWriteFile(filename.to_string())),
     }
+}
+//------------------------------------------------------------------------------
+fn get_signal_headers(n: usize) -> Vec::<String>
+{
+  let mut headers = Vec::<String>::with_capacity(n);
+  for ii in 0..n{
+    headers.push(format!("signal_{}",ii+1));
+  }
+
+  headers
 }
 //------------------------------------------------------------------------------
 fn write_vec_signals_to_csv(signals: &[Signal],filename: &str,

@@ -8,6 +8,7 @@ use crate::integration_grid::IntegrationGrid;
 use crate::build_adjacency_list;
 use crate::find_clusters;
 use crate::signal::Signal;
+use crate::signal::write_vec_signals;
 use crate::signal::cluster_correlation_expansion::*;
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   calculate_analytic_restricted_2cluster_signals};
@@ -80,7 +81,6 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
 
   }
 
-   let time_axis = config.get_time_axis()?;
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------
@@ -144,6 +144,11 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
     },
   };
 
+
+  if let Some(save_dir) =  &save_dir_opt{
+    let save_path = format!("{}/signal.csv", save_dir);
+    write_vec_signals(&order_n_signals, &save_path)?;
+  }
 
   // TODO: calculate nuclear contributions
 

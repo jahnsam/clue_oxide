@@ -1,6 +1,6 @@
 use crate::Config;
 use crate::cluster::find_clusters::ClusterSet;
-use crate::signal::Signal;
+use crate::signal::{Signal,write_vec_signals};
 use crate::HamiltonianTensors;
 use crate::CluEError;
 use crate::physical_constants::{ONE,PI};
@@ -60,10 +60,12 @@ pub fn calculate_analytic_restricted_2cluster_signals(
     }
   }
 
-  if let Some(save_path) = &save_path_opt{
-    signal.write_to_csv(save_path)?;
-  }
   order_n_signals.push(signal);
+
+  //if let Some(save_path) = &save_path_opt{
+  //  write_vec_signals(&order_n_signals, save_path)?;
+  //}
+
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------
