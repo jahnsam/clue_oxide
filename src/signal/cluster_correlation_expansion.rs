@@ -1,15 +1,15 @@
 use crate::Config;
 use crate::clue_errors::CluEError;
- use crate::cluster::find_clusters::ClusterSet;
-use crate::signal::Signal;
+use crate::cluster::{Cluster,
+  get_subclusters::build_subclusters,
+  find_clusters::ClusterSet};
+use crate::signal::{Signal, load_batch_signals, write_batch_signals};
 use crate::HamiltonianTensors;
 use crate::math;
 use crate::quantum::spin_hamiltonian::*;
-use crate::cluster::get_subclusters::build_subclusters;
-use crate::cluster::Cluster;
-use crate::signal::write_batch_signals;
 
 use rayon::prelude::*;
+use std::path::Path;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub fn do_cluster_correlation_expansion(
@@ -40,6 +40,21 @@ pub fn do_cluster_correlation_expansion(
       for ibatch in 0..n_batches{
         let idx = ibatch*batch_size;
 
+        if let Some(path) = &save_path_opt{
+          if let Some(aux_dir) = &config.write_auxiliary_signals{
+            let load_dir = format!("{}/{}",path, aux_dir);
+            let aux_filename = format!("{}/cluster_size_{}_batch_{}.csv",
+                load_dir, cluster_size,ibatch);
+
+            if Path::new(&aux_filename).exists(){
+               load_batch_signals(&mut clusters[cluster_size-1],
+                   idx,batch_size,&aux_filename)?;
+
+               continue;
+            }
+
+          }
+        }
         clusters[cluster_size-1].par_iter_mut().skip(idx).take(batch_size)
           .for_each(|cluster| 
               cluster.signal = calculate_cluster_signal(cluster.vertices(),
@@ -102,7 +117,7 @@ pub fn do_cluster_correlation_expansion(
           let aux_filename = format!("{}/cluster_size_{}_batch_{}.csv",
               save_dir, cluster_size,ibatch);
 
-          write_batch_signals(&cluster_set,cluster_size, n_tot, idx, batch_size,
+          write_batch_signals(&clusters[cluster_size-1], n_tot, idx, batch_size,
               &aux_filename)?; 
         }
       }
@@ -111,9 +126,6 @@ pub fn do_cluster_correlation_expansion(
     order_n_signals.push(signal.clone());
   }
 
-  //if let Some(save_path) = save_path_opt{
-  //  signal.write_to_csv(save_path)?;
-  //}
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------

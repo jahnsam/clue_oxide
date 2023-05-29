@@ -182,18 +182,25 @@ fn parse_tokens(mut lexer: Lexer) -> Result<Vec::<Token>, CluEError>{
 
   let mut tokens = Vec::<Token>::with_capacity(lexer.input.len());
 
+  let mut previous_token = Token::EOL;
+  let mut token = Token::EOL;
   while lexer.position < lexer.input.len(){
     
-    let token = lexer.next_token();
+    previous_token = token;
+    token = lexer.next_token();
     
     if token == Token::DoubleQuote{
       lexer.quoting = !lexer.quoting;
+      if !lexer.quoting && previous_token == Token::DoubleQuote{
+        token = Token::UserInputValue("".to_string());
+        tokens.push(token.clone());
+      }
       continue;
     }else if token == Token::EOL {
       lexer.line_number += 1;
     }
 
-    tokens.push(token)
+    tokens.push(token.clone())
     
   }
   Ok(tokens)

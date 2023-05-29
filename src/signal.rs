@@ -3,6 +3,7 @@ pub mod calculate_signal;
 pub mod cluster_correlation_expansion;
 
 use crate::cluster::find_clusters::ClusterSet;
+use crate::cluster::Cluster;
 use std::ops::{Add,Sub,Mul,Div};
 use num_complex::Complex;
 
@@ -161,18 +162,71 @@ fn write_vec_signals_to_csv(signals: &[Signal],filename: &str,
   
   Ok(())
 }
+//----------------------------------------------------------------------------
+fn load_csv_to_vec_signals(filename: &str)
+  -> Result<Vec::<Signal>, CluEError>
+{
+  // Count data points.
+  let Ok(mut rdr) = csv::Reader::from_path(filename) else{
+    return Err(CluEError::CannotOpenFile(filename.to_string()));
+  };
+
+  let mut num_data = 0;
+  let mut num_sigs = 0;
+  for result in rdr.records() {
+      if let Ok(str_rec) = result{
+        num_sigs = str_rec.len();
+      }else{
+        return Err(CluEError::CannotOpenFile(filename.to_string()));
+      };
+      num_data += 1;
+  }
+
+  // Load signal.
+  let mut signals = (0..num_sigs).map(|_| Signal::zeros(num_data))
+    .collect::<Vec::<Signal>>();
+
+  let Ok(mut rdr) = csv::Reader::from_path(filename) else{
+    return Err(CluEError::CannotOpenFile(filename.to_string()));
+  };
+
+  for (idata, result) in rdr.records().enumerate() {
+      let Ok(record) = result else{
+        return Err(CluEError::CannotOpenFile(filename.to_string()));
+      };
+
+      for (isig,entry) in record.iter().enumerate(){
+        let Ok(v) = entry.parse::<Complex<f64>>() else{
+          return Err(CluEError::CannotOpenFile(filename.to_string()));
+        };
+        signals[isig].data[idata] = v;
+      }
+  }
+  Ok(signals)
+}
 //------------------------------------------------------------------------------
-pub fn write_batch_signals(cluster_set: &ClusterSet, 
-    cluster_size: usize, n_data: usize, idx: usize, batch_size: usize, 
+pub fn load_batch_signals(clusters: &mut [Cluster], 
+    idx: usize, batch_size: usize, 
     filename: &str) -> Result<(),CluEError>
 {
 
-  if cluster_size > cluster_set.clusters.len(){
-    return Err(CluEError::NoClustersOfSize(cluster_size));
-  }
+  let signals = load_csv_to_vec_signals(filename)?;
 
+  let mut ii = 0;
+  for signal in signals{
+    clusters[idx + ii].signal = Ok(Some(signal)); 
+    ii += 1;
+  } 
 
-  let headers = cluster_set.clusters[cluster_size - 1].iter()
+  Ok(())
+}
+//------------------------------------------------------------------------------
+pub fn write_batch_signals(clusters: &[Cluster], 
+    n_data: usize, idx: usize, batch_size: usize, 
+    filename: &str) -> Result<(),CluEError>
+{
+
+  let headers = clusters.iter()
     .skip(idx).take(batch_size).map(|cluster| cluster.to_header())
     .collect::<Vec::<String>>();
 
@@ -188,7 +242,7 @@ pub fn write_batch_signals(cluster_set: &ClusterSet,
     
     let mut rec = Vec::<String>::with_capacity(n_data);
 
-    for cluster in cluster_set.clusters[cluster_size - 1].iter()
+    for cluster in clusters.iter()
       .skip(idx).take(batch_size){
 
         match &cluster.signal{
@@ -292,6 +346,39 @@ mod tests{
 
     let signal5 = &signal0 / &signal1;
     assert_eq!(signal5.data,vec![ONE,2.0*ONE]);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_load_csv_to_vec_signals(){
+    let filename = "assets/auxiliary_signals.csv";
+
+    let signals = load_csv_to_vec_signals(&filename).unwrap();
+
+    let ref_signals = vec![
+      Signal{data: vec![
+        Complex::<f64>{re: 1.0, im: 0.0},  
+        Complex::<f64>{re: 0.99, im: 0.01},
+        Complex::<f64>{re: 0.8, im: 0.2},
+        Complex::<f64>{re: 0.7, im: 0.3}
+      ]},
+      Signal{data: vec![
+        Complex::<f64>{re: 1.0, im: 0.0},  
+        Complex::<f64>{re: 0.9, im: 0.1},
+        Complex::<f64>{re: 0.5, im: 0.5},
+        Complex::<f64>{re: 0.6, im: 0.4}
+      ]},
+      Signal{data: vec![
+        Complex::<f64>{re: 1.0, im: 0.0},  
+        Complex::<f64>{re: 0.999, im: 0.001},
+        Complex::<f64>{re: 0.98, im: 0.02},
+        Complex::<f64>{re: 0.97, im: 0.03}
+      ]},
+    ];
+
+    for (ii,ref_sig) in ref_signals.iter().enumerate(){
+      assert_eq!(signals[ii], *ref_sig);
+    }
+
   }
 }
 
