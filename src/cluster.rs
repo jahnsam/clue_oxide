@@ -86,6 +86,22 @@ impl Cluster{
   pub fn vertices(&self) -> &Vec::<usize>{
     &self.vertices
   } 
+  //----------------------------------------------------------------------------
+  pub fn to_header(&self) -> String {
+    // "clu_1_2_3_4"
+    let cluster = &self.vertices;
+
+    if cluster.is_empty(){
+      return "clu".to_string();
+    }
+
+    let mut string = format!("clu_{}", cluster[0] );
+
+    for vertex in cluster.iter().skip(1){
+      string = format!("{}_{}",string,vertex);
+    } 
+    string
+  }
 }
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

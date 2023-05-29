@@ -1,6 +1,8 @@
 pub mod calculate_analytic_restricted_2cluster_signals;
 pub mod calculate_signal;
 pub mod cluster_correlation_expansion;
+
+use crate::cluster::find_clusters::ClusterSet;
 use std::ops::{Add,Sub,Mul,Div};
 use num_complex::Complex;
 
@@ -157,6 +159,63 @@ fn write_vec_signals_to_csv(signals: &[Signal],filename: &str,
 
   wtr.flush()?;
   
+  Ok(())
+}
+//------------------------------------------------------------------------------
+pub fn write_batch_signals(cluster_set: &ClusterSet, 
+    cluster_size: usize, n_data: usize, idx: usize, batch_size: usize, 
+    filename: &str) -> Result<(),CluEError>
+{
+
+  if cluster_size > cluster_set.clusters.len(){
+    return Err(CluEError::NoClustersOfSize(cluster_size));
+  }
+
+
+  let headers = cluster_set.clusters[cluster_size - 1].iter()
+    .skip(idx).take(batch_size).map(|cluster| cluster.to_header())
+    .collect::<Vec::<String>>();
+
+  let Ok(mut wtr) = csv::Writer::from_path(filename) else{
+    return Err(CluEError::CannotWriteFile(filename.to_string()));
+  };
+
+  if wtr.write_record(&headers).is_err(){
+    return Err(CluEError::CannotWriteFile(filename.to_string()));
+  }
+
+  for ii in 0..n_data{
+    
+    let mut rec = Vec::<String>::with_capacity(n_data);
+
+    for cluster in cluster_set.clusters[cluster_size - 1].iter()
+      .skip(idx).take(batch_size){
+
+        match &cluster.signal{
+          Err(err)  => return Err(err.clone()),
+          _ => (),
+        }
+
+        let Ok(Some(signal)) = &cluster.signal else{
+          return Err(CluEError::ClusterHasNoSignal(cluster.to_string()));
+        };
+
+        if signal.data.len() != n_data{
+          return Err(CluEError::AllSignalsNotSameLength(filename.to_string()));
+        }
+
+        rec.push(signal.data[ii].to_string());
+    }
+
+    if wtr.write_record(&rec).is_err() {
+      return Err(CluEError::CannotWriteFile(filename.to_string()));
+    }
+  }
+
+  if wtr.flush().is_err(){
+    return Err(CluEError::CannotWriteFile(filename.to_string()));
+  }
+
   Ok(())
 }
 //------------------------------------------------------------------------------

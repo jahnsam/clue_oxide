@@ -7,6 +7,7 @@ use crate::math;
 use crate::quantum::spin_hamiltonian::*;
 use crate::cluster::get_subclusters::build_subclusters;
 use crate::cluster::Cluster;
+use crate::signal::write_batch_signals;
 
 use rayon::prelude::*;
 
@@ -89,6 +90,21 @@ pub fn do_cluster_correlation_expansion(
           }
 
           signal = &signal * &aux_signal;
+      }
+
+      if let Some(path) = &save_path_opt{
+        if let Some(aux_dir) = &config.write_auxiliary_signals{
+          let save_dir = format!("{}/{}",path, aux_dir);
+          match std::fs::create_dir_all(save_dir.clone()){
+            Ok(_) => (),
+            Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
+          }
+          let aux_filename = format!("{}/cluster_size_{}_batch_{}.csv",
+              save_dir, cluster_size,ibatch);
+
+          write_batch_signals(&cluster_set,cluster_size, n_tot, idx, batch_size,
+              &aux_filename)?; 
+        }
       }
     }
 

@@ -62,6 +62,8 @@ pub struct Config{
   pub temperature: Option<f64>,
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
+  pub write_auxiliary_signals: Option<String>,
+  pub write_orientation_signals: Option<String>,
   pub write_structure_pdb: Option<String>,
 }
 
@@ -102,6 +104,25 @@ impl Config{
     if self.save_name.is_none(){
       self.save_name = Some("CluE-".to_string());
     }
+
+
+    let set_default_write_path = |write_opt: &mut Option<String>, default: &str|
+    {
+      match write_opt{
+        None => *write_opt = Some(default.to_string()),
+        Some(path) => if path.is_empty(){ *write_opt = None;},
+      }
+
+    };
+
+    set_default_write_path(&mut self.write_auxiliary_signals,
+        "auxiliary_signals");
+
+    set_default_write_path(&mut self.write_orientation_signals,
+        "orientations");
+
+    set_default_write_path(&mut self.write_structure_pdb,
+        "spin_system");
   }
   //----------------------------------------------------------------------------
   pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) -> usize{

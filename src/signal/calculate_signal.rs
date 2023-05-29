@@ -92,16 +92,21 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   
   let save_dir_opt = match path_opt{
     Some(path) => {
-      
-      let save_dir = format!("{}/orientations/theta_{}_phi_{}",path,
-          rot_dir.theta(), rot_dir.phi());
-      
-      match std::fs::create_dir_all(save_dir.clone()){
-        Ok(_) => (),
-        Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
-      }
 
-      Some(save_dir)
+      if let Some(ori_path) = &config.write_orientation_signals{ 
+      
+        let save_dir = format!("{}/orientations/theta_{}_phi_{}",path,
+            rot_dir.theta(), rot_dir.phi());
+      
+        match std::fs::create_dir_all(save_dir.clone()){
+          Ok(_) => (),
+          Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
+        }
+
+        Some(save_dir)
+      }else{
+        None
+      }
     },
     None => None,
   };
