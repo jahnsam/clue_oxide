@@ -138,14 +138,14 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   let order_n_signals = match cluster_method{
     ClusterMethod::AnalyticRestricted2CCE => 
       calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
-          config,&None)?,
+          config,&save_dir_opt)?,
     ClusterMethod::CCE => {
       let spin_multiplicity_set =
         math::unique(tensors.spin_multiplicities.clone());
       let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
           max_cluster_size)?;
       do_cluster_correlation_expansion(&mut cluster_set, &spin_ops, &tensors, 
-          config,&None)?
+          config,&save_dir_opt)?
     },
   };
 
@@ -191,8 +191,15 @@ fn calculate_methyl_partition_cce(
       }
 
       if let Some(save_dir) = save_dir_opt{
-        let part_save_path = format!("{}/{}/{}.csv",
-            save_dir,part_dir,key_name);
+        let save_dir = format!("{}/{}",
+            save_dir,part_dir);
+        match std::fs::create_dir_all(save_dir.clone()){
+          Ok(()) => (),
+          Err(_) 
+            => return Err(CluEError::CannotCreateDir(save_dir.to_string())),
+        }
+        let part_save_path = format!("{}/{}.csv",
+            save_dir,key_name);
         part_signal.write_to_csv(&part_save_path)?;
       }
     }
