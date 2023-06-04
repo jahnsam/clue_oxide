@@ -264,8 +264,16 @@ impl Config{
 
     let token_stream = get_tokens_from_file(filename)?;
 
-    let mut mode = ModeAttribute::new();
+    config.parse_token_stream(token_stream)?;
 
+    Ok(config)
+  }
+  //----------------------------------------------------------------------------
+  /// This function updates config from a Vec<TokenExpression>.
+  pub fn parse_token_stream(&mut self,token_stream: Vec<TokenExpression>) 
+    -> Result<(),CluEError>
+  {
+    let mut mode = ModeAttribute::new();
 
     for expression in token_stream.iter(){
       if expression.lhs.is_empty(){ continue; }
@@ -277,9 +285,29 @@ impl Config{
 
       match mode.mode{
         ConfigMode::Clusters => (),
-        ConfigMode::Config =>  config.parse_config_line(expression)?,
-        ConfigMode::Filter => config.parse_filter_line(expression,&mode.label)?,
+        ConfigMode::Config =>  self.parse_config_line(expression)?,
+        ConfigMode::Filter => self.parse_filter_line(expression,&mode.label)?,
+        ConfigMode::SpinProperties => {
+          let Some(label) = &mode.label else{
+            return Err(CluEError::SpinPropertiesNeedsALabel);
+          };
+          if mode.isotope.is_none(){
+            return Err(CluEError::SpinPropertiesNeedsAnIsotope(label.clone()));
+          }
+          self.parse_properties_line(expression,&mode.label,mode.isotope);
+        },
         ConfigMode::Spins => (),
+        ConfigMode::StructureProperties => {
+          let Some(label) = &mode.label else{
+            return Err(CluEError::StructurePropertiesNeedsALabel);
+          };
+          if mode.isotope.is_some(){
+            return Err(
+               CluEError::StructurePropertiesDoesNotNeedAnIsotope(
+                 label.clone()));
+          }
+          self.parse_properties_line(expression,&mode.label,mode.isotope);
+        },
         ConfigMode::Structures => (),
         ConfigMode::Tensors => (),
       }
@@ -287,7 +315,7 @@ impl Config{
     }
 
 
-    Ok(config)
+    Ok(())
   }
   //----------------------------------------------------------------------------
   fn parse_config_line(&mut self, expression: &TokenExpression) 

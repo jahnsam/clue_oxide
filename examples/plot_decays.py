@@ -49,9 +49,19 @@ def read_time_axis(csv_file):
 #-------------------------------------------------------------------------------
 def read_signal_file(csv_file):
   data = pd.read_csv(csv_file);
+  order = 1
+  key = "signal"
+  while True:
+    new_key = f"signal_{order}"
+    if new_key in data:
+      key = new_key
+      order += 1
+    else:
+      break;
+
   #t = data['time'];
   convert_to_python = {'i':'j', '\+-':'-'};
-  v = (data['signal'].replace(convert_to_python,regex=True)).apply(
+  v = (data[key].replace(convert_to_python,regex=True)).apply(
       lambda z: complex(z));
   return np.array(v)
 #-------------------------------------------------------------------------------

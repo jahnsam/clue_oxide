@@ -78,9 +78,11 @@ pub enum Token{
  Serials,                                                      
  Sharp,
  Slash,
+ SpinProperties,
  Spins,
  SquareBracketClose,
  SquareBracketOpen,
+ StructureProperties,
  Structures,
  Tensors,
  TimeIncrements,
@@ -174,9 +176,11 @@ impl fmt::Display for Token{
       Token::Serials => write!(f,"serials"),
       Token::Sharp => write!(f,"#"),
       Token::Slash => write!(f,"/"),
+      Token::SpinProperties => write!(f,"spin_properties"),
       Token::Spins => write!(f,"spins"),
       Token::SquareBracketClose => write!(f,"]"),
       Token::SquareBracketOpen => write!(f,"["),
+      Token::StructureProperties => write!(f,"structure_properties"),
       Token::Structures => write!(f,"structures"),
       Token::Tensors => write!(f,"tensors"),
       Token::TimeIncrements => write!(f,"time_increments"),
@@ -268,9 +272,11 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "serials" => Some(Token::Serials), 
     "#" => Some(Token::Sharp),
     "/" => Some(Token::Slash),
+    "spin_properties" => Some(Token::SpinProperties),
     "spins" => Some(Token::Spins),
     "]" => Some(Token::SquareBracketClose),
     "[" => Some(Token::SquareBracketOpen),
+    "structure_properties" => Some(Token::StructureProperties),
     "structures" => Some(Token::Structures),
     "tensors" => Some(Token::Tensors),
     "*" => Some(Token::Times),
@@ -791,7 +797,9 @@ pub enum ConfigMode{
   Clusters,
   Config,
   Filter,
+  SpinProperties,
   Spins,
+  StructureProperties,
   Structures,
   Tensors,
 }
@@ -803,7 +811,9 @@ impl ConfigMode{
       Token::Clusters => Ok(ConfigMode::Clusters),
       Token::Config => Ok(ConfigMode::Config),
       Token::Filter => Ok(ConfigMode::Filter),
+      Token::SpinProperties => Ok(ConfigMode::SpinProperties),
       Token::Spins => Ok(ConfigMode::Spins),
+      Token::StructureProperties => Ok(ConfigMode::StructureProperties),
       Token::Structures => Ok(ConfigMode::Structures),
       Token::Tensors => Ok(ConfigMode::Tensors),
       _ => Err(CluEError::ConfigModeNotRecognized(token.to_string())),
@@ -817,7 +827,9 @@ impl fmt::Display for ConfigMode{
       ConfigMode::Clusters => write!(f,"clusters"),
       ConfigMode::Config => write!(f,"config"),
       ConfigMode::Filter => write!(f,"filter"),
+      ConfigMode::SpinProperties => write!(f,"spin_properties"),
       ConfigMode::Spins => write!(f,"spins"),
+      ConfigMode::StructureProperties => write!(f,"structure_properties"),
       ConfigMode::Structures => write!(f,"structures"),
       ConfigMode::Tensors => write!(f,"tensors"),
     }
@@ -907,9 +919,13 @@ mod tests{
     assert_eq!(identify_token(";").unwrap(), Token::Semicolon);
     assert_eq!(identify_token("#").unwrap(), Token::Sharp);
     assert_eq!(identify_token("/").unwrap(), Token::Slash);
+    assert_eq!(identify_token("spin_properties").unwrap(), 
+        Token::SpinProperties);
     assert_eq!(identify_token("spins").unwrap(), Token::Spins);
     assert_eq!(identify_token("]").unwrap(), Token::SquareBracketClose);
     assert_eq!(identify_token("[").unwrap(), Token::SquareBracketOpen);
+    assert_eq!(identify_token("structure_properties").unwrap(), 
+        Token::StructureProperties);
     assert_eq!(identify_token("structures").unwrap(), Token::Structures);
     assert_eq!(identify_token("tensors").unwrap(), Token::Tensors);
     assert_eq!(identify_token("time_increments").unwrap(), 

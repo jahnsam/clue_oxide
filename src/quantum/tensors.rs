@@ -129,6 +129,7 @@ impl HamiltonianTensors{
           ExchangeGroup::Methyl(c3rotor) | 
             ExchangeGroup::PrimaryAmonium(c3rotor) =>{
               let j = exchange_group_manager.exchange_couplings[ex_id];
+              println!("DB: j = {}",j);
 
               let j_tensor = eye.scale(j);
 
@@ -152,6 +153,7 @@ impl HamiltonianTensors{
                   let Some(h1_idx) = tensor_indices[h1] else{
                     return Err(CluEError::TensorNotSet(h1));
                   };
+                  println!("DB: J = {:?}",j_tensor);
                   spin2_tensors.add(h0_idx,h1_idx, j_tensor.clone());
 
                 }
@@ -483,8 +485,53 @@ mod tests{
   use crate::config::DetectedSpinCoordinates;
   use crate::structure::particle_filter::{ParticleFilter, 
     SecondaryParticleFilter,VectorSpecifier};
+  use crate::config::lexer::get_tokens_from_line;
 
+  use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_HamiltonianTensors_generate(){
+
+    let token_stream = get_tokens_from_line("
+        input_structure_file = \"assets/TEMPO.pdb\";
+        radius = 18e-10; // m.
+        detected_spin_position = centroid_over_serials([28,29]);
+        number_timepoints = [101];
+        time_increments = [1e-7];
+        cluster_method = cce;
+        max_cluster_size = 2;
+        magnetic_field = 1.2;
+
+        #[filter(label = tempo)]
+          elements in [H];
+
+        #[spin_properties(label = tempo, isotope = 1H)]
+          tunnel_splitting = 80e3; // Hz.
+        ").unwrap();
+
+    let mut config = Config::new();
+
+    config.parse_token_stream(token_stream).unwrap();
+
+    config.set_defaults();
+
+    let mut rng = ChaCha20Rng::from_entropy();
+
+    let structure = Structure::build_structure(&mut rng,&config).unwrap();
+
+    for particle in structure.bath_particles.iter(){
+      if particle.active{
+        println!("DB: {:?}",particle);
+      }
+    }
+    assert_eq!(structure.number_active(),19);
+
+    let tensors = HamiltonianTensors::generate(&structure,&config).unwrap();
+
+    assert_eq!(tensors.spin_multiplicities.len(),19);
+
+  }
   //----------------------------------------------------------------------------
   #[test]
   fn test_construct_symmetric_tensor_from_tensor_specifier(){

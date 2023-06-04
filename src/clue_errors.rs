@@ -95,6 +95,10 @@ pub enum CluEError{
   OptionAlreadySet(usize,String),
   SaveNameEmpty,
   SaveNameNotSet,
+  SpinPropertiesNeedsALabel,
+  SpinPropertiesNeedsAnIsotope(String),
+  StructurePropertiesNeedsALabel,
+  StructurePropertiesDoesNotNeedAnIsotope(String),
   TensorNotSet(usize),
   TooManyRelationalOperators(usize),
   TooManyRHSArguments(usize),
@@ -414,6 +418,22 @@ impl fmt::Display for CluEError{
 
       CluEError::SaveNameNotSet => write!(f,
           "save name not set"),
+
+      CluEError::SpinPropertiesNeedsALabel => write!(f,
+          "spin_properties requires a label to be set: 
+#[spin_properties(label = LABEL, isotope = ISOTOPE)]"),
+
+      CluEError::SpinPropertiesNeedsAnIsotope(label) => write!(f,
+          "spin_properties requires an isotope to be set: 
+#[spin_properties(label = {}, isotope = ISOTOPE)]",label),
+
+      CluEError::StructurePropertiesNeedsALabel => write!(f,
+          "structure_properties requires a label to be set: 
+#[structure_properties(label = LABEL)]"),
+
+      CluEError::StructurePropertiesDoesNotNeedAnIsotope(label) => write!(f,
+          "structure_properties does not require an isotope to be set: 
+#[spin_properties(label = {})]",label),
 
       CluEError::TensorNotSet(index) => write!(f,
           "no tensor set for particle {}",index),
