@@ -182,7 +182,7 @@ fn parse_tokens(mut lexer: Lexer) -> Result<Vec::<Token>, CluEError>{
 
   let mut tokens = Vec::<Token>::with_capacity(lexer.input.len());
 
-  let mut previous_token = Token::EOL;
+  let mut previous_token: Token;
   let mut token = Token::EOL;
   while lexer.position < lexer.input.len(){
     

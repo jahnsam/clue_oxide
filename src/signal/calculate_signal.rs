@@ -39,7 +39,15 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
       }
   
       if let Some(filename) = &config.write_structure_pdb{
-        structure.write_pdb(&format!("{}/{}.pdb",save_dir, filename))?;
+        if let Some(info_dir) = &config.write_info{
+
+        let info_path = format!("{}/{}",save_dir,info_dir);
+
+        if std::fs::create_dir_all(info_path.clone()).is_err(){
+          return Err(CluEError::CannotCreateDir(info_path));
+        }
+          structure.write_pdb(&format!("{}/{}.pdb", info_path, filename))?;
+        }
       }
       Some(save_dir)
     },
@@ -95,7 +103,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
 
       if let Some(ori_path) = &config.write_orientation_signals{ 
       
-        let save_dir = format!("{}/orientations/theta_{}_phi_{}",path,
+        let save_dir = format!("{}/{}/theta_{}_phi_{}",path, ori_path,
             rot_dir.theta(), rot_dir.phi());
       
         match std::fs::create_dir_all(save_dir.clone()){
@@ -159,7 +167,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
 
 
   // TODO: add toggle in config
-  calculate_methyl_partition_cce(cluster_set, &structure, config, 
+  calculate_methyl_partition_cce(cluster_set, structure, config, 
       &save_dir_opt)?;
 
   Ok(order_n_signals)
@@ -196,7 +204,7 @@ fn calculate_methyl_partition_cce(
         match std::fs::create_dir_all(save_dir.clone()){
           Ok(()) => (),
           Err(_) 
-            => return Err(CluEError::CannotCreateDir(save_dir.to_string())),
+            => return Err(CluEError::CannotCreateDir(save_dir)),
         }
         let part_save_path = format!("{}/{}.csv",
             save_dir,key_name);

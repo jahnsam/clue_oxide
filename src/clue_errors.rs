@@ -28,6 +28,7 @@ pub enum CluEError{
   CannotSampleBinomialDistribution(usize,f64),
   CannotSetExchangeCoupling(usize),
   CannotSubTokens,
+  CannotTakeTrace(String),
   CannotWriteFile(String),
   ClusterHasNoSignal(String),
   ConfigModeNotRecognized(String),
@@ -184,6 +185,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotSubTokens => write!(f,
           "cannot subtract tokens meaningfully"),
+
+      CluEError::CannotTakeTrace(matrix) => write!(f,
+          "cannot take trace of \"{}\"",matrix),
 
       CluEError::CannotPowTokens => write!(f,
           "cannot do token^token meaningfully"),

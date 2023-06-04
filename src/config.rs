@@ -63,6 +63,7 @@ pub struct Config{
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
   pub write_auxiliary_signals: Option<String>,
+  pub write_info: Option<String>,
   pub write_orientation_signals: Option<String>,
   pub write_structure_pdb: Option<String>,
 }
@@ -117,6 +118,9 @@ impl Config{
 
     set_default_write_path(&mut self.write_auxiliary_signals,
         "auxiliary_signals");
+
+    set_default_write_path(&mut self.write_info,
+        "info");
 
     set_default_write_path(&mut self.write_orientation_signals,
         "orientations");

@@ -2,7 +2,6 @@ pub mod calculate_analytic_restricted_2cluster_signals;
 pub mod calculate_signal;
 pub mod cluster_correlation_expansion;
 
-use crate::cluster::find_clusters::ClusterSet;
 use crate::cluster::Cluster;
 use std::ops::{Add,Sub,Mul,Div};
 use num_complex::Complex;
@@ -216,6 +215,9 @@ pub fn load_batch_signals(clusters: &mut [Cluster],
   for signal in signals{
     clusters[idx + ii].signal = Ok(Some(signal)); 
     ii += 1;
+    if ii == batch_size{
+      break;
+    }
   } 
 
   Ok(())
@@ -245,13 +247,11 @@ pub fn write_batch_signals(clusters: &[Cluster],
     for cluster in clusters.iter()
       .skip(idx).take(batch_size){
 
-        match &cluster.signal{
+        let signal  = match &cluster.signal{
           Err(err)  => return Err(err.clone()),
-          _ => (),
-        }
-
-        let Ok(Some(signal)) = &cluster.signal else{
-          return Err(CluEError::ClusterHasNoSignal(cluster.to_string()));
+          Ok(None) 
+            => return Err(CluEError::ClusterHasNoSignal(cluster.to_string())),
+          Ok(Some(sig)) => sig,
         };
 
         if signal.data.len() != n_data{

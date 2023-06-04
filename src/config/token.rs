@@ -535,7 +535,7 @@ impl Token{
       (Token::Int(a), Token::Float(y)) => Ok(Token::Float((a as f64).powf(y) )),
       (Token::Int(a), Token::Int(b)) =>{ 
         if b < 0{ return Ok(Token::Float((a as f64).powi(b) )); }
-        Ok(Token::Int(a.pow(b.try_into().unwrap() ) )) 
+        Ok(Token::Int(a.pow(b as u32) )) 
       },
       (Token::Int(a), Token::VectorF64(v)) =>
         Ok(Token::VectorF64( v.iter().map(|y| (a as f64).powf(*y) ).collect())),
@@ -552,7 +552,7 @@ impl Token{
                 |b| (a as f64).powi( *b )).collect()  ));
         }
         Ok(Token::VectorI32( v.iter().map(
-                |b| a.pow((*b).try_into().unwrap()) ).collect()  ))
+                |b| a.pow((*b) as u32) ).collect()  ))
       },
 
       (Token::VectorF64(u), Token::Float(y)) =>
@@ -581,7 +581,7 @@ impl Token{
                 |a| (*a as f64).powi(b) ).collect()  ));
         }
         Ok(Token::VectorI32( u.iter().map(
-                |a| a.pow(b.try_into().unwrap()) ).collect()  ))
+                |a| a.pow(b as u32) ).collect()  ))
       },
       (Token::VectorI32(u), Token::VectorF64(v)) => {
         if u.len() != v.len(){ return Err(CluEError::CannotPowTokens);}
@@ -609,7 +609,7 @@ impl Token{
 
         let mut w = Vec::<i32>::with_capacity(u.len());
         for ii in 0..u.len(){ 
-          w.push(u[ii].pow(v[ii].try_into().unwrap()) ); 
+          w.push(u[ii].pow(v[ii] as u32) ); 
         }
         Ok(Token::VectorI32(w))
       },

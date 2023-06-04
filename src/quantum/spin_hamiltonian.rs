@@ -128,7 +128,12 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
     },
   }
 
-  let z = density_matrix.trace().unwrap();
+  let Ok(z) = density_matrix.trace()else{
+    return Err(CluEError::CannotTakeTrace(format!("{}",density_matrix)));
+  };
+  if z.norm() < 1e-12{
+    return Err(CluEError::CannotTakeTrace(format!("{}",density_matrix)));
+  }
   density_matrix /= z;
   Ok(density_matrix)
 }
@@ -996,7 +1001,7 @@ mod tests {
   #[test]
   fn test_spin_ops() {
 
-    for spin_multiplicity in 0..7 {
+    for spin_multiplicity in 0..14 {
       let sx = spin_x(spin_multiplicity);
       let sy = spin_y(spin_multiplicity);
       let sz = spin_z(spin_multiplicity);

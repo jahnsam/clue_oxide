@@ -58,7 +58,6 @@ impl HamiltonianTensors{
 
     spin_multiplicities.push(detected_particle.isotope.spin_multiplicity());
 
-
     spin1_tensors.set(0,
         construct_zeeman_tensor(&(gamma_e*&eye),magnetic_field));
 
@@ -121,47 +120,39 @@ impl HamiltonianTensors{
     }
 
 
-
     if let Some(exchange_group_manager) = &structure.exchange_groups{
-      for (ex_id, exchange_group) in exchange_group_manager.exchange_groups
-        .iter().enumerate()
+      'exchange_loop: for (ex_id, exchange_group) in exchange_group_manager
+        .exchange_groups.iter().enumerate()
       {
         // Add tensors bassed on the identity of the exchange group.
         match exchange_group{
           ExchangeGroup::Methyl(c3rotor) | 
             ExchangeGroup::PrimaryAmonium(c3rotor) =>{
               let j = exchange_group_manager.exchange_couplings[ex_id];
-              //let j = -2.0*nut/3.0;
 
               let j_tensor = eye.scale(j);
 
               // Loop through all hydrogens.
               for &h0 in c3rotor.indices.iter(){
-                let h0_indices = &structure.cell_indices[h0];
+                if !structure.bath_particles[h0].active{
+                  continue 'exchange_loop;
+                }
+              }
+
+              for &h0 in c3rotor.indices.iter(){
+                //let h0_indices = &structure.cell_indices[h0];
                 
                 // Loop through all hydrogens with indices less than the first.
                 for &h1 in c3rotor.indices.iter(){
                   if h1 == h0 { break; }
-                  let h1_indices = &structure.cell_indices[h1];
-        
-                  // Loop through all periodic boudary condition copies.
-                  for cell_id in 0..h0_indices.len(){
-                    let Some(h0_id) = h0_indices[cell_id] else { continue; };
-                    let Some(h1_id) = h1_indices[cell_id] else { continue; };
-                    if !structure.bath_particles[h0_id].active
-                      || !structure.bath_particles[h1_id].active
-                    {
-                      continue;
-                    }
 
-                    let Some(h0_idx) = tensor_indices[h0_id] else{
-                      return Err(CluEError::TensorNotSet(h0_id));
-                    };
-                    let Some(h1_idx) = tensor_indices[h1_id] else{
-                      return Err(CluEError::TensorNotSet(h1_id));
-                    };
-                    spin2_tensors.add(h0_idx,h1_idx, j_tensor.clone());
-                  }
+                  let Some(h0_idx) = tensor_indices[h0] else{
+                    return Err(CluEError::TensorNotSet(h0));
+                  };
+                  let Some(h1_idx) = tensor_indices[h1] else{
+                    return Err(CluEError::TensorNotSet(h1));
+                  };
+                  spin2_tensors.add(h0_idx,h1_idx, j_tensor.clone());
 
                 }
               }
@@ -335,7 +326,9 @@ fn construct_hyperfine_tensor(detected_particle: &DetectedSpin,
     
     let mut hf_ten = SymmetricTensor3D::zeros();
     for ii in 0..detected_particle.weighted_coordinates.len(){
-      let r = detected_particle.weighted_coordinates.xyz(ii).unwrap(); 
+      let Ok(r) = detected_particle.weighted_coordinates.xyz(ii) else{
+        return Err(CluEError::NoCentralSpinCoor);
+      }; 
       let delta_r = &r - &particle0.coordinates;
     
       let w = detected_particle.weighted_coordinates.weight(ii);
