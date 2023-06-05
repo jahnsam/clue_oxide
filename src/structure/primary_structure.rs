@@ -123,14 +123,25 @@ impl Structure{
 
 
 
+      let mut spin_mult = particle.isotope.spin_multiplicity();
       if let Some(id) = self.particle_config_ids[idx]{
-        particle.active
-          = config.max_spin_multiplicity_for_particle_config(id) > 1;
-      }else{
-        particle.active = particle.isotope.spin_multiplicity() > 1;
+        if let Some(mult) 
+          = config.max_spin_multiplicity_for_particle_config(id){
+          spin_mult = mult;
+        }
       }
+      particle.active = spin_mult > 1;
 
-      //if !particle.active { continue; }
+      if particle.active { 
+        println!("DB: {} Y {:?} {} ",idx,
+            particle.isotope,
+            particle.isotope.spin_multiplicity()
+            ); 
+      }else{
+        println!("DB: {} N {:?} {} ",idx,
+            particle.isotope,
+            particle.isotope.spin_multiplicity()); 
+      }
       //self.bath_spins_indices.push(idx);
     }
 
@@ -143,13 +154,16 @@ impl Structure{
     let mut n_spins = 0;
     for (idx, particle) in self.bath_particles.iter().enumerate(){
 
-      if particle.isotope.spin_multiplicity() <= 1 { continue; }
-
+      let mut spin_mult = particle.isotope.spin_multiplicity();
       if let Some(id) = self.particle_config_ids[idx]{
-        if config.max_spin_multiplicity_for_particle_config(id) <= 1{
-          continue;
+        if let Some(mult) 
+          = config.max_spin_multiplicity_for_particle_config(id){
+          spin_mult = mult;
         }
       }
+
+      if spin_mult <= 1 { continue; }
+
       n_spins += 1;
     }
     n_spins

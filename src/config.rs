@@ -129,9 +129,11 @@ impl Config{
         "spin_system");
   }
   //----------------------------------------------------------------------------
-  pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) -> usize{
+  pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) 
+    -> Option<usize>
+  {
 
-   if id >= self.particles.len() {return 0;}
+   if id >= self.particles.len() {return None;}
 
    self.particles[id].max_possible_spin_multiplicity()
   }

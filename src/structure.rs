@@ -114,6 +114,7 @@ impl Structure{
     let mut structure = pdb::parse_pdb(filename,model_idx)?;
 
     structure.build_primary_structure(config)?;
+    println!("DB: n = {}",structure.number_active());
     structure.build_extended_structure(rng, config)?;
 
     Ok(structure)
@@ -292,5 +293,50 @@ impl Structure{
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[cfg(test)]
+mod tests{
+  use super::*;
 
+  use crate::config::lexer::get_tokens_from_line;
+  use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_build_structure(){
+    let token_stream = get_tokens_from_line("
+        input_structure_file = \"assets/TEMPO.pdb\";
+        radius = 18e-10; // m.
+        detected_spin_position = centroid_over_serials([28,29]);
+        number_timepoints = [101];
+        time_increments = [1e-7];
+        cluster_method = cce;
+        max_cluster_size = 2;
+        magnetic_field = 1.2;
 
+        #[filter(label = tempo)]
+          elements in [H];
+
+        #[spin_properties(label = tempo, isotope = 1H)]
+          tunnel_splitting = 80e3; // Hz.
+        ").unwrap();
+
+    let mut config = Config::new();
+
+    config.parse_token_stream(token_stream).unwrap();
+
+    config.set_defaults();
+
+    let mut rng = ChaCha20Rng::from_entropy();
+
+    let structure = Structure::build_structure(&mut rng,&config).unwrap();
+
+    for particle in structure.bath_particles.iter(){
+      if particle.active{
+        println!("DB: {:?}",particle);
+      }
+    }
+    assert_eq!(structure.number_active(),19);
+  }
+  //----------------------------------------------------------------------------
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
