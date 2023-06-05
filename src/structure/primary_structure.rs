@@ -132,17 +132,6 @@ impl Structure{
       }
       particle.active = spin_mult > 1;
 
-      if particle.active { 
-        println!("DB: {} Y {:?} {} ",idx,
-            particle.isotope,
-            particle.isotope.spin_multiplicity()
-            ); 
-      }else{
-        println!("DB: {} N {:?} {} ",idx,
-            particle.isotope,
-            particle.isotope.spin_multiplicity()); 
-      }
-      //self.bath_spins_indices.push(idx);
     }
 
    
