@@ -80,6 +80,13 @@ impl Structure{
       particle.coordinates = &particle.coordinates + &self.pdb_origin;
     }
 
+    if let Some(exchange_group_manager) = &mut self.exchange_groups{
+      for exchange_group in exchange_group_manager.exchange_groups
+        .iter_mut(){
+          exchange_group.translate(&self.pdb_origin);
+      }
+    }
+
     // TODO: move to config?
     let Some(isotope) = config.detected_spin_identity else{
       return Err(CluEError::NoCentralSpinIdentity);

@@ -305,7 +305,7 @@ mod tests{
   fn test_build_structure(){
     let token_stream = get_tokens_from_line("
         input_structure_file = \"assets/TEMPO.pdb\";
-        radius = 10e-10; // m.
+        radius = 20e-10; // m.
         detected_spin_position = centroid_over_serials([28,29]);
         number_timepoints = [101];
         time_increments = [1e-7];
@@ -330,10 +330,6 @@ mod tests{
 
     let structure = Structure::build_structure(&mut rng,&config).unwrap();
 
-    println!("DB: {}/{}",structure.number_active(),structure.bath_particles.len());
-
-    println!("DB: {:?}",config.load_geometry);
-    println!("DB: {:?}",structure.cell_offsets.len());
     assert_eq!(structure.number_active(),19);
   }
   //----------------------------------------------------------------------------

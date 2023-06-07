@@ -102,6 +102,7 @@ impl Structure{
       .collect::<Vec::<Option<usize>>>();
     let mut exchange_couplings = Vec::<f64>::with_capacity(n_ex);
 
+
     // Loop over unit cells.
     for icell in 0..self.cell_offsets.len(){ 
       for (_ex_id, exchange_group_0) in exchange_group_manager0
@@ -146,8 +147,8 @@ impl Structure{
 
 
         for (ii,&idx) in indices.iter().enumerate(){
-          exchange_group_ids[idx] = exchange_group_manager0
-            .exchange_group_ids[ii];
+          exchange_group_ids[idx] = Some(exchange_groups.len()-1);
+          //exchange_group_manager0.exchange_group_ids[ii];
         }
 
 

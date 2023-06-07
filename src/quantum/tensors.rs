@@ -129,7 +129,6 @@ impl HamiltonianTensors{
           ExchangeGroup::Methyl(c3rotor) | 
             ExchangeGroup::PrimaryAmonium(c3rotor) =>{
               let j = exchange_group_manager.exchange_couplings[ex_id];
-              println!("DB: j = {}",j);
 
               let j_tensor = eye.scale(j);
 
@@ -153,7 +152,6 @@ impl HamiltonianTensors{
                   let Some(h1_idx) = tensor_indices[h1] else{
                     return Err(CluEError::TensorNotSet(h1));
                   };
-                  println!("DB: J = {:?}",j_tensor);
                   spin2_tensors.add(h0_idx,h1_idx, j_tensor.clone());
 
                 }
@@ -520,16 +518,13 @@ mod tests{
 
     let structure = Structure::build_structure(&mut rng,&config).unwrap();
 
-    for particle in structure.bath_particles.iter(){
-      if particle.active{
-        println!("DB: {:?}",particle);
-      }
-    }
     assert_eq!(structure.number_active(),19);
 
     let tensors = HamiltonianTensors::generate(&structure,&config).unwrap();
 
-    assert_eq!(tensors.spin_multiplicities.len(),19);
+    assert_eq!(tensors.spin_multiplicities.len(),20);
+
+    assert!(false);
 
   }
   //----------------------------------------------------------------------------
