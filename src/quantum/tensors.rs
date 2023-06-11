@@ -501,11 +501,30 @@ mod tests{
         max_cluster_size = 2;
         magnetic_field = 1.2;
 
-        #[filter(label = tempo)]
+        #[filter(label = tempo_h)]
+          residues in [TEM];
           elements in [H];
 
-        #[spin_properties(label = tempo, isotope = 1H)]
+        #[spin_properties(label = tempo_h, isotope = 1H)]
           tunnel_splitting = 80e3; // Hz.
+
+        #[filter(label = tempo_o)]
+          residues in [TEM];
+          elements in [O];
+
+        #[filter(label = tempo_c)]
+          residues in [TEM];
+          elements in [C];
+
+        #[filter(label = tempo_n)]
+          residues in [TEM];
+          elements in [N];
+
+        #[spin_properties(label = tempo_n, isotope = 14N)]
+          electric_quadrupole_coupling = [-1120000.0, -5880000.0, 7000000.0];
+          electric_quadrupole_x = diff(particle, same_molecule(tempo_o));
+          electric_quadrupole_z = diff(bonded(tempo_c),bonded(tempo_c));
+
         ").unwrap();
 
     let mut config = Config::new();
@@ -523,6 +542,28 @@ mod tests{
     let tensors = HamiltonianTensors::generate(&structure,&config).unwrap();
 
     assert_eq!(tensors.spin_multiplicities.len(),20);
+
+
+    let methyl_tensor_indices = [[1,2,3], [4,5,6], [13,14,15], [16,17,18]];
+    let j = -2.0*80e3/3.0;
+    let tol = 1e-12;
+    for methyl in methyl_tensor_indices.iter(){
+      for &h in methyl.iter(){
+        for idx in 0..20{
+          if h == idx {
+            assert!(tensors.spin2_tensors.get(h,idx).is_none());
+            continue;
+          }
+          let ten = tensors.spin2_tensors.get(h,idx).unwrap();
+
+          if methyl.contains(&idx){
+            assert!( (ten.trace()/(3.0*j) - 1.0).abs() < tol)
+          }else{
+            assert!((ten.trace()/ten.xx()).abs() < tol)
+          }
+        }
+      }
+    }
 
     assert!(false);
 
