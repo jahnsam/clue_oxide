@@ -216,6 +216,7 @@ impl Structure{
       config: &'a Config)
     -> Option<&'a TensorSpecifier>
   {
+    println!("DB: isotope {:?}" ,self.bath_particles[particle_index].isotope);
     let Some(isotope_properties) = self.extract_isotope_properties(
         particle_index,config) 
     else{
@@ -268,10 +269,8 @@ impl Structure{
     // Initialize pairings.
     let n_particles = self.bath_particles.len();
 
-    self.particle_config_ids = Vec::<Option<usize>>::with_capacity(n_particles);
-    for _ii in 0..n_particles{
-      self.particle_config_ids.push(None);
-    }
+    self.particle_config_ids = (0..n_particles).map(|_| None).
+      collect::<Vec::<Option<usize>>>();
 
     // Get particle configs.
     let particle_configs = &config.particles;

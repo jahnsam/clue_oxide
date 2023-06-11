@@ -65,7 +65,8 @@ impl HamiltonianTensors{
         structure.bath_particles.len());
 
     let mut idx0 = 0;
-    for particle0 in structure.bath_particles.iter(){
+    for (particle_idx0, particle0) in structure.bath_particles.iter()
+      .enumerate(){
 
       if !particle0.active {
         tensor_indices.push(None);
@@ -92,8 +93,8 @@ impl HamiltonianTensors{
 
       
       // electric quadrupole coupling
-      let quadrupole_opt = construct_electric_quadrupole_tensor(particle0, idx0,
-          structure, config)?;
+      let quadrupole_opt = construct_electric_quadrupole_tensor(particle0, 
+          particle_idx0, structure, config)?;
 
       if let Some(quadrupole_ten) = quadrupole_opt{
         spin2_tensors.set(idx0,idx0, quadrupole_ten);
@@ -523,7 +524,11 @@ mod tests{
         #[spin_properties(label = tempo_n, isotope = 14N)]
           electric_quadrupole_coupling = [-1120000.0, -5880000.0, 7000000.0];
           electric_quadrupole_x = diff(particle, same_molecule(tempo_o));
-          electric_quadrupole_z = diff(bonded(tempo_c),bonded(tempo_c));
+          electric_quadrupole_y = diff(bonded(tempo_c),bonded(tempo_c));
+
+          hyperfine_coupling = [16086000, 16086000, 103356000];
+          hyperfine_x = diff(particle, same_molecule(tempo_o));
+          hyperfine_y = diff(bonded(tempo_c),bonded(tempo_c));
 
         ").unwrap();
 
@@ -544,6 +549,31 @@ mod tests{
     assert_eq!(tensors.spin_multiplicities.len(),20);
 
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Test nitrogen electric quadrupole coupling.
+    let tensor = tensors.spin2_tensors.get(19,19).unwrap().clone();
+    let values = [-1120000.0, -5880000.0, 7000000.0];
+
+    let r_n = Vector3D::from([36.440e-10, 36.900e-10,  37.100e-10]);
+    let r_o = Vector3D::from([35.290e-10,  36.430e-10,  37.810e-10]);
+    let r_c1 = Vector3D::from([37.700e-10, 36.150e-10, 37.340e-10]);
+    let r_c19 = Vector3D::from([36.610e-10, 38.380e-10, 36.850e-10]);
+
+    let r_no = &r_o - &r_n;
+    let r_cc = &r_c19 - &r_c1;
+
+    let x = r_no.normalize();
+    let y = (&r_cc - &x.scale(x.dot(&r_cc))).normalize();
+
+    assert_eq!(&tensor*&r_no,r_no.scale(values[0]));
+    assert!((&(&tensor*&x) 
+          - &x.scale(values[0])).norm()/values[0].abs() < 1e-9 );
+
+    assert!((&(&tensor*&y) 
+          - &y.scale(values[1])).norm()/values[1].abs() < 1e-9 );
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Test methyl exchange coupling.
     let methyl_tensor_indices = [[1,2,3], [4,5,6], [13,14,15], [16,17,18]];
     let j = -2.0*80e3/3.0;
     let tol = 1e-12;
