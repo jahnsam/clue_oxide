@@ -87,7 +87,7 @@ impl HamiltonianTensors{
 
       // hyperfine
       let hf_ten = construct_hyperfine_tensor(detected_particle, particle0, 
-          idx0, structure, config)?; 
+          particle_idx0, structure, config)?; 
 
       spin2_tensors.set(0,idx0, hf_ten);
 
@@ -320,6 +320,7 @@ fn construct_hyperfine_tensor(detected_particle: &DetectedSpin,
   {
     tensor = construct_symmetric_tensor_from_tensor_specifier(
         tensor_specifier, particle_index,structure, config)?;
+
   }else{
 
     let gamma_e = detected_particle.isotope.gyromagnetic_ratio();
@@ -527,8 +528,8 @@ mod tests{
           electric_quadrupole_y = diff(bonded(tempo_c),bonded(tempo_c));
 
           hyperfine_coupling = [16086000, 16086000, 103356000];
-          hyperfine_x = diff(particle, same_molecule(tempo_o));
-          hyperfine_y = diff(bonded(tempo_c),bonded(tempo_c));
+          hyperfine_x = vector([-1.15e-10, -4.70e-11,  7.10e-11]);
+          hyperfine_y = vector([-1.09,  2.23, -0.49]*1e-10);
 
         ").unwrap();
 
@@ -573,6 +574,18 @@ mod tests{
           - &y.scale(values[1])).norm()/values[1].abs() < 1e-9 );
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Test nitrogen hyperfine coupling.
+    let values = [16086000.0, 16086000.0, 103356000.0];
+    let tensor = tensors.spin2_tensors.get(0,19).unwrap().clone();
+
+    assert_eq!(&tensor*&r_no,r_no.scale(values[0]));
+    assert!((&(&tensor*&x) 
+          - &x.scale(values[0])).norm()/values[0].abs() < 1e-9 );
+
+    assert!((&(&tensor*&y) 
+          - &y.scale(values[1])).norm()/values[1].abs() < 1e-9 );
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Test methyl exchange coupling.
     let methyl_tensor_indices = [[1,2,3], [4,5,6], [13,14,15], [16,17,18]];
     let j = -2.0*80e3/3.0;
@@ -595,7 +608,6 @@ mod tests{
       }
     }
 
-    assert!(false);
 
   }
   //----------------------------------------------------------------------------

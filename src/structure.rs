@@ -216,7 +216,6 @@ impl Structure{
       config: &'a Config)
     -> Option<&'a TensorSpecifier>
   {
-    println!("DB: isotope {:?}" ,self.bath_particles[particle_index].isotope);
     let Some(isotope_properties) = self.extract_isotope_properties(
         particle_index,config) 
     else{
