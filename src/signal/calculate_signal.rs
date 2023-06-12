@@ -19,14 +19,17 @@ use crate::space_3d::UnitSpherePoint;
 use num_complex::Complex;
 use rand_chacha::ChaCha20Rng;
 //------------------------------------------------------------------------------
-// This averages the spin decoherence signal over multiple input structures,
-// multiple input PDBs for example.
+/// This function builds the spin structure and calculates the signal over
+/// one or multiple orientations.
 pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
     path_opt: &Option<String>) -> Result<Vec::<Signal>,CluEError>
 {
+
+  // Build input structure.
   let structure = Structure::build_structure(rng,config)?;
   
 
+  // Determine if/where to save results.
   let save_dir_opt = match path_opt{
     Some(path) => {
       
@@ -55,32 +58,41 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
   };
 
 
+
+  // Determine maximum cluster size.
   let Some(max_cluster_size) = config.max_cluster_size else{
     return Err(CluEError::NoMaxClusterSize);
   };
-  let mut order_n_signals = Vec::<Signal>::with_capacity(max_cluster_size);
 
+  // Get number of data points per trace.
   let n_tot = config.number_timepoints.iter().sum::<usize>();
   
-  for _size_idx in 0..max_cluster_size{
-    order_n_signals.push(Signal::zeros(n_tot));
-  }
+  // Initialize output.
+  let mut order_n_signals = (0..max_cluster_size).map(|_| Signal::zeros(n_tot))
+    .collect::<Vec::<Signal>>();
 
+  
+  // Generate coupling tensors.
   let tensors = HamiltonianTensors::generate(&structure, config)?;
 
+
+  // Determin orientation averaging method.
   let integration_grid = match config.orientation_averaging{
     Some(OrientationAveraging::Lebedev(n_ori)) 
       => IntegrationGrid::lebedev(n_ori)?,
     None => IntegrationGrid::z_3d(),
   };
 
+  // Loop over orientation.
   for iori in 0..integration_grid.len(){
+    
     let rot_dir = UnitSpherePoint::from(integration_grid.xyz(iori)?);
     
     let mut ori_sigs = calculate_signal_at_orientation(
         rot_dir,tensors.clone(), &structure,config, &save_dir_opt )?;
 
     let weight = Complex::<f64>{ re: integration_grid.weight(iori), im: 0.0};
+
     for size_idx in 0..max_cluster_size{
       ori_sigs[size_idx].scale(weight);
       order_n_signals[size_idx] 
@@ -92,12 +104,15 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------
+// This function calculates the signal for the input structure at the input
+// orientation.
 fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
     mut tensors: HamiltonianTensors, structure: &Structure,
     config: &Config, path_opt: &Option<String>)
   -> Result<Vec::<Signal>,CluEError>
 {
   
+  // Determine if/where to save results.
   let save_dir_opt = match path_opt{
     Some(path) => {
 
@@ -120,14 +135,18 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   };
   
 
+  // Rotate the coupling tensor to the specified orientation.
   tensors.rotate_active(&rot_dir);
 
+  // Determine adjacencies.
   let adjacency_list = build_adjacency_list(&tensors, config)?;
 
+  // Determine maximum cluster size.
   let Some(max_cluster_size) = config.max_cluster_size else{
     return Err(CluEError::NoMaxClusterSize);
   };
 
+  // Find clusters.
   let mut cluster_set = find_clusters(&adjacency_list, max_cluster_size)?;
 
   // TODO: add toggle in config for remove_partial_methyls
@@ -139,15 +158,13 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
     println!("Found {} clusters of size {}.",clusters_of_size.len(),size_idx+1);
   }
 
-  let Some(cluster_method) = &config.cluster_method else {
-    return Err(CluEError::NoClusterMethod);
-  };
 
-  let order_n_signals = match cluster_method{
-    ClusterMethod::AnalyticRestricted2CCE => 
+  // Calculate cluster signals.
+  let order_n_signals = match &config.cluster_method{
+    Some(ClusterMethod::AnalyticRestricted2CCE) => 
       calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
           config,&save_dir_opt)?,
-    ClusterMethod::CCE => {
+    Some(ClusterMethod::CCE) => {
       let spin_multiplicity_set =
         math::unique(tensors.spin_multiplicities.clone());
       let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
@@ -155,15 +172,21 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
       do_cluster_correlation_expansion(&mut cluster_set, &spin_ops, &tensors, 
           config,&save_dir_opt)?
     },
+    None => return Err(CluEError::NoClusterMethod)
   };
 
 
   if let Some(save_dir) =  &save_dir_opt{
     let save_path = format!("{}/signal.csv", save_dir);
-    write_vec_signals(&order_n_signals, &save_path)?;
+    let headers = (1..=max_cluster_size)
+      .map(|ii| format!("signal_{}",ii+1))
+      .collect::<Vec::<String>>();
+    write_vec_signals(&order_n_signals, headers, &save_path)?;
   }
 
-  // TODO: calculate nuclear contributions
+  // TODO: add toggle in config
+  caculate_sans_spin_signals(&order_n_signals[max_cluster_size - 1],
+    &cluster_set, structure, config, &save_dir_opt)?;
 
 
   // TODO: add toggle in config
@@ -172,6 +195,91 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
 
   Ok(order_n_signals)
 } 
+//------------------------------------------------------------------------------
+// For each active spin in structure, this function calculates the signal,
+// where the spin is dropped. 
+fn caculate_sans_spin_signals(ref_signal: &Signal,
+    cluster_set: &ClusterSet, structure: &Structure, config: &Config, 
+    save_dir_opt: &Option<String>)
+  -> Result<(),CluEError>
+{
+  
+  let save_path = match save_dir_opt{
+    None => return Ok(()),
+    Some(path) 
+      => format!("{}/sans_spin_signals.csv", path),
+  };
+
+  let mut spin_signals 
+    = caculate_bath_spin_contributions(cluster_set, structure, config)?;
+
+  for sig in spin_signals.iter_mut(){
+    *sig = ref_signal / sig;
+  }
+
+  let headers = structure.bath_particles.iter().enumerate()
+    .filter_map(|(idx,particle)| 
+        if particle.active{
+          Some( format!("sans_{}",idx) )
+        }else{
+          None
+        }
+    ).collect::< Vec::<String> >();
+
+  write_vec_signals(&spin_signals,headers,&save_path)
+}
+//------------------------------------------------------------------------------
+// For each active spin in structure, this function calculates the product of
+// auxiliary signals for clusters that contain the spin.
+// Note that since clusters contain multiple spins, the contributions from
+// multiple spins are not independent of each other, 
+// meaning that the product of contributions will not in general equal the 
+// calculated signal.
+fn caculate_bath_spin_contributions(
+    cluster_set: &ClusterSet, structure: &Structure, config: &Config)
+  -> Result<Vec::<Signal>,CluEError>
+{
+
+  // Get number of data points per trace.
+  let n_tot = config.number_timepoints.iter().sum::<usize>();
+
+  let mut spin_contributions = (0..structure.number_active())
+    .map(|_| Signal::ones(n_tot)).collect::<Vec::<Signal>>();
+
+  let mut index = 0;
+  let vertex_to_index = structure.bath_particles.iter()
+    .map(|particle| 
+        if particle.active{
+          let idx = index;
+          index += 1;
+          Some(idx)
+        }else{
+          None
+        }  
+    ).collect::< Vec::<Option<usize>> >();
+
+  for clusters_of_size in cluster_set.clusters.iter(){
+
+    for cluster in clusters_of_size{
+
+      for &vertex in cluster.vertices(){
+        let Some(idx) = vertex_to_index[vertex] else {
+          return Err(CluEError::CannotMatchVertexToIndex(vertex));
+        };
+
+        match &cluster.signal{
+          Ok(Some(signal)) => 
+            spin_contributions[idx] = &spin_contributions[idx] * signal,
+          Ok(None) => (),
+          Err(err) => return Err(err.clone()),
+        }
+      } 
+    }
+
+  }
+
+  Ok(spin_contributions)
+}
 //------------------------------------------------------------------------------
 fn calculate_methyl_partition_cce(
     cluster_set: ClusterSet, structure: &Structure, config: &Config, 

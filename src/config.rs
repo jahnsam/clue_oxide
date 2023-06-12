@@ -296,7 +296,7 @@ impl Config{
           if mode.isotope.is_none(){
             return Err(CluEError::SpinPropertiesNeedsAnIsotope(label.clone()));
           }
-          self.parse_properties_line(expression,&mode.label,mode.isotope);
+          self.parse_properties_line(expression,&mode.label,mode.isotope)?;
         },
         ConfigMode::Spins => (),
         ConfigMode::StructureProperties => {
@@ -308,7 +308,7 @@ impl Config{
                CluEError::StructurePropertiesDoesNotNeedAnIsotope(
                  label.clone()));
           }
-          self.parse_properties_line(expression,&mode.label,mode.isotope);
+          self.parse_properties_line(expression,&mode.label,mode.isotope)?;
         },
         ConfigMode::Structures => (),
         ConfigMode::Tensors => (),

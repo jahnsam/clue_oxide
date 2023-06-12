@@ -146,9 +146,8 @@ impl Structure{
         exchange_groups.push(exchange_group);
 
 
-        for (ii,&idx) in indices.iter().enumerate(){
+        for &idx in indices.iter(){
           exchange_group_ids[idx] = Some(exchange_groups.len()-1);
-          //exchange_group_manager0.exchange_group_ids[ii];
         }
 
 

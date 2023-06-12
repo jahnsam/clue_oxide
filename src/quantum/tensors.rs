@@ -490,6 +490,7 @@ mod tests{
   use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
   //----------------------------------------------------------------------------
+  #[allow(non_snake_case)]
   #[test]
   fn test_HamiltonianTensors_generate(){
 

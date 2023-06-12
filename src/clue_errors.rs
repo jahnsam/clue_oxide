@@ -17,6 +17,7 @@ pub enum CluEError{
   CannotFindCellID(usize),
   CannotFindSpinOp(String),
   CannotInferEigenvalues(usize),
+  CannotMatchVertexToIndex(usize),
   CannotMulTokens,
   CannotOpenFile(String),
   CannotParseElement(String),
@@ -158,6 +159,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotInferEigenvalues(line_number) => write!(f,
           "line {}, cannot infer eigenvalues from input",line_number),
+      
+      CluEError::CannotMatchVertexToIndex(vertex) => write!(f,
+          "cannot match vertex {} to an index",vertex),
       
       CluEError::CannotMulTokens => write!(f,
           "cannot multiply tokens meaningfully"),
