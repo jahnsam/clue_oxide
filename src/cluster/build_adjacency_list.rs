@@ -37,6 +37,27 @@ fn are_spins_neighbors(idx0: usize,idx1: usize,
     tensors: &HamiltonianTensors, config: &Config) -> bool
 {
 
+  if tensors.spin_multiplicities[idx0] != tensors.spin_multiplicities[idx1]{
+    return false;
+  }
+
+  // TODO: add toggle in config {
+  let Some(zeeman0) = tensors.spin1_tensors.get(idx0) else {
+    return false;
+  };
+
+  let Some(zeeman1) = tensors.spin1_tensors.get(idx1) else {
+    return false;
+  };
+
+  let delta_zeeman = zeeman1 - zeeman0;
+  let sum_zeeman = zeeman1 + zeeman0;
+
+  if 2.0*delta_zeeman.norm()/sum_zeeman.norm() > 1e-12 {
+    return false;
+  }
+  // TODO: }
+
   let Some(dipdip) = tensors.spin2_tensors.get(idx0,idx1) else {
     return false;
   };

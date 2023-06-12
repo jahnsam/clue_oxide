@@ -70,13 +70,13 @@ pub fn do_cluster_correlation_expansion(
  
         for ii in idx..idx_end{
           let cluster = &clusters[cluster_size-1][ii];
-          let mut aux_signal: Signal;
-          match &cluster.signal{
-            Ok(Some(sig)) => aux_signal = sig.clone(),
+          
+          let mut aux_signal: Signal = match &cluster.signal{
+            Ok(Some(sig)) => sig.clone(),
             Ok(None) => return Err(
                 CluEError::ClusterHasNoSignal(cluster.to_string())),
             Err(err) => return Err(err.clone()),
-          }
+          };
 
           let subclusters = build_subclusters(cluster.vertices());
 

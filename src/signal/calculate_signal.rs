@@ -179,7 +179,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   if let Some(save_dir) =  &save_dir_opt{
     let save_path = format!("{}/signal.csv", save_dir);
     let headers = (1..=max_cluster_size)
-      .map(|ii| format!("signal_{}",ii+1))
+      .map(|ii| format!("signal_{}",ii))
       .collect::<Vec::<String>>();
     write_vec_signals(&order_n_signals, headers, &save_path)?;
   }
@@ -248,7 +248,7 @@ fn caculate_bath_spin_contributions(
 
   let mut index = 0;
   let vertex_to_index = structure.bath_particles.iter()
-    .map(|particle| 
+    .filter_map(|particle| 
         if particle.active{
           let idx = index;
           index += 1;
@@ -256,16 +256,15 @@ fn caculate_bath_spin_contributions(
         }else{
           None
         }  
-    ).collect::< Vec::<Option<usize>> >();
+    ).collect::< Vec::<usize> >();
 
   for clusters_of_size in cluster_set.clusters.iter(){
 
     for cluster in clusters_of_size{
 
       for &vertex in cluster.vertices(){
-        let Some(idx) = vertex_to_index[vertex] else {
-          return Err(CluEError::CannotMatchVertexToIndex(vertex));
-        };
+
+        let idx = vertex_to_index[vertex];
 
         match &cluster.signal{
           Ok(Some(signal)) => 
