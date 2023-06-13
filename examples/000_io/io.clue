@@ -3,7 +3,7 @@
 input_structure_file = "../../assets/TEMPO.pdb";
 radius = 18e-10; // m.
 detected_spin_position = centroid_over_serials([28,29]);
-write_structure_pdb = "";
+//write_structure_pdb = "";
 
 neighbor_cutoff_dipole_dipole = 1; // Hz.
 pulse_sequence = hahn;

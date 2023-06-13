@@ -5,6 +5,9 @@ use crate::math;
 use crate::cluster::Cluster;
 
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone,PartialEq)]
@@ -38,6 +41,47 @@ impl ClusterSet{
 
     ClusterSet{clusters,cluster_indices}
   }
+  //----------------------------------------------------------------------------
+  pub fn save(&self, filename: &str) -> Result<(),CluEError>{
+    let Ok(file) = File::create(filename) else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()) );
+    };
+
+    let max_size = self.clusters.len();
+    let n_clusters: usize = self.clusters.iter().map(|c| c.len()).sum();
+
+    let chars_per_line = 4 + 2*max_size;
+    let bytes_per_char = 32;
+    
+    let n_bytes = n_clusters*chars_per_line*bytes_per_char + 3200;
+
+    let mut stream = BufWriter::with_capacity(n_bytes,file);
+
+    let mut line = "#[clusters, number_clusters = [".to_string();
+    for (ii,cluster_of_size) in self.clusters.iter().enumerate(){
+      if ii == 0{
+        line = format!("{}{}",line,cluster_of_size.len());
+      }else{
+        line = format!("{},{}",line,cluster_of_size.len());
+      }
+    }
+    line = format!("{}] ]\n\n",line);
+    if stream.write(line.as_bytes()).is_err(){
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }
+
+    for cluster_of_size in self.clusters.iter(){
+      for cluster in cluster_of_size.iter(){
+        let line = format!("{},\n",cluster.to_string());
+          if stream.write(line.as_bytes()).is_err(){
+            return Err(CluEError::CannotWriteFile(filename.to_string()) );
+          }
+      }
+    }
+    Ok(())
+  }
+  //----------------------------------------------------------------------------
+
 }
 //------------------------------------------------------------------------------
 pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize) 

@@ -158,6 +158,13 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
     println!("Found {} clusters of size {}.",clusters_of_size.len(),size_idx+1);
   }
 
+  if let Some(path) = &save_dir_opt{
+    if let Some(cluster_file) = &config.write_clusters{
+      let cluster_save_path = format!("{}/{}.txt",path,cluster_file);
+      cluster_set.save(&cluster_save_path)?;
+    }
+  }
+
 
   // Calculate cluster signals.
   let order_n_signals = match &config.cluster_method{
