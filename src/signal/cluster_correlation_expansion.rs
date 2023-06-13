@@ -12,6 +12,8 @@ use rayon::prelude::*;
 use std::path::Path;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// Thi function calculates the cluster correlation expansion (CCE)
+/// approximation of the echo decay.
 pub fn do_cluster_correlation_expansion(
     cluster_set: &mut ClusterSet, spin_ops: &ClusterSpinOperators,
     tensors: &HamiltonianTensors, config: &Config, 
@@ -20,6 +22,40 @@ pub fn do_cluster_correlation_expansion(
 {
 
   
+  calculate_auxiliary_signals(cluster_set, spin_ops, tensors, config, 
+      save_path_opt)?; 
+
+  let n_tot = config.number_timepoints.iter().sum::<usize>();
+  let max_size = cluster_set.clusters.len();
+
+
+  let mut order_n_signals = Vec::<Signal>::with_capacity(max_size);
+  let mut signal = Signal::ones(n_tot);
+
+  for cluster_of_size in cluster_set.clusters.iter(){
+    for cluster in cluster_of_size.iter(){
+      match &cluster.signal{
+        Ok(Some(aux_sig)) => signal = &signal * aux_sig,
+        Ok(None) => (),
+        Err(err) => return Err(err.clone()),
+      }
+    }
+    order_n_signals.push(signal.clone());
+  }
+
+  Ok(order_n_signals)
+}
+//------------------------------------------------------------------------------
+// For each cluster in cluster_set this function replaces cluster.signal
+// with that cluster's auxiliary signal.
+fn calculate_auxiliary_signals(
+    cluster_set: &mut ClusterSet, spin_ops: &ClusterSpinOperators,
+    tensors: &HamiltonianTensors, config: &Config, 
+    save_path_opt: &Option<String>
+    ) 
+  -> Result<(),CluEError>
+{
+
   let clusters = &mut cluster_set.clusters;
   let cluster_indices = &cluster_set.cluster_indices;
 
@@ -28,85 +64,92 @@ pub fn do_cluster_correlation_expansion(
   };
 
   let n_tot = config.number_timepoints.iter().sum::<usize>();
-  let mut signal = Signal::ones(n_tot);
-
   let max_size = clusters.len();
-  let mut order_n_signals = Vec::<Signal>::with_capacity(max_size);
 
+  // Loop over cluster sizes.
   for cluster_size in 1..=max_size{
+
+    // Split the cluster into batches.
     let n_clusters = clusters[cluster_size-1].len();
     let n_batches 
       = math::ceil( (n_clusters as f64)/(batch_size as f64)) as usize;
-      for ibatch in 0..n_batches{
-        let idx = ibatch*batch_size;
 
-        if let Some(path) = &save_path_opt{
-          if let Some(aux_dir) = &config.write_auxiliary_signals{
-            let load_dir = format!("{}/{}",path, aux_dir);
-            let aux_filename = format!("{}/cluster_size_{}_batch_{}.csv",
-                load_dir, cluster_size,ibatch);
+    // Loop over batches
+    for ibatch in 0..n_batches{
+      let idx = ibatch*batch_size;
 
-            if Path::new(&aux_filename).exists(){
-               load_batch_signals(&mut clusters[cluster_size-1],
-                   idx,batch_size,&aux_filename)?;
+      // Check for saved data.
+      if let Some(path) = &save_path_opt{
+        if let Some(aux_dir) = &config.write_auxiliary_signals{
+          let load_dir = format!("{}/{}",path, aux_dir);
+          let aux_filename = format!("{}/cluster_size_{}_batch_{}.csv",
+              load_dir, cluster_size,ibatch);
 
-               continue;
-            }
+          if Path::new(&aux_filename).exists(){
+             load_batch_signals(&mut clusters[cluster_size-1],
+                 idx,batch_size,&aux_filename)?;
 
+             continue;
           }
         }
-        clusters[cluster_size-1].par_iter_mut().skip(idx).take(batch_size)
-          .for_each(|cluster| 
-              cluster.signal = calculate_cluster_signal(cluster.vertices(),
-                spin_ops,tensors,config)
-        );
-
-
-        let idx_end = if idx+batch_size < clusters[cluster_size-1].len(){
-          idx + batch_size
-        }else{
-         clusters[cluster_size-1].len()
-        };
- 
-        for ii in idx..idx_end{
-          let cluster = &clusters[cluster_size-1][ii];
-          
-          let mut aux_signal: Signal = match &cluster.signal{
-            Ok(Some(sig)) => sig.clone(),
-            Ok(None) => return Err(
-                CluEError::ClusterHasNoSignal(cluster.to_string())),
-            Err(err) => return Err(err.clone()),
-          };
-
-          let subclusters = build_subclusters(cluster.vertices());
-
-          for subcluster_vertices in subclusters.iter(){
-            if subcluster_vertices.is_empty(){ continue; }
-            let subcluster_size = subcluster_vertices.len();
-
-            if subcluster_size >= cluster_size{
-              let subcluster = Cluster::from(subcluster_vertices.clone());
-              return Err(CluEError::NotAProperSubset(
-                    subcluster.to_string(),cluster.to_string()));
-            }
-
-            if let Some(subcluster_idx) = cluster_indices[subcluster_size-1]
-              .get(subcluster_vertices)
-            {
-              let subcluster = &clusters[subcluster_size-1][*subcluster_idx];
-              match &subcluster.signal{
-                Ok(Some(subsignal)) =>  aux_signal = &aux_signal/subsignal,
-                Ok(None) => continue,
-                Err(err) => return Err(err.clone()),
-              }
-
-            }
-          
-          }
-
-          signal = &signal * &aux_signal;
       }
 
+      // Calculate cluster signals for batch.
+      clusters[cluster_size-1].par_iter_mut().skip(idx).take(batch_size)
+        .for_each(|cluster| 
+            cluster.signal = calculate_cluster_signal(cluster.vertices(),
+              spin_ops,tensors,config)
+      );
+
+
+      // Loop over cluster in this batch and calculate the auxiliary signals
+      // from the cluster signals.
+      for cluster in clusters[cluster_size-1].iter().skip(idx)
+        .take(batch_size){
+        
+        // Unpack signal.
+        let mut aux_signal: Signal = match &cluster.signal{
+          Ok(Some(sig)) => sig.clone(),
+          Ok(None) => return Err(
+              CluEError::ClusterHasNoSignal(cluster.to_string())),
+          Err(err) => return Err(err.clone()),
+        };
+
+        // Find subclusters.
+        let subclusters = build_subclusters(cluster.vertices());
+
+        // Loop over subclusters.
+        for subcluster_vertices in subclusters.iter(){
+          if subcluster_vertices.is_empty(){ continue; }
+
+          let subcluster_size = subcluster_vertices.len();
+
+          // error check
+          if subcluster_size >= cluster_size{
+            let subcluster = Cluster::from(subcluster_vertices.clone());
+            return Err(CluEError::NotAProperSubset(
+                  subcluster.to_string(),cluster.to_string()));
+          }
+
+
+          // Devide out subcluster auxiliary signals.
+          if let Some(subcluster_idx) = cluster_indices[subcluster_size-1]
+            .get(subcluster_vertices)
+          {
+            let subcluster = &clusters[subcluster_size-1][*subcluster_idx];
+            match &subcluster.signal{
+              Ok(Some(subsignal)) =>  aux_signal = &aux_signal/subsignal,
+              Ok(None) => continue,
+              Err(err) => return Err(err.clone()),
+            }
+
+          }
+        
+        }
+      }
+
+
+      // Decide if the auxiliary signals should be saved.
       if let Some(path) = &save_path_opt{
         if let Some(aux_dir) = &config.write_auxiliary_signals{
           let save_dir = format!("{}/{}",path, aux_dir);
@@ -122,13 +165,13 @@ pub fn do_cluster_correlation_expansion(
         }
       }
     }
-
-    order_n_signals.push(signal.clone());
   }
 
-  Ok(order_n_signals)
+  Ok(())
 }
 //------------------------------------------------------------------------------
+// This function calculate the cluster signal for the cluster specified by
+// tensor_indices.
 fn calculate_cluster_signal(tensor_indices: &Vec::<usize>, 
     spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors, 
     config: &Config) 
