@@ -337,10 +337,11 @@ mod tests{
     spin2_tensors.set(0,4,hf2);
     spin2_tensors.set(3,4,dip);
 
-    HamiltonianTensors{
+    HamiltonianTensors::from(
       spin_multiplicities,
       spin1_tensors,
-      spin2_tensors} 
+      spin2_tensors,
+      ).unwrap() 
   }  
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

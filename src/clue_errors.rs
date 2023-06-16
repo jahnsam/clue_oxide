@@ -16,6 +16,8 @@ pub enum CluEError{
   CannotDivTokens,
   CannotFindCellID(usize),
   CannotFindSpinOp(String),
+  CannotFindStructureIndex(usize),
+  CannotFindTensorIndex(usize),
   CannotInferEigenvalues(usize),
   CannotMatchVertexToIndex(usize),
   CannotMulTokens,
@@ -158,6 +160,14 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotFindSpinOp(sop) => write!(f,
           "cannot find spin operator \"{}\"",sop),
+
+      CluEError::CannotFindStructureIndex(tensor_index) => write!(f,
+          "cannot find structure index for tensor index \"{}\"",
+          tensor_index),
+
+      CluEError::CannotFindTensorIndex(structure_index) => write!(f,
+          "cannot find tensor index for structure index \"{}\"",
+          structure_index),
 
       CluEError::CannotInferEigenvalues(line_number) => write!(f,
           "line {}, cannot infer eigenvalues from input",line_number),

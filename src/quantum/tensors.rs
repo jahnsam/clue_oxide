@@ -23,7 +23,7 @@ pub struct HamiltonianTensors{
   pub spin_multiplicities: Vec::<usize>,
   pub spin1_tensors: Spin1Tensors, // O(S)
   pub spin2_tensors: Spin2Tensors, // O(S^2)
-
+  structure_indices: Vec::<usize>,
 }
 impl HamiltonianTensors{
   //----------------------------------------------------------------------------
@@ -40,9 +40,48 @@ impl HamiltonianTensors{
     self.spin2_tensors.rotate_active(dir);
   }
   //----------------------------------------------------------------------------
+  pub fn from(
+      spin_multiplicities: Vec::<usize>,
+      spin1_tensors: Spin1Tensors,
+      spin2_tensors: Spin2Tensors,
+      ) -> Result<Self,CluEError>
+  {
+
+    let n_spins = spin1_tensors.len();
+
+    // TODO: check spin1_tensors.len() == spin2_tensors.len()
+    Ok(HamiltonianTensors{
+      spin_multiplicities,
+      spin1_tensors,
+      spin2_tensors,
+      structure_indices: (0..n_spins-1).map(|ii| ii).collect::<Vec::<usize>>()
+    })
+  }
+  //----------------------------------------------------------------------------
+  pub fn get_structure_index(&self, tensor_index: usize) 
+    -> Result<usize,CluEError>
+  {
+    if tensor_index >= self.structure_indices.len(){
+      return Err(CluEError::CannotFindStructureIndex(tensor_index));
+    }
+    Ok(self.structure_indices[tensor_index])
+  }
+  //----------------------------------------------------------------------------
+  pub fn get_tensor_index(&self,structure_index: usize) 
+    -> Result<usize,CluEError> 
+  {
+    for (ten_idx, &idx) in self.structure_indices.iter().enumerate(){
+      if idx == structure_index{
+        return Ok(ten_idx);
+      }
+    }
+    Err(CluEError::CannotFindTensorIndex(structure_index))
+  }
+  //----------------------------------------------------------------------------
   pub fn generate(structure: &Structure, config: &Config) 
     -> Result<Self,CluEError>
   {
+
     let n_spins = structure.number_active() + 1;
     let mut spin_multiplicities = Vec::<usize>::with_capacity(n_spins);
     let mut spin1_tensors = Spin1Tensors::new(n_spins);
@@ -168,10 +207,20 @@ impl HamiltonianTensors{
       }
     }
 
+    let structure_indices = structure.bath_particles
+      .iter().enumerate().filter_map( 
+          |(structure_idx, particle)| 
+            if particle.active{ 
+              Some(structure_idx)
+            }else{ 
+              None
+            }
+          ).collect::<Vec<usize>>();
     Ok(HamiltonianTensors{
       spin_multiplicities,
       spin1_tensors,
-      spin2_tensors
+      spin2_tensors,
+      structure_indices
       })
 
   }
