@@ -67,6 +67,7 @@ pub struct Config{
   pub write_info: Option<String>,
   pub write_orientation_signals: Option<String>,
   pub write_structure_pdb: Option<String>,
+  pub write_tensors: Option<String>,
 }
 
 
@@ -131,6 +132,9 @@ impl Config{
 
     set_default_write_path(&mut self.write_structure_pdb,
         "spin_system");
+
+    set_default_write_path(&mut self.write_tensors,
+        "tensors");
   }
   //----------------------------------------------------------------------------
   pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) 

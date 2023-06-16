@@ -13,6 +13,9 @@ use crate::symmetric_list_2d::SymList2D;
 //use std::fs;
 //use std::fs::File;
 //use std::io::{Error, Write};
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)] 
@@ -171,6 +174,83 @@ impl HamiltonianTensors{
       spin2_tensors
       })
 
+  }
+  //----------------------------------------------------------------------------
+  pub fn save(&self, filename: &str) -> Result<(),CluEError>{
+    let Ok(file) = File::create(filename) else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()) );
+    };
+
+    let n_char_spin_mult = 30;
+    let n_char_f64 = 16;
+    let n_char_s1 = 30 + 3*n_char_f64;
+    let n_char_s2 = 35 + 6*n_char_f64;
+
+
+    let n_spins = self.spin1_tensors.len();
+
+    let n_bytes 
+      = 3200 + (n_spins + 1)*(n_char_spin_mult + n_char_s1 + n_char_s2);
+
+    let mut stream = BufWriter::with_capacity(n_bytes,file);
+    
+    let line = format!("#[tensors(number = {})]\n",n_spins);
+    if stream.write(line.as_bytes()).is_err(){
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }
+
+    // Write spin multiplicities.
+    let line = "\n// Spin Multiplicities\n".to_string();
+    if stream.write(line.as_bytes()).is_err(){
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }
+
+    for (ii, spin_mult) in self.spin_multiplicities.iter().enumerate(){
+
+      let line = format!("spin_mutiplicity[{}] = {};\n", ii, spin_mult);
+
+      if stream.write(line.as_bytes()).is_err(){
+        return Err(CluEError::CannotWriteFile(filename.to_string()) );
+      }
+    }
+
+    // Write O(S^1) tensors.
+    let line = "\n// One Spin Tensors\n".to_string();
+    if stream.write(line.as_bytes()).is_err(){
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }
+
+    for ii in 0..n_spins{
+      if let Some(tensor) = self.spin1_tensors.get(ii){
+        let line = format!("tensor[{}] = {}; // Hz.\n",ii,tensor.to_string());
+       
+        if stream.write(line.as_bytes()).is_err(){
+          return Err(CluEError::CannotWriteFile(filename.to_string()) );
+        } 
+      }
+    }
+
+    // Write O(S^2) tensors.
+    let line = "\n// Two Spin Tensors\n".to_string();
+    if stream.write(line.as_bytes()).is_err(){
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }
+
+    for ii in 0..n_spins{
+      for jj in ii..n_spins{
+
+        if let Some(tensor) = self.spin2_tensors.get(ii,jj){
+          let line = format!("tensor[{},{}] = {}; // Hz.\n",ii,jj,
+              tensor.to_string());
+         
+          if stream.write(line.as_bytes()).is_err(){
+            return Err(CluEError::CannotWriteFile(filename.to_string()) );
+          } 
+        }
+      }
+    }
+
+    Ok(())
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

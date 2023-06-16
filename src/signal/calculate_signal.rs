@@ -74,6 +74,20 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
   
   // Generate coupling tensors.
   let tensors = HamiltonianTensors::generate(&structure, config)?;
+  if let Some(save_dir) = &save_dir_opt{
+    if let Some(info_dir) = &config.write_info{
+      let info_path = format!("{}/{}",save_dir,info_dir);
+      
+      if let Some(tensor_save_name) = &config.write_tensors{
+        if std::fs::create_dir_all(info_path.clone()).is_err(){
+          return Err(CluEError::CannotCreateDir(info_path));
+        }
+        let tensor_path = format!("{}/{}.txt",info_path,tensor_save_name);
+
+        tensors.save(&tensor_path)?;
+      }
+    }
+  }
 
 
   // Determin orientation averaging method.
