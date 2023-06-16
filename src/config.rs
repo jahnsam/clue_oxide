@@ -55,6 +55,7 @@ pub struct Config{
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
+  pub remove_partial_methyls: Option<bool>,
   pub root_dir: Option<String>,
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
@@ -65,6 +66,7 @@ pub struct Config{
   pub write_auxiliary_signals: Option<String>,
   pub write_clusters: Option<String>,
   pub write_info: Option<String>,
+  pub write_methyls: Option<String>,
   pub write_orientation_signals: Option<String>,
   pub write_structure_pdb: Option<String>,
   pub write_tensors: Option<String>,
@@ -101,6 +103,20 @@ impl Config{
         None => self.density_matrix = Some(DensityMatrixMethod::Identity),
       }
     }
+
+    if self.remove_partial_methyls.is_none(){
+      'part_met : for particle_config in self.particles.iter(){
+        if let Some(properties) = &particle_config.properties{
+          for (_key, isotope_props) in properties.isotope_properties.iter(){
+            if isotope_props.exchange_coupling.is_some(){
+              self.remove_partial_methyls = Some(true);
+              break 'part_met;
+            }
+          }
+        }
+      }
+    }
+
     if self.root_dir.is_none(){
       self.root_dir = Some("./".to_string());
     }
@@ -126,6 +142,9 @@ impl Config{
 
     set_default_write_path(&mut self.write_info,
         "info");
+
+    set_default_write_path(&mut self.write_methyls,
+        "methyls");
 
     set_default_write_path(&mut self.write_orientation_signals,
         "orientations");
@@ -470,6 +489,9 @@ impl Config{
                 expression.line_number)),
         }
       },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::RemovePartialMethyls 
+        => set_to_some_bool(&mut self.remove_partial_methyls,expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Radius => set_to_some_f64(&mut self.radius,expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

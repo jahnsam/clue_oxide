@@ -36,6 +36,7 @@ pub enum CluEError{
   EmptyVector(usize),
   ExpectedClusterSetWithNSizes(usize,usize),
   ExpectedEquality(usize),
+  ExpectedBoolRHS(usize),
   ExpectedFloatRHS(usize),
   ExpectedIntRHS(usize),
   ExpectedNonNegativeIntRHS(usize),
@@ -80,6 +81,7 @@ pub enum CluEError{
   NoQuadrupoleSpecifier(String,String),
   NoRadius,
   NoRelationalOperators(usize),
+  NoRemovePartialMethyls,
   NoRHS(usize),
   NoSpinOpForClusterSize(usize,usize),
   NoSpinOpWithMultiplicity(usize),
@@ -225,6 +227,9 @@ impl fmt::Display for CluEError{
       CluEError::ExpectedEquality(line_number) => write!(f,
           "line {}, expected an equaliy",line_number),
 
+      CluEError::ExpectedBoolRHS(line_number) => write!(f,
+          "line {}, expected a bool on the right hand side",line_number),
+
       CluEError::ExpectedFloatRHS(line_number) => write!(f,
           "line {}, expected a float on the right hand side",line_number),
 
@@ -363,6 +368,9 @@ impl fmt::Display for CluEError{
           "line {}, no relational operators (=, <, >, in, ...), are present", 
           line_number),
 
+      CluEError::NoRemovePartialMethyls => write!(f,
+          "remove_partial_methyls: bool is not set"),
+      
       CluEError::NotA3DVector(dim) => write!(f,
           "vector is {}-dimensional, not 3-dimensional", 
           dim),

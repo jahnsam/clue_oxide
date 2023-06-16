@@ -1,13 +1,25 @@
+use crate::CluEError;
+use crate::physical_constants::ANGSTROM;
 use crate::space_3d::Vector3D;
 
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 pub trait Translate{ fn translate(&mut self, r: &Vector3D); }
 
 pub trait GetCentroid{fn centroid(&self) -> &Vector3D; }
 
+pub trait GetNormal{fn normal(&self) -> &Vector3D; }
+
 pub trait GetIndices{fn indices(&self) -> Vec::<usize>; }
 
 pub trait GetExchangeCoupling{fn exchange_coupling(&self) -> f64; }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
 pub struct ExchangeGroupManager{
   pub exchange_groups: Vec::<ExchangeGroup>,
@@ -15,6 +27,50 @@ pub struct ExchangeGroupManager{
   pub exchange_couplings: Vec::<f64>, // one entry per exchange_group
 }
 
+impl ExchangeGroupManager{
+  pub fn to_csv(&self, filename: &str) -> Result<(),CluEError>
+  {
+    let Ok(file) = File::create(filename) else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()) );
+    };
+
+    let n_char_f64 = 16;
+    let bytes_per_char = 32;
+    let n_bytes = 8*bytes_per_char*n_char_f64*(self.exchange_groups.len()+1);
+
+    let mut stream = BufWriter::with_capacity(n_bytes,file);
+
+    let line = "methyl,\
+center_x,center_y,center_z,\
+normal_x,normal_y,normal_z,\
+exchange_coupling\n".to_string();
+    if stream.write(line.as_bytes()).is_err(){
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }
+
+    for (ii,exchange_group) in self.exchange_groups.iter().enumerate(){
+
+      let methyl_str = exchange_group.to_string();
+      let r = exchange_group.centroid().scale(1.0/ANGSTROM);
+      let n = exchange_group.normal();
+      let j = self.exchange_couplings[ii];
+
+      let line = format!("{},{},{},{},{},{},{},{}\n",
+          methyl_str, r.x(), r.y(), r.z(), n.x(),n.y(), n.z(), j);
+    
+      if stream.write(line.as_bytes()).is_err(){
+        return Err(CluEError::CannotWriteFile(filename.to_string()) );
+      }
+    }
+
+
+    Ok(())
+  }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug, Clone)]
 pub enum ExchangeGroup{
   Methyl(C3Rotor),
@@ -39,11 +95,21 @@ impl GetCentroid for ExchangeGroup{
     }
   }
 }
+
 impl GetIndices for ExchangeGroup{
   fn indices(&self) -> Vec::<usize>{
     match self{
       ExchangeGroup::Methyl(rotor) => rotor.indices(),
       ExchangeGroup::PrimaryAmonium(rotor) => rotor.indices(),
+    }
+  }
+}
+
+impl GetNormal for ExchangeGroup{
+  fn normal(&self) -> &Vector3D{
+    match self{
+      ExchangeGroup::Methyl(rotor) => rotor.normal(),
+      ExchangeGroup::PrimaryAmonium(rotor) => rotor.normal(),
     }
   }
 }
@@ -56,6 +122,8 @@ impl Translate for ExchangeGroup{
     }
   }
 }
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 
 #[derive(Debug, Clone)]
@@ -94,7 +162,7 @@ pub fn from(r_carbon: Vector3D,
   let y = &y - &x.scale(x.dot(&y));                                              
                                                                                  
                                                                                  
-  let mut normal = x.cross(&y);                                                  
+  let mut normal = x.cross(&y).normalize();                                                  
                                                                                  
   let axis = &center -  &r_carbon;                                               
   if normal.dot(&axis) < 0.0 {                                                   

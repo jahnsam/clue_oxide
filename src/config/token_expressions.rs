@@ -112,6 +112,29 @@ pub fn check_target_vector<T>(target: &Vec<T>, expression: &TokenExpression)
 }
 
 //------------------------------------------------------------------------------
+pub fn set_to_some_bool(target: &mut Option<bool>, expression: &TokenExpression)
+  -> Result<(),CluEError>
+{
+
+  check_target_option(target,expression)?;
+
+  let tokens = token_stream::extract_rhs(expression)?;
+
+  if tokens.is_empty(){
+    return Err(CluEError::NoRHS(expression.line_number));
+  }else if tokens.len() > 1{
+    return Err(CluEError::TooManyRHSArguments(expression.line_number));
+  }
+
+  match tokens[0]{
+    Token::False => *target = Some(false),
+    Token::True => *target = Some(true),
+    _ => return Err(CluEError::ExpectedBoolRHS(expression.line_number)),
+  }
+
+  Ok(())
+}
+//------------------------------------------------------------------------------
 pub fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {

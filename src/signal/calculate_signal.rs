@@ -41,15 +41,23 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
         Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
       }
   
-      if let Some(filename) = &config.write_structure_pdb{
-        if let Some(info_dir) = &config.write_info{
+      if let Some(info_dir) = &config.write_info{
 
         let info_path = format!("{}/{}",save_dir,info_dir);
 
         if std::fs::create_dir_all(info_path.clone()).is_err(){
           return Err(CluEError::CannotCreateDir(info_path));
         }
+
+        if let Some(filename) = &config.write_structure_pdb{
           structure.write_pdb(&format!("{}/{}.pdb", info_path, filename))?;
+        }
+
+        if let Some(exchange_group_manager) = &structure.exchange_groups{
+          if let Some(filename) = &config.write_methyls{
+            let csv_file = format!("{}/{}.csv",info_path,filename);
+            exchange_group_manager.to_csv(&csv_file)?;
+          }
         }
       }
       Some(save_dir)
@@ -163,9 +171,14 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   // Find clusters.
   let mut cluster_set = find_clusters(&adjacency_list, max_cluster_size)?;
 
-  // TODO: add toggle in config for remove_partial_methyls
+  // Remove partial methyls.
   if let Some(exchange_group_manager) = &structure.exchange_groups{
-    cluster_set.remove_partial_methyls(exchange_group_manager);
+    let Some(do_remove_partial_methyls) = &config.remove_partial_methyls else{
+      return Err(CluEError::NoRemovePartialMethyls);
+    };
+    if *do_remove_partial_methyls{
+      cluster_set.remove_partial_methyls(exchange_group_manager);
+    }
   }
 
   for (size_idx,clusters_of_size) in cluster_set.clusters.iter().enumerate(){
@@ -285,7 +298,7 @@ fn caculate_bath_spin_contributions(
 
       for &vertex in cluster.vertices(){
 
-        let idx = vertex_to_index[vertex];
+        let idx = vertex_to_index[vertex-1];
 
         match &cluster.signal{
           Ok(Some(signal)) => 

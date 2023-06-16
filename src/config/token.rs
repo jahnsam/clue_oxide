@@ -30,6 +30,7 @@ pub enum Token{
  Elements,                                                    
  EOL,
  Equals,
+ False,
  Filter,
  Float(f64),
  GreaterThan,
@@ -70,6 +71,7 @@ pub enum Token{
  R2CCE,
  Radius,
  Random,
+ RemovePartialMethyls,
  Residue,
  Residues,                                                     
  ResSeqNums,                                                   
@@ -87,6 +89,7 @@ pub enum Token{
  Tensors,
  TimeIncrements,
  Times,
+ True,
  TunnelSplitting,
  Type,
  UserInputValue(String),
@@ -124,6 +127,7 @@ impl fmt::Display for Token{
       Token::Elements => write!(f,"elements"),
       Token::EOL => writeln!(f),
       Token::Equals => write!(f,"="),
+      Token::False => writeln!(f,"false"),
       Token::Filter => write!(f,"filter"),
       Token::Float(x) => write!(f,"{}",x),
       Token::GreaterThan => write!(f,">"),
@@ -168,6 +172,7 @@ impl fmt::Display for Token{
       Token::R2CCE => write!(f,"r2cce"),
       Token::Radius => write!(f,"radius"),
       Token::Random => write!(f,"random"),
+      Token::RemovePartialMethyls => write!(f,"remove_partial_methyls"),
       Token::Residue => write!(f,"residue"),
       Token::Residues => write!(f,"residues"),
       Token::ResSeqNums => write!(f,"residue_sequence_numbers"),
@@ -185,6 +190,7 @@ impl fmt::Display for Token{
       Token::Tensors => write!(f,"tensors"),
       Token::TimeIncrements => write!(f,"time_increments"),
       Token::Times => write!(f,"*"),
+      Token::True => writeln!(f,"true"),
       Token::TunnelSplitting => write!(f,"tunnel_splitting"),
       Token::Type => write!(f,"type"),
       Token::UserInputValue(string) => write!(f,"{}",string),
@@ -223,6 +229,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "elements" => Some(Token::Elements), 
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
+    "false" => Some(Token::False),
     "filter" => Some(Token::Filter),
     ">" => Some(Token::GreaterThan),
     ">=" => Some(Token::GreaterThanEqualTo),
@@ -264,6 +271,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "r2cce" => Some(Token::R2CCE),
     "radius" => Some(Token::Radius),
     "random" => Some(Token::Random),
+    "remove_partial_methyls" => Some(Token::RemovePartialMethyls),
     "residue" => Some(Token::Residue),
     "residues" => Some(Token::Residues),
     "residue_sequence_numbers" => Some(Token::ResSeqNums),
@@ -280,6 +288,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "structures" => Some(Token::Structures),
     "tensors" => Some(Token::Tensors),
     "*" => Some(Token::Times),
+    "true" => Some(Token::True),
     "time_increments" => Some(Token::TimeIncrements),
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     "type" => Some(Token::Type),
@@ -871,6 +880,7 @@ mod tests{
     assert_eq!(identify_token("element").unwrap(), Token::Element);
     assert_eq!(identify_token("\n").unwrap(), Token::EOL);
     assert_eq!(identify_token("=").unwrap(), Token::Equals);
+    assert_eq!(identify_token("false").unwrap(), Token::False);
     assert_eq!(identify_token("filter").unwrap(), Token::Filter);
     assert_eq!(identify_token(">").unwrap(), Token::GreaterThan);
     assert_eq!(identify_token(">=").unwrap(), Token::GreaterThanEqualTo);
@@ -914,6 +924,8 @@ mod tests{
     assert_eq!(identify_token("pulse_sequence").unwrap(), Token::PulseSequence);
     assert_eq!(identify_token("radius").unwrap(), Token::Radius);
     assert_eq!(identify_token("random").unwrap(), Token::Random);
+    assert_eq!(identify_token("remove_partial_methyls").unwrap(), 
+        Token::RemovePartialMethyls);
     assert_eq!(identify_token("residue").unwrap(), Token::Residue);
     assert_eq!(identify_token("rng_seed").unwrap(), Token::RNGSeed);
     assert_eq!(identify_token(";").unwrap(), Token::Semicolon);
@@ -931,6 +943,7 @@ mod tests{
     assert_eq!(identify_token("time_increments").unwrap(), 
         Token::TimeIncrements);
     assert_eq!(identify_token("*").unwrap(), Token::Times);
+    assert_eq!(identify_token("true").unwrap(), Token::True);
     assert_eq!(identify_token("tunnel_splitting").unwrap(), 
         Token::TunnelSplitting);
     assert_eq!(identify_token("type").unwrap(), Token::Type);

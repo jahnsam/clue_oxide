@@ -189,8 +189,10 @@ impl HamiltonianTensors{
 
     let n_spins = self.spin1_tensors.len();
 
-    let n_bytes 
-      = 3200 + (n_spins + 1)*(n_char_spin_mult + n_char_s1 + n_char_s2);
+    let bytes_per_char = 32;
+
+    let n_bytes = 3200 
+      + bytes_per_char*(n_spins+1)*(n_char_spin_mult + n_char_s1 + n_char_s2);
 
     let mut stream = BufWriter::with_capacity(n_bytes,file);
     

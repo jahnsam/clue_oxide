@@ -16,13 +16,11 @@ pub fn build_adjacency_list(tensors: &HamiltonianTensors, config: &Config)
   let n_spins = tensors.len();
   let mut adjacency_list = AdjacencyList::with_capacity(n_spins);
 
-  // TODO: required_spins -> config option
-  let required_spins = vec![0];
   for idx0 in 1..n_spins{
-    if required_spins.contains(&idx0) {continue; }
+    adjacency_list.connect(idx0,idx0);
+
 
     for idx1 in idx0+1..n_spins{
-      if required_spins.contains(&idx1) {continue;}
 
       if are_spins_neighbors(idx0,idx1, tensors,config){
         adjacency_list.connect(idx0,idx1);
