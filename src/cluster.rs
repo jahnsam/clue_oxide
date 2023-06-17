@@ -1,5 +1,6 @@
 use crate::clue_errors::*;
 use crate::signal::Signal;
+use crate::structure::Structure;
 
 pub mod adjacency;
 pub mod build_adjacency_list;
@@ -46,6 +47,27 @@ impl Cluster{
   fn len(&self) -> usize{
     self.vertices.len()
   }
+  //----------------------------------------------------------------------------
+  fn to_string_result(&self,structure: &Structure) -> Result<String,CluEError>{
+    // "[1,2,3,4]"
+    let cluster = &self.vertices;
+
+    if cluster.is_empty(){
+      return Ok("[]".to_string());
+    }
+
+    let mut string = format!("[{}", 
+        structure.get_reference_index_of_nth_active(cluster[0])? 
+        );
+
+    for &vertex in cluster.iter().skip(1){
+      string = format!("{},{}",string,
+          structure.get_reference_index_of_nth_active(vertex)?
+          );
+    } 
+    Ok(format!("{}]",string))
+  }
+  //----------------------------------------------------------------------------
   //----------------------------------------------------------------------------
   /*
   fn contains(&self, subcluster: &Cluster) -> bool{

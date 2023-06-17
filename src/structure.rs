@@ -72,6 +72,9 @@ pub struct Structure{
   // list indices indicating the particle that each particle is a periodic
   // boundary condition copy of  
   primary_cell_indices: Vec::<usize>,
+
+  // indices for display and output file
+  nth_active_to_reference_index: Vec::<usize>,
 }
 
 impl Structure{
@@ -95,6 +98,7 @@ impl Structure{
       particle_config_ids: Vec::<Option<usize>>::new(),
       pdb_origin: Vector3D::zeros(),
       primary_cell_indices: Vec::<usize>::new(),
+      nth_active_to_reference_index: Vec::<usize>::new(),
     }
 
   }
@@ -116,6 +120,8 @@ impl Structure{
     structure.build_primary_structure(config)?;
 
     structure.build_extended_structure(rng, config)?;
+
+    structure.map_nth_active_to_reference_indices();
 
     Ok(structure)
   }
@@ -163,6 +169,57 @@ impl Structure{
    
     self.molecule_ids[idx0]
 
+  }
+  //----------------------------------------------------------------------------
+  /// This function retrieves the reference index of the bath particle with
+  /// index `bath_index`.
+  /// The reference index of the the detected spin in zero, and the first
+  /// bath particle has index 1.
+  pub fn get_reference_index_from_bath_index(&self, bath_index: usize) 
+    -> Result<usize,CluEError>
+  {
+    if bath_index >= self.bath_particles.len(){
+      return Err(CluEError::CannotFindRefIndexFromBathIndex(bath_index));
+    }
+    Ok(bath_index + 1)
+  }
+  //----------------------------------------------------------------------------
+  pub fn get_bath_index_of_nth_active(&self, n: usize) 
+    -> Result<usize,CluEError>
+  {
+    if n >= self.nth_active_to_reference_index.len(){
+      return Err(CluEError::CannotFindRefIndexFromNthActive(n));
+    }
+    Ok(self.nth_active_to_reference_index[n] - 1)
+  }
+  //----------------------------------------------------------------------------
+  /// This function retrieves the reference index of `n`th active particle.
+  /// The reference index of the the detected spin in zero, and the first
+  /// bath particle has index 1.
+  /// The detected spin is always active and corresponds to `n=0`.
+  pub fn get_reference_index_of_nth_active(&self, n: usize)
+    -> Result<usize,CluEError>
+  {
+    if n >= self.nth_active_to_reference_index.len(){
+      return Err(CluEError::CannotFindRefIndexFromNthActive(n));
+    }
+    Ok(self.nth_active_to_reference_index[n])
+
+  }
+  //----------------------------------------------------------------------------
+  fn map_nth_active_to_reference_indices(&mut self){
+
+    let mut act_to_ref = Vec::<usize>::with_capacity(self.number_active() + 1);
+
+    act_to_ref.push(0);
+
+    for (bath_index,particle) in self.bath_particles.iter().enumerate(){
+      if particle.active{ 
+        act_to_ref.push(bath_index + 1);
+      }
+    }
+
+    self.nth_active_to_reference_index = act_to_ref;
   }
   //----------------------------------------------------------------------------
   /*
@@ -303,7 +360,7 @@ mod tests{
   fn test_build_structure(){
     let token_stream = get_tokens_from_line("
         input_structure_file = \"assets/TEMPO.pdb\";
-        radius = 20e-10; // m.
+        radius = 20; // angstroms.
         detected_spin_position = centroid_over_serials([28,29]);
         number_timepoints = [101];
         time_increments = [1e-7];

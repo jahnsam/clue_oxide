@@ -23,7 +23,6 @@ pub struct HamiltonianTensors{
   pub spin_multiplicities: Vec::<usize>,
   pub spin1_tensors: Spin1Tensors, // O(S)
   pub spin2_tensors: Spin2Tensors, // O(S^2)
-  structure_indices: Vec::<usize>,
 }
 impl HamiltonianTensors{
   //----------------------------------------------------------------------------
@@ -40,6 +39,7 @@ impl HamiltonianTensors{
     self.spin2_tensors.rotate_active(dir);
   }
   //----------------------------------------------------------------------------
+  /*
   pub fn from(
       spin_multiplicities: Vec::<usize>,
       spin1_tensors: Spin1Tensors,
@@ -54,29 +54,31 @@ impl HamiltonianTensors{
       spin_multiplicities,
       spin1_tensors,
       spin2_tensors,
-      structure_indices: (0..n_spins-1).map(|ii| ii).collect::<Vec::<usize>>()
     })
   }
+  */
   //----------------------------------------------------------------------------
-  pub fn get_structure_index(&self, tensor_index: usize) 
+  /*
+  pub fn get_reference_index(&self, tensor_index: usize) 
     -> Result<usize,CluEError>
   {
-    if tensor_index >= self.structure_indices.len(){
+    if tensor_index >= self.reference_indices.len(){
       return Err(CluEError::CannotFindStructureIndex(tensor_index));
     }
-    Ok(self.structure_indices[tensor_index])
+    Ok(self.reference_indices[tensor_index])
   }
   //----------------------------------------------------------------------------
   pub fn get_tensor_index(&self,structure_index: usize) 
     -> Result<usize,CluEError> 
   {
-    for (ten_idx, &idx) in self.structure_indices.iter().enumerate(){
+    for (ten_idx, &idx) in self.reference_indices.iter().enumerate(){
       if idx == structure_index{
         return Ok(ten_idx);
       }
     }
     Err(CluEError::CannotFindTensorIndex(structure_index))
   }
+  */
   //----------------------------------------------------------------------------
   pub fn generate(structure: &Structure, config: &Config) 
     -> Result<Self,CluEError>
@@ -207,25 +209,18 @@ impl HamiltonianTensors{
       }
     }
 
-    let structure_indices = structure.bath_particles
-      .iter().enumerate().filter_map( 
-          |(structure_idx, particle)| 
-            if particle.active{ 
-              Some(structure_idx)
-            }else{ 
-              None
-            }
-          ).collect::<Vec<usize>>();
+
     Ok(HamiltonianTensors{
       spin_multiplicities,
       spin1_tensors,
       spin2_tensors,
-      structure_indices
       })
 
   }
   //----------------------------------------------------------------------------
-  pub fn save(&self, filename: &str) -> Result<(),CluEError>{
+  pub fn save(&self, filename: &str, structure: &Structure) 
+    -> Result<(),CluEError>
+  {
     let Ok(file) = File::create(filename) else{
       return Err(CluEError::CannotOpenFile(filename.to_string()) );
     };
@@ -258,7 +253,9 @@ impl HamiltonianTensors{
 
     for (ii, spin_mult) in self.spin_multiplicities.iter().enumerate(){
 
-      let line = format!("spin_mutiplicity[{}] = {};\n", ii, spin_mult);
+      let idx = structure.get_reference_index_of_nth_active(ii)?;
+
+      let line = format!("spin_mutiplicity[{}] = {};\n", idx, spin_mult);
 
       if stream.write(line.as_bytes()).is_err(){
         return Err(CluEError::CannotWriteFile(filename.to_string()) );
@@ -273,7 +270,9 @@ impl HamiltonianTensors{
 
     for ii in 0..n_spins{
       if let Some(tensor) = self.spin1_tensors.get(ii){
-        let line = format!("tensor[{}] = {}; // Hz.\n",ii,tensor.to_string());
+        let line = format!("tensor[{}] = {}; // Hz.\n",
+            structure.get_reference_index_of_nth_active(ii)?,
+            tensor.to_string());
        
         if stream.write(line.as_bytes()).is_err(){
           return Err(CluEError::CannotWriteFile(filename.to_string()) );
@@ -291,7 +290,9 @@ impl HamiltonianTensors{
       for jj in ii..n_spins{
 
         if let Some(tensor) = self.spin2_tensors.get(ii,jj){
-          let line = format!("tensor[{},{}] = {}; // Hz.\n",ii,jj,
+          let line = format!("tensor[{},{}] = {}; // Hz.\n",
+              structure.get_reference_index_of_nth_active(ii)?,
+              structure.get_reference_index_of_nth_active(jj)?, 
               tensor.to_string());
          
           if stream.write(line.as_bytes()).is_err(){
@@ -627,7 +628,7 @@ mod tests{
 
     let token_stream = get_tokens_from_line("
         input_structure_file = \"assets/TEMPO.pdb\";
-        radius = 18e-10; // m.
+        radius = 18; // angstroms.
         detected_spin_position = centroid_over_serials([28,29]);
         number_timepoints = [101];
         time_increments = [1e-7];

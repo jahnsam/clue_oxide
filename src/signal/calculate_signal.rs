@@ -54,7 +54,7 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
         }
 
         if let Some(exchange_group_manager) = &structure.exchange_groups{
-          if let Some(filename) = &config.write_methyls{
+          if let Some(filename) = &config.write_exchange_groups{
             let csv_file = format!("{}/{}.csv",info_path,filename);
             exchange_group_manager.to_csv(&csv_file)?;
           }
@@ -92,7 +92,7 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
         }
         let tensor_path = format!("{}/{}.txt",info_path,tensor_save_name);
 
-        tensors.save(&tensor_path)?;
+        tensors.save(&tensor_path,&structure)?;
       }
     }
   }
@@ -172,13 +172,11 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   let mut cluster_set = find_clusters(&adjacency_list, max_cluster_size)?;
 
   // Remove partial methyls.
-  if let Some(exchange_group_manager) = &structure.exchange_groups{
-    let Some(do_remove_partial_methyls) = &config.remove_partial_methyls else{
-      return Err(CluEError::NoRemovePartialMethyls);
-    };
-    if *do_remove_partial_methyls{
-      cluster_set.remove_partial_methyls(exchange_group_manager);
-    }
+  let Some(do_remove_partial_methyls) = &config.remove_partial_methyls else{
+    return Err(CluEError::NoRemovePartialMethyls);
+  };
+  if *do_remove_partial_methyls{
+    cluster_set.remove_partial_methyls(structure)?;
   }
 
   for (size_idx,clusters_of_size) in cluster_set.clusters.iter().enumerate(){
@@ -188,7 +186,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   if let Some(path) = &save_dir_opt{
     if let Some(cluster_file) = &config.write_clusters{
       let cluster_save_path = format!("{}/{}.txt",path,cluster_file);
-      cluster_set.save(&cluster_save_path)?;
+      cluster_set.save(&cluster_save_path,structure)?;
     }
   }
 

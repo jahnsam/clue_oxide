@@ -16,8 +16,8 @@ pub enum CluEError{
   CannotDivTokens,
   CannotFindCellID(usize),
   CannotFindSpinOp(String),
-  CannotFindStructureIndex(usize),
-  CannotFindTensorIndex(usize),
+  CannotFindRefIndexFromBathIndex(usize),
+  CannotFindRefIndexFromNthActive(usize),
   CannotInferEigenvalues(usize),
   CannotMatchVertexToIndex(usize),
   CannotMulTokens,
@@ -161,13 +161,11 @@ impl fmt::Display for CluEError{
       CluEError::CannotFindSpinOp(sop) => write!(f,
           "cannot find spin operator \"{}\"",sop),
 
-      CluEError::CannotFindStructureIndex(tensor_index) => write!(f,
-          "cannot find structure index for tensor index \"{}\"",
-          tensor_index),
+      CluEError::CannotFindRefIndexFromBathIndex(bath_index) => write!(f,
+          "cannot find reference index for bath index \"{}\"", bath_index),
 
-      CluEError::CannotFindTensorIndex(structure_index) => write!(f,
-          "cannot find tensor index for structure index \"{}\"",
-          structure_index),
+      CluEError::CannotFindRefIndexFromNthActive(n) => write!(f,
+          "cannot find reference index for the {}th active particle", n),
 
       CluEError::CannotInferEigenvalues(line_number) => write!(f,
           "line {}, cannot infer eigenvalues from input",line_number),

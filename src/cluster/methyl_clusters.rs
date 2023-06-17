@@ -2,7 +2,7 @@ use crate::clue_errors::CluEError;
 use crate::cluster::Cluster;
 use crate::cluster::find_clusters::ClusterSet;
 use crate::math;
-use crate::structure::exchange_groups::ExchangeGroupManager;
+use crate::structure::{Structure,exchange_groups::ExchangeGroupManager};
 
 use std::collections::HashMap;
 
@@ -112,8 +112,13 @@ fn get_cluster_partition_key(cluster: &Cluster,
 /// methyl group, leaving only clusters that contain either no methyl hydrogens 
 /// or all three hydrogens from any methyl.
 impl ClusterSet{
-  pub fn remove_partial_methyls(&mut self,
-      exchange_group_manager: &ExchangeGroupManager){
+  pub fn remove_partial_methyls(&mut self,structure: &Structure) 
+    -> Result<(),CluEError>
+  {
+
+    let Some(exchange_group_manager) = &structure.exchange_groups else{
+      return Ok(());
+    };
 
     for clu_size in 0..self.clusters.len(){
 
@@ -121,7 +126,9 @@ impl ClusterSet{
       let mut to_keep = Vec::<usize>::with_capacity(n_clusters);
       
       for (idx,cluster) in self.clusters[clu_size].iter().enumerate(){
-        if cluster.contains_partial_methyl(exchange_group_manager){ continue; }
+        if cluster.contains_partial_methyl(exchange_group_manager, structure)?{ 
+          continue; 
+        }
         to_keep.push(idx);
       }
 
@@ -136,6 +143,8 @@ impl ClusterSet{
       self.clusters[clu_size] = kept_clusters;
       self.cluster_indices[clu_size] = kept_cluster_indices;
     }
+
+    Ok(())
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -144,11 +153,14 @@ impl ClusterSet{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // TODO: generalize to other exchange groups
 impl Cluster{
-pub fn contains_partial_methyl(&self,exchange_group_manager: 
-    &ExchangeGroupManager) -> bool
+pub fn contains_partial_methyl(&self,
+    exchange_group_manager: &ExchangeGroupManager,
+    structure: &Structure) -> Result<bool,CluEError>
 {
   let mut count_map = HashMap::<usize,usize>::with_capacity(self.len());
-  for &idx in self.vertices().iter(){
+  for &vertex in self.vertices().iter(){
+    let idx = structure.get_bath_index_of_nth_active(vertex)?;
+
     if let Some(key) = exchange_group_manager.exchange_group_ids[idx]{
       
         let mut count: usize = 0;
@@ -163,10 +175,10 @@ pub fn contains_partial_methyl(&self,exchange_group_manager:
 
   for (_key, count) in count_map.iter(){
     if count % 3 != 0 {
-      return true;
+      return Ok(true);
     }
   }
-  false
+  Ok(false)
 }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

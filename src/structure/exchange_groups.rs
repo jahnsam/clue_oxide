@@ -1,6 +1,7 @@
 use crate::CluEError;
 use crate::physical_constants::ANGSTROM;
 use crate::space_3d::Vector3D;
+//use crate::structure::Structure;
 
 use std::fs::File;
 use std::io::BufWriter;
@@ -16,6 +17,9 @@ pub trait GetNormal{fn normal(&self) -> &Vector3D; }
 pub trait GetIndices{fn indices(&self) -> Vec::<usize>; }
 
 pub trait GetExchangeCoupling{fn exchange_coupling(&self) -> f64; }
+
+//pub trait ToStringResult{fn to_string_result(&self, structure: &Structure) 
+//  -> Result<String, CluEError>;}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -40,7 +44,7 @@ impl ExchangeGroupManager{
 
     let mut stream = BufWriter::with_capacity(n_bytes,file);
 
-    let line = "methyl,\
+    let line = "exchange_group,\
 center_x,center_y,center_z,\
 normal_x,normal_y,normal_z,\
 exchange_coupling\n".to_string();
@@ -136,7 +140,7 @@ pub struct C3Rotor{
 //------------------------------------------------------------------------------
 impl ToString for C3Rotor{
   fn to_string(&self) -> String{
-    format!("{}_{}_{}", self.indices[0],self.indices[1],self.indices[2])
+    format!("{}_{}_{}", self.indices[0]+1,self.indices[1]+1,self.indices[2]+1)
   }
 }
 //------------------------------------------------------------------------------

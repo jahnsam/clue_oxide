@@ -1,6 +1,7 @@
 use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
 use crate::math;
+use crate::structure::Structure;
 
 use crate::cluster::Cluster;
 
@@ -42,7 +43,9 @@ impl ClusterSet{
     ClusterSet{clusters,cluster_indices}
   }
   //----------------------------------------------------------------------------
-  pub fn save(&self, filename: &str) -> Result<(),CluEError>{
+  pub fn save(&self, filename: &str,structure: &Structure) 
+    -> Result<(),CluEError>
+  {
     let Ok(file) = File::create(filename) else{
       return Err(CluEError::CannotOpenFile(filename.to_string()) );
     };
@@ -72,7 +75,8 @@ impl ClusterSet{
 
     for cluster_of_size in self.clusters.iter(){
       for cluster in cluster_of_size.iter(){
-        let line = format!("{},\n",cluster.to_string());
+        let line = format!("{}\n",
+            cluster.to_string_result(structure)? );
           if stream.write(line.as_bytes()).is_err(){
             return Err(CluEError::CannotWriteFile(filename.to_string()) );
           }

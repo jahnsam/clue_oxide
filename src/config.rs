@@ -10,7 +10,7 @@ use crate::config::token_algebra::*;
 //use crate::config::token_stream;
 use crate::config::token_expressions::*;
 use crate::config::particle_config::ParticleConfig;//, ParticleProperties,  IsotopeAbundance};
-use crate::physical_constants::Isotope;
+use crate::physical_constants::{ANGSTROM,Isotope};
 use crate::space_3d::Vector3D;
 use crate::integration_grid::IntegrationGrid;
 use crate::io;
@@ -66,7 +66,7 @@ pub struct Config{
   pub write_auxiliary_signals: Option<String>,
   pub write_clusters: Option<String>,
   pub write_info: Option<String>,
-  pub write_methyls: Option<String>,
+  pub write_exchange_groups: Option<String>,
   pub write_orientation_signals: Option<String>,
   pub write_structure_pdb: Option<String>,
   pub write_tensors: Option<String>,
@@ -143,8 +143,8 @@ impl Config{
     set_default_write_path(&mut self.write_info,
         "info");
 
-    set_default_write_path(&mut self.write_methyls,
-        "methyls");
+    set_default_write_path(&mut self.write_exchange_groups,
+        "exchange_groups");
 
     set_default_write_path(&mut self.write_orientation_signals,
         "orientations");
@@ -493,7 +493,12 @@ impl Config{
       Token::RemovePartialMethyls 
         => set_to_some_bool(&mut self.remove_partial_methyls,expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::Radius => set_to_some_f64(&mut self.radius,expression)?,
+      Token::Radius => {
+        set_to_some_f64(&mut self.radius,expression)?;
+        if let Some(r) = &mut self.radius{
+            *r *= ANGSTROM;
+        }else{ return Err(CluEError::NoRadius);}
+      },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::RNGSeed => {
         if let Some(_value) = &self.rng_seed{
@@ -540,7 +545,7 @@ mod tests{
         neighbor_cutoff_3_spin_hahn_mod_depth = 1e-10;
         neighbor_cutoff_3_spin_hahn_taylor_4 = 1e-9;
         pulse_sequence = cp-1;
-        radius = 80e-10;
+        radius = 80;
         time_increments = [1e-9, 5e-7];
         write_structure_pdb = out.pdb;
         ").unwrap();
