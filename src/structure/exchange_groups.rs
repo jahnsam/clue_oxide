@@ -139,7 +139,11 @@ pub struct C3Rotor{
 
 //------------------------------------------------------------------------------
 impl ToString for C3Rotor{
+  // This function returns the reference indices of the rotor as a string.
   fn to_string(&self) -> String{
+    // The output should be the reference indices, but the rotor stores the
+    // structure indices, so a "+1" is used to convert from structure indices
+    // to reference indices.
     format!("{}_{}_{}", self.indices[0]+1,self.indices[1]+1,self.indices[2]+1)
   }
 }

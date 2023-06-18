@@ -207,7 +207,7 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
-  fn map_nth_active_to_reference_indices(&mut self){
+  pub fn map_nth_active_to_reference_indices(&mut self){
 
     let mut act_to_ref = Vec::<usize>::with_capacity(self.number_active() + 1);
 

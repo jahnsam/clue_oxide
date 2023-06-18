@@ -319,7 +319,7 @@ fn calculate_methyl_partition_cce(
 {
   if let Some(exchange_group_manager) = &structure.exchange_groups{
     let cluster_partitions = partition_cluster_set_by_exchange_groups(
-        cluster_set, exchange_group_manager)?;
+        cluster_set, exchange_group_manager, structure)?;
 
     let part_dir = "methyl_partitions".to_string();
 
