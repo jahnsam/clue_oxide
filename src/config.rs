@@ -64,6 +64,7 @@ pub struct Config{
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
   pub write_auxiliary_signals: Option<String>,
+  pub write_bath: Option<String>,
   pub write_clusters: Option<String>,
   pub write_info: Option<String>,
   pub write_exchange_groups: Option<String>,
@@ -136,6 +137,9 @@ impl Config{
 
     set_default_write_path(&mut self.write_auxiliary_signals,
         "auxiliary_signals");
+
+    set_default_write_path(&mut self.write_bath,
+        "bath");
 
     set_default_write_path(&mut self.write_clusters,
         "clusters");

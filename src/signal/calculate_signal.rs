@@ -49,6 +49,10 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
           return Err(CluEError::CannotCreateDir(info_path));
         }
 
+        if let Some(filename) = &config.write_bath{
+          structure.bath_to_csv(&format!("{}/{}.csv", info_path, filename))?;
+        }
+
         if let Some(filename) = &config.write_structure_pdb{
           structure.write_pdb(&format!("{}/{}.pdb", info_path, filename))?;
         }

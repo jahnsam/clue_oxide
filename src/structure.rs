@@ -16,10 +16,14 @@ use crate::structure::particle_filter::*;
 use crate::space_3d::Vector3D;
 use crate::cluster::adjacency::AdjacencyList;
 use crate::structure::exchange_groups::ExchangeGroupManager;
-use crate::physical_constants::Isotope;
+use crate::physical_constants::{ANGSTROM,Isotope};
 
 
 use rand_chacha::ChaCha20Rng;
+use std::fs::File;
+use std::io::BufWriter;
+use std::io::Write;
+
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone)]
 pub struct DetectedSpin{
@@ -343,6 +347,45 @@ impl Structure{
       } 
     }
     
+  }
+  //----------------------------------------------------------------------------
+  pub fn bath_to_csv(&self, filename: &str) -> Result<(),CluEError>
+  {
+    let Ok(file) = File::create(filename) else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()) );
+    };
+
+    let n_char_f64 = 16;
+    let n_chars_per_line = 4*n_char_f64;
+    let n_spins = self.bath_particles.len();
+
+    let bytes_per_char = 32;
+
+    let n_bytes = bytes_per_char*(n_spins+1)*n_chars_per_line;
+
+    let mut stream = BufWriter::with_capacity(n_bytes,file);
+    
+    let line = format!("index,particle,x,y,z,active\n");
+    if stream.write(line.as_bytes()).is_err(){
+      return Err(CluEError::CannotWriteFile(filename.to_string()) );
+    }    
+
+    for (ii, particle) in self.bath_particles.iter().enumerate(){
+
+      let r = &particle.coordinates - &self.pdb_origin; 
+
+      let idx = self.get_reference_index_from_bath_index(ii)?;
+
+      let line = format!("{},{},{},{},{},{}\n",idx, particle.isotope.to_string(),
+          r.x()/ANGSTROM, r.y()/ANGSTROM, r.z()/ANGSTROM,
+          particle.active.to_string());
+    
+      if stream.write(line.as_bytes()).is_err(){
+        return Err(CluEError::CannotWriteFile(filename.to_string()) );
+      }    
+    }
+
+    Ok(())
   }
 }
 
