@@ -73,7 +73,7 @@ fn are_spins_neighbors(idx0: usize,idx1: usize,
   };
 
   let delta_hf = (hf0.zz() -hf1.zz()).abs();
-  let b = 0.5*( dipdip.xx() + dipdip.yy() ).abs();
+  let b = ( -dipdip.xx() - dipdip.yy() ).abs();
 
   if let Some(cutoff) = &config.neighbor_cutoff_delta_hyperfine{
     if delta_hf < *cutoff {return Ok(false);}
