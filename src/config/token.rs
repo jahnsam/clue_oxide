@@ -57,6 +57,7 @@ pub enum Token{
  Mode(ModeAttribute),
  NeighborCutoffDeltaHyperfine,
  NeighborCutoffDipoleDipole,
+ NeighborCutoffDistance,
  NeighborCutoff3SpinHahnModDepth,
  NeighborCutoff3SpinHahnTaylor4,
  Not,
@@ -97,7 +98,14 @@ pub enum Token{
  VectorI32(Vec::<i32>),
  VectorString(Vec::<String>),
  Whitespace,
+ WriteAuxiliarySignals,
+ WriteBath,
+ WriteClusters,
+ WriteInfo,
+ WriteExchangeGroups,
+ WriteOrientationSignals,
  WriteStructurePDB,
+ WriteTensors,
 }
 impl fmt::Display for Token{
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -156,6 +164,8 @@ impl fmt::Display for Token{
         => write!(f,"neighbor_cutoff_delta_hyperfine"),
       Token::NeighborCutoffDipoleDipole 
         => write!(f,"neighbor_cutoff_dipole_dipole"),
+      Token::NeighborCutoffDistance 
+        => write!(f,"neighbor_cutoff_distance"),
       Token::NeighborCutoff3SpinHahnModDepth 
         => write!(f,"neighbor_cutoff_3_spin_hahn_mod_depth"),
       Token::NeighborCutoff3SpinHahnTaylor4 
@@ -198,7 +208,14 @@ impl fmt::Display for Token{
       Token::VectorI32(v) => write!(f,"{:?}",v), 
       Token::VectorString(v) => write!(f,"{:?}",v), 
       Token::Whitespace => write!(f," "),
+      Token::WriteAuxiliarySignals => write!(f,"write_auxiliary_signals"),
+      Token::WriteBath => write!(f,"write_bath"),
+      Token::WriteClusters => write!(f,"write_clusters"),
+      Token::WriteExchangeGroups => write!(f,"write_exchange_groups"),
+      Token::WriteInfo => write!(f,"write_info"),
+      Token::WriteOrientationSignals => write!(f,"write_orientation_signals"),
       Token::WriteStructurePDB => write!(f,"write_structure_pdb"),
+      Token::WriteTensors => write!(f,"write_tensors"),
     }
   }
 }
@@ -255,6 +272,8 @@ pub fn identify_token(word: &str) -> Option<Token>{
       => Some(Token::NeighborCutoffDeltaHyperfine),
     "neighbor_cutoff_dipole_dipole" 
       => Some(Token::NeighborCutoffDipoleDipole),
+    "neighbor_cutoff_distance" 
+      => Some(Token::NeighborCutoffDistance),
     "neighbor_cutoff_3_spin_hahn_mod_depth" 
       => Some(Token::NeighborCutoff3SpinHahnModDepth),
     "neighbor_cutoff_3_spin_hahn_taylor_4" 
@@ -293,7 +312,14 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     "type" => Some(Token::Type),
     " " => Some(Token::Whitespace),
+    "write_auxiliary_signals" => Some(Token::WriteAuxiliarySignals),
+    "write_bath" => Some(Token::WriteBath),
+    "write_clusters" => Some(Token::WriteClusters),
+    "write_exchange_groups" => Some(Token::WriteExchangeGroups),
+    "write_info" => Some(Token::WriteInfo),
+    "write_orientation_signals" => Some(Token::WriteOrientationSignals),
     "write_structure_pdb" => Some(Token::WriteStructurePDB),
+    "write_tensors" => Some(Token::WriteTensors),
     _ => None
   }
 }
@@ -908,6 +934,8 @@ mod tests{
         Token::NeighborCutoffDeltaHyperfine);
     assert_eq!(identify_token("neighbor_cutoff_dipole_dipole").unwrap(), 
         Token::NeighborCutoffDipoleDipole);
+    assert_eq!(identify_token("neighbor_cutoff_distance").unwrap(), 
+        Token::NeighborCutoffDistance);
     assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_mod_depth").unwrap(), 
         Token::NeighborCutoff3SpinHahnModDepth);
     assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_taylor_4").unwrap(), 
@@ -948,8 +976,22 @@ mod tests{
         Token::TunnelSplitting);
     assert_eq!(identify_token("type").unwrap(), Token::Type);
     assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
+    assert_eq!(identify_token("write_auxiliary_signals").unwrap(), 
+        Token::WriteAuxiliarySignals);
+    assert_eq!(identify_token("write_bath").unwrap(), 
+        Token::WriteBath);
+    assert_eq!(identify_token("write_clusters").unwrap(), 
+        Token::WriteClusters);
+    assert_eq!(identify_token("write_exchange_groups").unwrap(), 
+        Token::WriteExchangeGroups);
+    assert_eq!(identify_token("write_info").unwrap(), 
+        Token::WriteInfo);
+    assert_eq!(identify_token("write_orientation_signals").unwrap(), 
+        Token::WriteOrientationSignals);
     assert_eq!(identify_token("write_structure_pdb").unwrap(), 
         Token::WriteStructurePDB);
+    assert_eq!(identify_token("write_tensors").unwrap(), 
+        Token::WriteTensors);
     assert_eq!(identify_token("indices").unwrap(), Token::Indices); 
     assert_eq!(identify_token("elements").unwrap(), Token::Elements); 
     assert_eq!(identify_token("serials").unwrap(), Token::Serials); 

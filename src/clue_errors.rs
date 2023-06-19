@@ -79,6 +79,7 @@ pub enum CluEError{
   NoMagneticField,
   NoModelIndex,
   NoMaxClusterSize,
+  NoNeighborCutoffDistance,
   NoPulseSequence,
   NoQuadrupoleSpecifier(String,String),
   NoRadius,
@@ -189,7 +190,7 @@ impl fmt::Display for CluEError{
           "cannot parse \"{}\" as an isotope", isotope),
 
       CluEError::CannotParseRHS(line_number) => write!(f,
-          "line {}, cannot parse line righ hand side", line_number),
+          "line {}, cannot parse line right hand side", line_number),
 
       CluEError::CannotParseSecondaryParticleFilter(filter) => write!(f,
           "cannot parse secondary particle filter \"{}\"", filter),
@@ -363,6 +364,9 @@ impl fmt::Display for CluEError{
       CluEError::NoMaxClusterSize => write!(f,
           "maximum cluster size not set"),
 
+      CluEError::NoNeighborCutoffDistance => write!(f,
+          "neighbor_cutoff_distance is not defined"),
+      
       CluEError::NoPulseSequence => write!(f,
           "no pulse sequence is defined"),
       

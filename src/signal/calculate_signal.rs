@@ -127,6 +127,13 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
 
   }
 
+  if let Some(save_dir) =  &save_dir_opt{
+    let save_path = format!("{}/signal.csv", save_dir);
+    let headers = (1..=max_cluster_size)
+      .map(|ii| format!("signal_{}",ii))
+      .collect::<Vec::<String>>();
+    write_vec_signals(&order_n_signals, headers, &save_path)?;
+  }
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------
@@ -165,7 +172,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   tensors.rotate_active(&rot_dir);
 
   // Determine adjacencies.
-  let adjacency_list = build_adjacency_list(&tensors, config)?;
+  let adjacency_list = build_adjacency_list(&tensors, structure, config)?;
 
   // Determine maximum cluster size.
   let Some(max_cluster_size) = config.max_cluster_size else{

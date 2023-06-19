@@ -44,6 +44,7 @@ pub struct Config{
   //pub neighbor_cutoffs: Vec::<NeighborCutoff>,
   pub neighbor_cutoff_delta_hyperfine: Option<f64>,
   pub neighbor_cutoff_dipole_dipole: Option<f64>,
+  pub neighbor_cutoff_distance: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_mod_depth: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_taylor_4: Option<f64>,
   pub number_timepoints: Vec::<usize>,
@@ -156,8 +157,11 @@ impl Config{
     set_default_write_path(&mut self.write_structure_pdb,
         "spin_system");
 
+    // The tensors file is large, so do not write it by default.
+    /*
     set_default_write_path(&mut self.write_tensors,
         "tensors");
+    */
   }
   //----------------------------------------------------------------------------
   pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) 
@@ -449,6 +453,16 @@ impl Config{
         => set_to_some_f64(&mut self.neighbor_cutoff_dipole_dipole,
             expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NeighborCutoffDistance 
+        => {
+          set_to_some_f64(&mut self.neighbor_cutoff_distance,expression)?;
+          if let Some(r) = &mut self.neighbor_cutoff_distance{
+            *r *= ANGSTROM;
+          }else{
+            return Err(CluEError::NoNeighborCutoffDistance);
+          }
+        },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::NeighborCutoff3SpinHahnModDepth 
         => set_to_some_f64(&mut self.neighbor_cutoff_3_spin_hahn_mod_depth,
             expression)?,
@@ -522,8 +536,29 @@ impl Config{
       Token::TimeIncrements 
         => set_to_vec_f64(&mut self.time_increments, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteAuxiliarySignals
+        => set_to_some_string(&mut self.write_auxiliary_signals, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteBath
+        => set_to_some_string(&mut self.write_bath, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteClusters
+        => set_to_some_string(&mut self.write_clusters, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteExchangeGroups
+        => set_to_some_string(&mut self.write_exchange_groups, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteInfo
+        => set_to_some_string(&mut self.write_info, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteOrientationSignals
+        => set_to_some_string(&mut self.write_orientation_signals, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteStructurePDB 
         => set_to_some_string(&mut self.write_structure_pdb, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteTensors 
+        => set_to_some_string(&mut self.write_tensors, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       _ => return Err(CluEError::InvalidToken(expression.line_number,
             expression.lhs[0].to_string())),
@@ -551,7 +586,14 @@ mod tests{
         pulse_sequence = cp-1;
         radius = 80;
         time_increments = [1e-9, 5e-7];
-        write_structure_pdb = out.pdb;
+        write_auxiliary_signals = out_aux;
+        write_bath = out_bath;
+        write_clusters = out_clu;
+        write_exchange_groups = out_ex;
+        write_info = out_info;
+        write_orientation_signals = out_ori;
+        write_structure_pdb = out_pdb;
+        write_tensors = \"out_tensors\";
         ").unwrap();
 
     let mut config = Config::new();
@@ -575,7 +617,14 @@ mod tests{
     assert_eq!(config.pulse_sequence, Some(PulseSequence::CarrPurcell(1)));
     assert_eq!(config.radius, Some(80.0e-10));
     assert_eq!(config.time_increments, vec![1e-9,5e-7]);
-    assert_eq!(config.write_structure_pdb, Some("out.pdb".to_string()));
+    assert_eq!(config.write_auxiliary_signals, Some("out_aux".to_string()));
+    assert_eq!(config.write_bath, Some("out_bath".to_string()));
+    assert_eq!(config.write_clusters, Some("out_clu".to_string()));
+    assert_eq!(config.write_exchange_groups, Some("out_ex".to_string()));
+    assert_eq!(config.write_info, Some("out_info".to_string()));
+    assert_eq!(config.write_orientation_signals, Some("out_ori".to_string()));
+    assert_eq!(config.write_structure_pdb, Some("out_pdb".to_string()));
+    assert_eq!(config.write_tensors, Some("out_tensors".to_string()));
   }
   //----------------------------------------------------------------------------
   #[test]

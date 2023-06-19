@@ -260,6 +260,7 @@ pub fn set_to_some_string(target: &mut Option<String>, expression: &TokenExpress
   if let Token::UserInputValue(value) = &rhs[0]{
     *target = Some(value.clone());
   }else{
+    println!("DB: {:?}",rhs);
     return Err(CluEError::CannotParseRHS(expression.line_number));
   }
 
