@@ -14,6 +14,7 @@ pub enum Token{
  CCE,
  CarrPurcell,
  CentroidOverSerials,
+ ClashDistancePBC,
  ClusterBatchSize,
  ClusterMethod,
  Clusters,
@@ -74,6 +75,7 @@ pub enum Token{
  NotEqual,
  NotIn,
  NumberTimepoints,
+ OrientationGrid,
  Path,
  ParenthesisClose,
  ParenthesisOpen,
@@ -131,6 +133,7 @@ impl fmt::Display for Token{
       Token::CarrPurcell => write!(f,"cp"),
       Token::CCE => write!(f,"cce"),
       Token::CentroidOverSerials => write!(f,"centroid_over_serials"),
+      Token::ClashDistancePBC => write!(f,"clash_distance_pbc"),
       Token::ClusterBatchSize => write!(f,"cluster_batch_size"),
       Token::ClusterMethod => write!(f,"cluster_method"),
       Token::Clusters => write!(f,"clusters"),
@@ -197,6 +200,7 @@ impl fmt::Display for Token{
       Token::NotEqual => write!(f,"!="),
       Token::NotIn => write!(f,"not in"),
       Token::NumberTimepoints => write!(f,"*"),
+      Token::OrientationGrid => write!(f,"orientation_grid"),
       Token::Path => write!(f,"path"),
       Token::ParenthesisClose => write!(f,")"),
       Token::ParenthesisOpen => write!(f,"("),
@@ -256,6 +260,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "cp" => Some(Token::CarrPurcell),
     "cce" => Some(Token::CCE),
     "centroid_over_serials" => Some(Token::CentroidOverSerials),
+    "clash_distance_pbc" => Some(Token::ClashDistancePBC),
     "cluster_batch_size" => Some(Token::ClusterBatchSize),
     "cluster_method" => Some(Token::ClusterMethod),
     "clusters" => Some(Token::Clusters),
@@ -318,6 +323,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "!=" => Some(Token::NotEqual),
     "not in" => Some(Token::NotIn),
     "number_timepoints" => Some(Token::NumberTimepoints),
+    "orientation_grid" => Some(Token::OrientationGrid),
     "path" => Some(Token::Path),
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
@@ -925,6 +931,8 @@ mod tests{
     assert_eq!(identify_token("cce"),Some( Token::CCE));
     assert_eq!(identify_token("centroid_over_serials"),
         Some(Token::CentroidOverSerials));
+    assert_eq!(identify_token("clash_distance_pbc"),
+        Some(Token::ClashDistancePBC));
     assert_eq!(identify_token("cluster_batch_size"),
         Some(Token::ClusterBatchSize));
     assert_eq!(identify_token("cluster_method"),Some(Token::ClusterMethod));
@@ -999,6 +1007,7 @@ mod tests{
     assert_eq!(identify_token("not in"),Some( Token::NotIn));
     assert_eq!(identify_token("number_timepoints"),
         Some(Token::NumberTimepoints));
+    assert_eq!(identify_token("orientation_grid"),Some(Token::OrientationGrid));
     assert_eq!(identify_token("path"),Some( Token::Path));
     assert_eq!(identify_token(")"),Some( Token::ParenthesisClose));
     assert_eq!(identify_token("("),Some( Token::ParenthesisOpen));

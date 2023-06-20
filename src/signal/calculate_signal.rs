@@ -103,9 +103,10 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
 
 
   // Determin orientation averaging method.
-  let integration_grid = match config.orientation_averaging{
+  let integration_grid = match &config.orientation_grid{
     Some(OrientationAveraging::Lebedev(n_ori)) 
-      => IntegrationGrid::lebedev(n_ori)?,
+      => IntegrationGrid::lebedev(*n_ori)?,
+    Some(OrientationAveraging::Grid(grid)) => grid.clone(),
     None => IntegrationGrid::z_3d(),
   };
 

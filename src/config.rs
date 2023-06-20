@@ -31,6 +31,7 @@ pub mod parse_properties;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
+  pub clash_distance_pbc: Option<f64>,
   pub cluster_batch_size: Option<usize>,
   pub cluster_method: Option<ClusterMethod>,
   pub density_matrix: Option<DensityMatrixMethod>,
@@ -53,7 +54,7 @@ pub struct Config{
   //pbc_style: PBCStyle,
   //error_tolerance: f64,
   //use_periodic_boundary_conditions: bool,
-  pub orientation_averaging: Option<OrientationAveraging>,
+  pub orientation_grid: Option<OrientationAveraging>,
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
@@ -280,6 +281,7 @@ pub enum PulseSequence{
 
 #[derive(Debug,Clone,PartialEq)]
 pub enum OrientationAveraging{
+  Grid(IntegrationGrid),
   Lebedev(usize),
 }
 /*
@@ -369,6 +371,13 @@ impl Config{
         expression.line_number, expression.lhs[0].to_string()) };
 
     match expression.lhs[0]{
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::ClashDistancePBC => {
+        set_to_some_f64(&mut self.clash_distance_pbc, expression)?;
+        if let Some(r) = &mut self.clash_distance_pbc{
+            *r *= ANGSTROM;
+        }else{ return Err(CluEError::NoClashDistancePBC);}
+      },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::ClusterBatchSize 
         => set_to_some_usize(&mut self.cluster_batch_size, expression)?, 
@@ -535,6 +544,77 @@ impl Config{
       Token::NumberTimepoints 
         => set_to_vec_usize(&mut self.number_timepoints, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::OrientationGrid => {
+        if let Some(_value) = &self.orientation_grid{
+          return Err(already_set());
+        }
+        let Some(rhs) = &expression.rhs else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }; 
+        if rhs.is_empty(){
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+
+        match rhs[0]{
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          Token::Lebedev => {
+            let args = get_function_arguments(rhs,expression.line_number)?;
+
+            if args.is_empty(){
+              return Err(CluEError::TooFewRHSArguments(expression.line_number));
+            }else if args.len() > 1{
+              return Err(CluEError::TooManyRHSArguments(expression.line_number));
+            }
+
+            let mut n_grid_opt: Option<usize> = None;
+            set_to_some_usize(&mut n_grid_opt,expression)?;
+            if let Some(n_grid) = n_grid_opt{
+              self.orientation_grid 
+                = Some(OrientationAveraging::Lebedev(n_grid));
+            }else{
+              return Err(CluEError::NoOrientationGrid);
+            }
+          },
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          Token::ReadCSV => {
+            let args = get_function_arguments(rhs,expression.line_number)?;
+
+            if args.is_empty(){
+              return Err(CluEError::TooFewRHSArguments(expression.line_number));
+            }else if args.len() > 1{
+              return Err(CluEError::TooManyRHSArguments(expression.line_number));
+            }
+
+            let grid = IntegrationGrid::read_from_csv(&(args[0].to_string()))?;
+
+            if grid.dim() != 3{
+              return Err(CluEError::WrongOrientationGridDim(
+                    expression.line_number,3,grid.dim()));
+            }
+            self.orientation_grid = Some(
+                OrientationAveraging::Grid(grid));
+
+          },
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          Token::SquareBracketOpen =>{
+            let mut r_opt: Option<Vector3D> = None;
+            set_to_some_vector3d(&mut r_opt, expression)?;
+            if let Some(r) = r_opt{
+              let mut grid = IntegrationGrid::new(3);
+              grid.push(vec![r.x(),r.y(),r.z()],1.0)?;
+              self.orientation_grid
+                = Some(OrientationAveraging::Grid(grid));
+            }else{
+              return Err(CluEError::NoOrientationGrid);
+            }
+          },
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          _ => return Err(CluEError::InvalidToken(expression.line_number,
+                rhs[0].to_string())),
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        }
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::PulseSequence => {
         if let Some(_value) = &self.pulse_sequence{
           return Err(already_set());
@@ -638,6 +718,7 @@ mod tests{
   #[test]
   fn test_parse_config_line(){
     let expressions = get_tokens_from_line("\
+        clash_distance_pbc = 0.1;
         cluster_batch_size = 20000;
         cluster_method = cce;
         detected_spin_position = centroid_over_serials([28,29]);
@@ -669,6 +750,8 @@ mod tests{
     }
 
 
+    let clash_distance_pbc = config.clash_distance_pbc.unwrap();
+    assert!( (clash_distance_pbc - 0.1e-10).abs()/(0.1e-10) < 1e-12 );
     assert_eq!(config.cluster_batch_size,Some(20000));
     assert_eq!(config.cluster_method,Some(ClusterMethod::CCE));
     assert_eq!(config.detected_spin_position, 

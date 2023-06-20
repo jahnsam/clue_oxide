@@ -58,11 +58,11 @@ impl Structure{
         }
         r_ave = r_ave.scale(1.0/(indices.len() as f64));
 
-        weighted_coordinates.push(vec![r_ave.x(),r_ave.y(),r_ave.z()],1.0);
+        weighted_coordinates.push(vec![r_ave.x(),r_ave.y(),r_ave.z()],1.0)?;
 
       },
       DetectedSpinCoordinates::XYZ(r) => {
-        weighted_coordinates.push(vec![r.x(),r.y(),r.z()],1.0);
+        weighted_coordinates.push(vec![r.x(),r.y(),r.z()],1.0)?;
       },
       DetectedSpinCoordinates::ProbabilityDistribution(grid) => 
         weighted_coordinates = grid.clone(),

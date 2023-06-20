@@ -37,6 +37,8 @@ impl Structure{
 
     self.trim_system(config)?;
 
+    self.trim_pbc_clashes(&config)?;
+
     Ok(())
   }
   //----------------------------------------------------------------------------
@@ -87,6 +89,42 @@ impl Structure{
     Ok(())
   }
   
+  //----------------------------------------------------------------------------
+  fn trim_pbc_clashes(&mut self, config: &Config) -> Result<(),CluEError>{
+    let Some(clash_distance) = &config.clash_distance_pbc else {
+      return Ok(());
+    };
+
+    let mut to_remove = (0..self.bath_particles.len()).map(|_| false)
+      .collect::<Vec::<bool>>();
+    for (idx0, particle0) in self.bath_particles.iter().enumerate(){
+      if !particle0.active { continue; }
+      let cell_id0 = self.cell_id(idx0)?;
+      let r0 = &self.bath_particles[idx0].coordinates;
+
+      for (idx1, particle1) in self.bath_particles.iter().enumerate()
+        .skip(idx0){
+        if !particle1.active { continue; }
+        let cell_id1 = self.cell_id(idx1)?;
+
+        if cell_id1 <= cell_id0 { continue; }
+
+        let r1 = &self.bath_particles[idx1].coordinates;
+
+        let delta_r = (r1 -r0).norm();
+
+        to_remove[idx1] = delta_r < *clash_distance;
+      } 
+    }
+
+    for (idx, remove) in to_remove.iter().enumerate(){
+      if *remove{
+        self.bath_particles[idx].active = false;
+      }
+    }
+
+    Ok(())
+  }
   //----------------------------------------------------------------------------
   fn update_exhange_groups(&mut self, config: &Config) -> Result<(),CluEError>
   {

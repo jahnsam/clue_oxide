@@ -5,6 +5,7 @@ pub enum CluEError{
   AllSignalsNotSameLength(String),
   AtomDoesNotSpecifyElement(usize),
   AllVectorsNotSameLength(String),
+  CannotAddPointToGrid(usize,usize),
   CannotAddTokens,
   CannontAugmentFilter(usize,String),
   CannotCombineTokens(usize),
@@ -67,11 +68,12 @@ pub enum CluEError{
   ModeAttributeWrongSharp,
   MultipleCosubstitutionGroups(usize),
   NoArgument(usize),
-  NoClusterBatchSize,
   NoCentralSpin,
   NoCentralSpinCoor,
   NoCentralSpinIdentity,
   NoCentralSpinTransition,
+  NoClashDistancePBC,
+  NoClusterBatchSize,
   NoClusterMethod,
   NoClustersOfSize(usize),
   NoDensityMatrixMethod,
@@ -83,6 +85,7 @@ pub enum CluEError{
   NoModelIndex,
   NoMaxClusterSize,
   NoNeighborCutoffDistance,
+  NoOrientationGrid,
   NoPulseSequence,
   NoQuadrupoleSpecifier(String,String),
   NoRadius,
@@ -122,6 +125,7 @@ pub enum CluEError{
   VectorSpecifierDoesNotSpecifyUniqueVector(String),
   WrongClusterSizeForAnalyticCCE(usize),
   WrongNumberOfAxes(usize,usize),
+  WrongOrientationGridDim(usize,usize,usize),
   WrongProbabilityDistributionDim(usize,usize,usize),
   WrongVectorLength(usize,usize,usize)
 }
@@ -138,6 +142,9 @@ impl fmt::Display for CluEError{
 
       CluEError::AllVectorsNotSameLength(filename) => write!(f,
           "for \"{}\",signals must all have the same length", filename),
+
+      CluEError::CannotAddPointToGrid(point_dim, grid_dim) => write!(f,
+          "cannot add {}D point t0 {}D grid",point_dim, grid_dim),
 
       CluEError::CannotAddTokens => write!(f,
           "cannot add tokens meaningfully"),
@@ -336,9 +343,6 @@ followed by a column for the weights", filename),
       CluEError::NoArgument(line_number) => write!(f,
           "line {}, expected a function argument",line_number),
 
-      CluEError::NoClusterBatchSize => write!(f,
-          "batch size for clusters not specified"),
-
       CluEError::NoCentralSpin => write!(f,
           "no detected spin defined"),
       
@@ -350,13 +354,19 @@ followed by a column for the weights", filename),
       
       CluEError::NoCentralSpinTransition => write!(f,
           "the detected spin transition was not defined"),
-      
+
+      CluEError::NoClashDistancePBC => write!(f,
+          "clash_distance_pbc is not defined"),
+
+      CluEError::NoClusterBatchSize => write!(f,
+          "batch size for clusters not specified"),
+
       CluEError::NoClusterMethod => write!(f,
           "no cluster method specified"),
       
       CluEError::NoClustersOfSize(size) => write!(f,
           "cannot find any clusters of size {}", size),
-
+      
       CluEError::NoDensityMatrixMethod=> write!(f,
           "no density matrix method specified"),
       
@@ -383,6 +393,9 @@ followed by a column for the weights", filename),
 
       CluEError::NoNeighborCutoffDistance => write!(f,
           "neighbor_cutoff_distance is not defined"),
+      
+      CluEError::NoOrientationGrid => write!(f,
+          "orientation_grid is not defined"),
       
       CluEError::NoPulseSequence => write!(f,
           "no pulse sequence is defined"),
@@ -518,6 +531,11 @@ followed by a column for the weights", filename),
 
       CluEError::WrongNumberOfAxes(num_axes, expected_num) => write!(f,
           "{} axes were provided, but {} are expected",num_axes, expected_num),
+
+      CluEError::WrongOrientationGridDim(line_number, expected, actual) 
+        => write!(f,
+          "line {}, cannot add a {}D, point to a {}D grid", 
+          line_number, expected,actual),
 
       CluEError::WrongProbabilityDistributionDim(line_number, 
           expected, actual) => write!(f,

@@ -79,14 +79,20 @@ impl IntegrationGrid{
     IntegrationGrid{dim,points,weights}
   }
   //----------------------------------------------------------------------------
-  pub fn push(&mut self, points: Vec::<f64>,weight: f64){
-    assert_eq!(points.len(), self.dim);
+  pub fn push(&mut self, points: Vec::<f64>,weight: f64)
+    -> Result<(),CluEError>
+  {
+    if points.len() != self.dim{
+      return Err(CluEError::CannotAddPointToGrid(points.len(), self.dim));
+    }
 
     for x in points.into_iter(){
       self.points.push(x);
     }
 
     self.weights.push(weight);
+
+    Ok(())
   }
   //----------------------------------------------------------------------------
   pub fn len(&self) -> usize { self.weights.len() }
@@ -282,12 +288,12 @@ mod tests{
   fn test_translate(){
     let mut grid = IntegrationGrid::new(3);
     let w = 1.0/6.0;
-    grid.push(vec![1.0, 2.0, 2.0],w);
-    grid.push(vec![3.0, 2.0, 2.0],w);
-    grid.push(vec![2.0, 1.0, 2.0],w);
-    grid.push(vec![2.0, 3.0, 2.0],w);
-    grid.push(vec![2.0, 2.0, 1.0],w);
-    grid.push(vec![2.0, 2.0, 3.0],w);
+    grid.push(vec![1.0, 2.0, 2.0],w).unwrap();
+    grid.push(vec![3.0, 2.0, 2.0],w).unwrap();
+    grid.push(vec![2.0, 1.0, 2.0],w).unwrap();
+    grid.push(vec![2.0, 3.0, 2.0],w).unwrap();
+    grid.push(vec![2.0, 2.0, 1.0],w).unwrap();
+    grid.push(vec![2.0, 2.0, 3.0],w).unwrap();
     assert_eq!(grid.mean(), vec![2.0, 2.0, 2.0]);
     let r = vec![-2.0,-2.0,-2.0];
     grid.translate(&r);

@@ -176,8 +176,14 @@ impl Structure{
     out
   }
   //----------------------------------------------------------------------------
+  /// This function identifies which pbc copy of the primary cell
+  /// `particle_particle` with index `idx` resides in.
   pub fn cell_id(&self, idx: usize) -> Result<usize,CluEError>
   {
+    if idx >= self.primary_cell_indices.len(){
+      return Err(CluEError::CannotFindCellID(idx));
+    }
+
     let idx0 = self.primary_cell_indices[idx];
     let cell_indices = &self.cell_indices[idx0];
     let Some(cell_id) = cell_indices.iter().position(|&x| {
