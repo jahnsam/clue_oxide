@@ -17,7 +17,7 @@ use crate::space_3d::Vector3D;
 use crate::cluster::adjacency::AdjacencyList;
 use crate::structure::exchange_groups::ExchangeGroupManager;
 use crate::physical_constants::{ANGSTROM,Isotope};
-
+use crate::space_3d::SymmetricTensor3D;
 
 use rand_chacha::ChaCha20Rng;
 use std::fs::File;
@@ -25,11 +25,32 @@ use std::io::BufWriter;
 use std::io::Write;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// TODO: remove in favor of config properties.
 #[derive(Debug,Clone)]
 pub struct DetectedSpin{
+  //pub gamma_matrix: Option<TensorSpecifier>,
   pub isotope: Isotope,
   pub weighted_coordinates: IntegrationGrid,
+  //pub spin_multiplicity: Option<usize>,
   pub transition: [usize;2],
+}
+//------------------------------------------------------------------------------
+impl DetectedSpin{
+  pub fn gyromagnetic_ratio_matrix(&self) 
+    -> Result<SymmetricTensor3D, CluEError>
+  {
+    // TODO: allow for other g-matrices.
+
+    let eye = SymmetricTensor3D::eye();
+    let gamma_e = self.isotope.gyromagnetic_ratio();
+
+    Ok(gamma_e*&eye)
+  }
+  //----------------------------------------------------------------------------
+  pub fn spin_multiplicity(&self) -> Result<usize,CluEError>{
+    Ok(self.isotope.spin_multiplicity())
+  }
+  //----------------------------------------------------------------------------
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

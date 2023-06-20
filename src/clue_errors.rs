@@ -28,6 +28,7 @@ pub enum CluEError{
   CannotParseRHS(usize),
   CannotParseSecondaryParticleFilter(String),
   CannotPowTokens,
+  CannotReadGrid(String),
   CannotSampleBinomialDistribution(usize,f64),
   CannotSetExchangeCoupling(usize),
   CannotSubTokens,
@@ -51,6 +52,7 @@ pub enum CluEError{
   InvalidAxes,
   InvalidClusterPartitionKey,
   InvalidConfigFile(String),
+  InvalidGeometry(usize,String),
   InvalidPulseSequence(usize),
   InvalidToken(usize,String),
   LenghMismatchTimepointsIncrements(usize,usize),
@@ -73,6 +75,7 @@ pub enum CluEError{
   NoClusterMethod,
   NoClustersOfSize(usize),
   NoDensityMatrixMethod,
+  NoDetectedSpinIdentity,
   NoHyperfineSpecifier(String,String),
   NoInputFile,
   NoLoadGeometry,
@@ -106,6 +109,7 @@ pub enum CluEError{
   StructurePropertiesNeedsALabel,
   StructurePropertiesDoesNotNeedAnIsotope(String),
   TensorNotSet(usize),
+  TooFewRHSArguments(usize),
   TooManyRelationalOperators(usize),
   TooManyRHSArguments(usize),
   UnavailableSpinOp(usize,usize),
@@ -118,6 +122,7 @@ pub enum CluEError{
   VectorSpecifierDoesNotSpecifyUniqueVector(String),
   WrongClusterSizeForAnalyticCCE(usize),
   WrongNumberOfAxes(usize,usize),
+  WrongProbabilityDistributionDim(usize,usize,usize),
   WrongVectorLength(usize,usize,usize)
 }
 
@@ -211,6 +216,11 @@ impl fmt::Display for CluEError{
       CluEError::CannotPowTokens => write!(f,
           "cannot do token^token meaningfully"),
 
+      CluEError::CannotReadGrid(filename) => write!(f,
+          "cannot read grid from \"{}\": \
+the grid should be specified as a csv file with one column per dimension, \
+followed by a column for the weights", filename),
+
       CluEError::CannotConvertToFloat(line_number, token) => write!(f,
           "line {}, cannot convert \"{}\" to type float", line_number,token),
 
@@ -277,6 +287,10 @@ impl fmt::Display for CluEError{
 
       CluEError::InvalidConfigFile(filename) => write!(f,
           "cannot not read config file \"{}\"", filename),
+
+      CluEError::InvalidGeometry(line_number,rhs) => write!(f,
+          "line {}, argument \"{}\" is not a valid load_geometry",
+          line_number, rhs),
 
       CluEError::InvalidPulseSequence(line_number) => write!(f,
           "line {}, invalid pulse sequence",line_number),
@@ -346,6 +360,9 @@ impl fmt::Display for CluEError{
       CluEError::NoDensityMatrixMethod=> write!(f,
           "no density matrix method specified"),
       
+      CluEError::NoDetectedSpinIdentity => write!(f,
+          "detected_spin_identity is not set"),
+
       CluEError::NoInputFile => write!(f,
           "no input file"),
       
@@ -462,6 +479,10 @@ impl fmt::Display for CluEError{
       CluEError::TensorNotSet(index) => write!(f,
           "no tensor set for particle {}",index),
 
+      CluEError::TooFewRHSArguments(line_number) => write!(f,
+          "line {}, too few arguments on the right hand side", 
+          line_number),
+
       CluEError::TooManyRelationalOperators(line_number) => write!(f,
           "line {}, too many relational operators (=, <, >, in, ...), are present", 
           line_number),
@@ -497,6 +518,11 @@ impl fmt::Display for CluEError{
 
       CluEError::WrongNumberOfAxes(num_axes, expected_num) => write!(f,
           "{} axes were provided, but {} are expected",num_axes, expected_num),
+
+      CluEError::WrongProbabilityDistributionDim(line_number, 
+          expected, actual) => write!(f,
+          "line {}, expected probability distribution with {} dimensions, \
+but found {} dimensions", line_number, expected,actual),
 
       CluEError::WrongVectorLength(line_number, expected, actual) => write!(f,
           "line {}, expected vector of length {}, but recieved a length of {}", 

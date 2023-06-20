@@ -436,8 +436,10 @@ fn get_detected_particle_pdb_string(&self)
 
   // Write coordinate lines.
   if let Some(detected_particle) = &self.detected_particle{
+    let det_isotope_str = &detected_particle.isotope.to_string();
+
     let serial = format!("{: >5}", 0.to_string());
-    let name = format!(" {: <4}",detected_particle.isotope.to_string());
+    let name =  format!(" {: <4}",det_isotope_str);
     let alt_loc = " ".to_string();
     let res_name = String::from("DET");
     let chain_id = "  ".to_string();
@@ -453,8 +455,7 @@ fn get_detected_particle_pdb_string(&self)
       ((r[2]-r0.z())/ANGSTROM).to_string().substring(0,7));
     let occupancy = "  1.00";
     let temp_factor = "  0.00";
-    let element = format!("          {: >2}",
-        detected_particle.isotope.to_string());
+    let element =  format!("          {: >2}",det_isotope_str);
     pdb_str = format!("HETATM{}{}{}{}{}{}{}{}{}{}{}{}{}\n"
         ,serial, name, alt_loc, res_name, chain_id,
         res_seq, icode, x, y, z,

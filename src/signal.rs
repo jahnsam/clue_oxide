@@ -2,11 +2,11 @@ pub mod calculate_analytic_restricted_2cluster_signals;
 pub mod calculate_signal;
 pub mod cluster_correlation_expansion;
 
+use crate::CluEError;
 use crate::cluster::Cluster;
+
 use std::ops::{Add,Sub,Mul,Div};
 use num_complex::Complex;
-
-use crate::CluEError;
 use std::error::Error;
 
 #[derive(PartialEq,Debug,Clone,Default)]

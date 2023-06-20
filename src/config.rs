@@ -1,18 +1,18 @@
-
-
-//use strum::IntoEnumIterator;
-
 use crate::clue_errors::*;
+
+use crate::config::command_line_input::CommandLineInput;
 use crate::config::lexer::*;
 use crate::config::token::*;
-use crate::config::command_line_input::CommandLineInput;
 use crate::config::token_algebra::*;
-//use crate::config::token_stream;
 use crate::config::token_expressions::*;
-use crate::config::particle_config::ParticleConfig;//, ParticleProperties,  IsotopeAbundance};
+use crate::config::particle_config::{ParticleConfig,TensorSpecifier};
+
 use crate::physical_constants::{ANGSTROM,Isotope};
 use crate::space_3d::Vector3D;
 use crate::integration_grid::IntegrationGrid;
+
+
+
 use crate::io;
 
 
@@ -34,14 +34,15 @@ pub struct Config{
   pub cluster_batch_size: Option<usize>,
   pub cluster_method: Option<ClusterMethod>,
   pub density_matrix: Option<DensityMatrixMethod>,
+  pub detected_spin_g_matrix: Option<TensorSpecifier>,
+  pub detected_spin_identity: Option<Isotope>,
+  pub detected_spin_multiplicity: Option<usize>,
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
-  pub detected_spin_identity: Option<Isotope>,
   pub input_structure_file: Option<String>,
   pub load_geometry: Option<LoadGeometry>,
   pub magnetic_field: Option<Vector3D>,
   pub max_cluster_size: Option<usize>,
-  //pub neighbor_cutoffs: Vec::<NeighborCutoff>,
   pub neighbor_cutoff_delta_hyperfine: Option<f64>,
   pub neighbor_cutoff_dipole_dipole: Option<f64>,
   pub neighbor_cutoff_distance: Option<f64>,
@@ -369,6 +370,9 @@ impl Config{
 
     match expression.lhs[0]{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::ClusterBatchSize 
+        => set_to_some_usize(&mut self.cluster_batch_size, expression)?, 
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::ClusterMethod => { 
         if let Some(_value) = &self.cluster_method{
           return Err(already_set());
@@ -401,6 +405,7 @@ impl Config{
         }
 
         match rhs[0]{
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::CentroidOverSerials =>{
             let args = get_function_arguments(rhs,expression.line_number)?;
 
@@ -417,6 +422,38 @@ impl Config{
                 DetectedSpinCoordinates::CentroidOverSerials(serials));
 
           },
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          Token::ReadCSV => {
+            let args = get_function_arguments(rhs,expression.line_number)?;
+
+            if args.is_empty(){
+              return Err(CluEError::TooFewRHSArguments(expression.line_number));
+            }else if args.len() > 1{
+              return Err(CluEError::TooManyRHSArguments(expression.line_number));
+            }
+
+            let grid = IntegrationGrid::read_from_csv(&(args[0].to_string()))?;
+
+            if grid.dim() != 3{
+              return Err(CluEError::WrongProbabilityDistributionDim(
+                    expression.line_number,3,grid.dim()));
+            }
+            self.detected_spin_position = Some(
+                DetectedSpinCoordinates::ProbabilityDistribution(grid));
+
+          }
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          Token::SquareBracketOpen =>{
+            let mut r_opt: Option<Vector3D> = None;
+            set_to_some_vector3d(&mut r_opt, expression)?;
+            if let Some(r) = r_opt{
+              self.detected_spin_position 
+                = Some(DetectedSpinCoordinates::XYZ(r));
+            }else{
+              return Err(CluEError::NoCentralSpinCoor);
+            }
+          },
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           _ => return Err(CluEError::InvalidToken(expression.line_number,
                 rhs[0].to_string())),
         }
@@ -424,6 +461,30 @@ impl Config{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::InputStructureFile 
         => set_to_some_string(&mut self.input_structure_file, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::LoadGeometry =>{
+        if let Some(_value) = &self.load_geometry{
+          return Err(already_set());
+        }
+
+        let Some(rhs) = &expression.rhs else { 
+          return Err(CluEError::NoRHS(expression.line_number));
+        };
+
+        if rhs.is_empty(){
+          return Err(CluEError::NoRHS(expression.line_number));
+        }else if rhs.len() > 1{
+          return Err(CluEError::TooManyRHSArguments(expression.line_number));
+        }
+
+        match rhs[0]{
+          Token::Cube => self.load_geometry = Some(LoadGeometry::Cube),
+          Token::Sphere => self.load_geometry = Some(LoadGeometry::Sphere),
+          _ => return Err(CluEError::InvalidGeometry(expression.line_number,
+                rhs[0].to_string())),
+        }
+
+      },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::MaxClusterSize 
         => set_to_some_usize(&mut self.max_cluster_size, expression)?,
@@ -533,6 +594,9 @@ impl Config{
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::Temperature
+        => set_to_some_f64(&mut self.temperature, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::TimeIncrements 
         => set_to_vec_f64(&mut self.time_increments, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -574,9 +638,11 @@ mod tests{
   #[test]
   fn test_parse_config_line(){
     let expressions = get_tokens_from_line("\
+        cluster_batch_size = 20000;
         cluster_method = cce;
         detected_spin_position = centroid_over_serials([28,29]);
         input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
+        load_geometry = cube;
         max_cluster_size = 4;
         number_timepoints = [40,60];
         neighbor_cutoff_delta_hyperfine = 1e4;
@@ -585,6 +651,7 @@ mod tests{
         neighbor_cutoff_3_spin_hahn_taylor_4 = 1e-9;
         pulse_sequence = cp-1;
         radius = 80;
+        temperature = 20;
         time_increments = [1e-9, 5e-7];
         write_auxiliary_signals = out_aux;
         write_bath = out_bath;
@@ -593,7 +660,7 @@ mod tests{
         write_info = out_info;
         write_orientation_signals = out_ori;
         write_structure_pdb = out_pdb;
-        write_tensors = \"out_tensors\";
+        write_tensors = \"tensors\";
         ").unwrap();
 
     let mut config = Config::new();
@@ -602,12 +669,14 @@ mod tests{
     }
 
 
+    assert_eq!(config.cluster_batch_size,Some(20000));
     assert_eq!(config.cluster_method,Some(ClusterMethod::CCE));
     assert_eq!(config.detected_spin_position, 
         Some(DetectedSpinCoordinates::CentroidOverSerials(vec![28,29])));
     assert_eq!(config.input_structure_file, 
          Some("../../assets/TEMPO_wat_gly_70A.pdb".to_string()));
     
+    assert_eq!(config.load_geometry, Some(LoadGeometry::Cube));
     assert_eq!(config.max_cluster_size, Some(4));
     assert_eq!(config.neighbor_cutoff_delta_hyperfine, Some(1e4));
     assert_eq!(config.neighbor_cutoff_dipole_dipole, Some(1e3));
@@ -616,6 +685,7 @@ mod tests{
     assert_eq!(config.number_timepoints, vec![40,60]);
     assert_eq!(config.pulse_sequence, Some(PulseSequence::CarrPurcell(1)));
     assert_eq!(config.radius, Some(80.0e-10));
+    assert_eq!(config.temperature, Some(20.0));
     assert_eq!(config.time_increments, vec![1e-9,5e-7]);
     assert_eq!(config.write_auxiliary_signals, Some("out_aux".to_string()));
     assert_eq!(config.write_bath, Some("out_bath".to_string()));
@@ -624,7 +694,7 @@ mod tests{
     assert_eq!(config.write_info, Some("out_info".to_string()));
     assert_eq!(config.write_orientation_signals, Some("out_ori".to_string()));
     assert_eq!(config.write_structure_pdb, Some("out_pdb".to_string()));
-    assert_eq!(config.write_tensors, Some("out_tensors".to_string()));
+    assert_eq!(config.write_tensors, Some("tensors".to_string()));
   }
   //----------------------------------------------------------------------------
   #[test]

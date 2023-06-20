@@ -91,6 +91,8 @@ impl IntegrationGrid{
   //----------------------------------------------------------------------------
   pub fn len(&self) -> usize { self.weights.len() }
   //----------------------------------------------------------------------------
+  pub fn dim(&self) -> usize { self.dim }
+  //----------------------------------------------------------------------------
   pub fn is_empty(&self) -> bool { self.weights.is_empty() }
   //----------------------------------------------------------------------------
   pub fn weight(&self, index: usize) -> f64{ 
@@ -142,6 +144,61 @@ impl IntegrationGrid{
       let idx = ii%self.dim;
       *x += vector[idx];
     }
+
+  }
+  //----------------------------------------------------------------------------
+  pub fn read_from_csv(filename: &str) -> Result<Self,CluEError>{
+
+    let Ok(mut rdr) = csv::Reader::from_path(filename) else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()));
+    };
+
+    let mut num_rows = 0;
+    let mut num_cols = 0;
+    
+    for result in rdr.records() {
+      if let Ok(str_rec) = result{
+        num_cols = str_rec.len();
+      }else{
+        return Err(CluEError::CannotOpenFile(filename.to_string()));
+      };
+      num_rows += 1;
+    } 
+
+    if num_cols <= 1{
+      return Err(CluEError::CannotReadGrid(filename.to_string()));
+    }
+    let dim = num_cols - 1;
+
+    let mut points = Vec::<f64>::with_capacity(dim*num_rows);
+    let mut weights = Vec::<f64>::with_capacity(num_rows);
+    
+    let Ok(mut rdr) = csv::Reader::from_path(filename) else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()));
+    };
+
+    for (_irow, result) in rdr.records().enumerate() {
+      let Ok(record) = result else{
+        return Err(CluEError::CannotOpenFile(filename.to_string()));
+      };
+
+      for (icol,entry) in record.iter().enumerate(){
+        let Ok(v) = entry.parse::<f64>() else{
+          return Err(CluEError::CannotOpenFile(filename.to_string()));
+        };
+        if icol < dim{
+          points.push(v);
+        }else{
+          weights.push(v);
+        }
+      }
+    }
+
+    if points.len() != dim*num_rows || weights.len() != num_rows{
+      return Err(CluEError::CannotReadGrid(filename.to_string()));
+    }
+
+    Ok(IntegrationGrid{dim,points,weights})
 
   }
   //----------------------------------------------------------------------------

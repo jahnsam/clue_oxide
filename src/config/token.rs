@@ -14,13 +14,22 @@ pub enum Token{
  CCE,
  CarrPurcell,
  CentroidOverSerials,
+ ClusterBatchSize,
  ClusterMethod,
  Clusters,
  Comma,
  Config,
+ Cube,
  CurlyBracketClose,
  CurlyBracketOpen,
+ DetectedSpinGMatrix,
+ DetectedSpinGX,
+ DetectedSpinGY,
+ DetectedSpinGZ,
+ DetectedSpinIdentity,
  DetectedSpinPosition,
+ DetectedSpinMultiplicity,
+ DetectedSpinTransition,
  DoubleQuote,
  ElectricQuadrupoleCoupling,
  ElectricQuadrupoleX,
@@ -51,6 +60,7 @@ pub enum Token{
  LessThan,
  LessThanEqualTo,
  LineComment, 
+ LoadGeometry,
  MagneticField,
  MaxClusterSize,
  Minus,
@@ -72,6 +82,7 @@ pub enum Token{
  R2CCE,
  Radius,
  Random,
+ ReadCSV,
  RemovePartialMethyls,
  Residue,
  Residues,                                                     
@@ -81,12 +92,14 @@ pub enum Token{
  Serials,                                                      
  Sharp,
  Slash,
+ Sphere,
  SpinProperties,
  Spins,
  SquareBracketClose,
  SquareBracketOpen,
  StructureProperties,
  Structures,
+ Temperature,
  Tensors,
  TimeIncrements,
  Times,
@@ -118,13 +131,22 @@ impl fmt::Display for Token{
       Token::CarrPurcell => write!(f,"cp"),
       Token::CCE => write!(f,"cce"),
       Token::CentroidOverSerials => write!(f,"centroid_over_serials"),
+      Token::ClusterBatchSize => write!(f,"cluster_batch_size"),
       Token::ClusterMethod => write!(f,"cluster_method"),
       Token::Clusters => write!(f,"clusters"),
       Token::Comma => write!(f,","),
       Token::Config => write!(f,"config"),
+      Token::Cube => write!(f,"cube"),
       Token::CurlyBracketClose => write!(f,"}}"),
       Token::CurlyBracketOpen => write!(f,"{{"),
+      Token::DetectedSpinGMatrix => write!(f,"detected_spin_g_matrix"),
+      Token::DetectedSpinGX => write!(f,"detected_spin_g_x"),
+      Token::DetectedSpinGY => write!(f,"detected_spin_g_y"),
+      Token::DetectedSpinGZ => write!(f,"detected_spin_g_z"),
+      Token::DetectedSpinIdentity => write!(f,"detected_spin_identity"),
+      Token::DetectedSpinMultiplicity => write!(f,"detected_spin_multiplicity"),
       Token::DetectedSpinPosition => write!(f,"detected_spin_position"),
+      Token::DetectedSpinTransition => write!(f,"detected_spin_transition"),
       Token::DoubleQuote => write!(f,"\""),
       Token::ElectricQuadrupoleCoupling  
         => write!(f,"electric_quadrupole_coupling"),
@@ -156,6 +178,7 @@ impl fmt::Display for Token{
       Token::LessThan => write!(f,"<"),
       Token::LessThanEqualTo => write!(f,"<="),
       Token::LineComment => write!(f,"//"), 
+      Token::LoadGeometry => write!(f,"load_geometry"),
       Token::MagneticField => write!(f,"magnetic_field"),
       Token::MaxClusterSize => write!(f,"max_cluster_size"),
       Token::Minus => write!(f,"-"),
@@ -182,6 +205,7 @@ impl fmt::Display for Token{
       Token::R2CCE => write!(f,"r2cce"),
       Token::Radius => write!(f,"radius"),
       Token::Random => write!(f,"random"),
+      Token::ReadCSV => write!(f,"read_csv"),
       Token::RemovePartialMethyls => write!(f,"remove_partial_methyls"),
       Token::Residue => write!(f,"residue"),
       Token::Residues => write!(f,"residues"),
@@ -193,10 +217,12 @@ impl fmt::Display for Token{
       Token::Slash => write!(f,"/"),
       Token::SpinProperties => write!(f,"spin_properties"),
       Token::Spins => write!(f,"spins"),
+      Token::Sphere => write!(f,"sphere"),
       Token::SquareBracketClose => write!(f,"]"),
       Token::SquareBracketOpen => write!(f,"["),
       Token::StructureProperties => write!(f,"structure_properties"),
       Token::Structures => write!(f,"structures"),
+      Token::Temperature => write!(f,"temperature"),
       Token::Tensors => write!(f,"tensors"),
       Token::TimeIncrements => write!(f,"time_increments"),
       Token::Times => write!(f,"*"),
@@ -230,13 +256,22 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "cp" => Some(Token::CarrPurcell),
     "cce" => Some(Token::CCE),
     "centroid_over_serials" => Some(Token::CentroidOverSerials),
+    "cluster_batch_size" => Some(Token::ClusterBatchSize),
     "cluster_method" => Some(Token::ClusterMethod),
     "clusters" => Some(Token::Clusters),
     "," => Some(Token::Comma),
     "config" => Some(Token::Config),
+    "cube" => Some(Token::Cube),
     "}" => Some(Token::CurlyBracketClose),
     "{" => Some(Token::CurlyBracketOpen),
+    "detected_spin_g_matrix" => Some(Token::DetectedSpinGMatrix),
+    "detected_spin_g_x" => Some(Token::DetectedSpinGX),
+    "detected_spin_g_y" => Some(Token::DetectedSpinGY),
+    "detected_spin_g_z" => Some(Token::DetectedSpinGZ),
+    "detected_spin_identity" => Some(Token::DetectedSpinIdentity),
+    "detected_spin_multiplicity" => Some(Token::DetectedSpinMultiplicity),
     "detected_spin_position" => Some(Token::DetectedSpinPosition),
+    "detected_spin_transition" => Some(Token::DetectedSpinTransition),
     "\"" => Some(Token::DoubleQuote),
     "electric_quadrupole_coupling" => Some(Token::ElectricQuadrupoleCoupling),
     "electric_quadrupole_x" => Some(Token::ElectricQuadrupoleX),
@@ -255,6 +290,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "indices" => Some(Token::Indices), 
     "isotope" => Some(Token::Isotope),
     "label" => Some(Token::Label),
+    "load_geometry" => Some(Token::LoadGeometry),
     "lebedev" => Some(Token::Lebedev),
     "hahn" => Some(Token::Hahn),
     "^" => Some(Token::Hat),
@@ -290,6 +326,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "r2cce" => Some(Token::R2CCE),
     "radius" => Some(Token::Radius),
     "random" => Some(Token::Random),
+    "read_csv" => Some(Token::ReadCSV),
     "remove_partial_methyls" => Some(Token::RemovePartialMethyls),
     "residue" => Some(Token::Residue),
     "residues" => Some(Token::Residues),
@@ -300,11 +337,13 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "#" => Some(Token::Sharp),
     "/" => Some(Token::Slash),
     "spin_properties" => Some(Token::SpinProperties),
+    "sphere" => Some(Token::Sphere),
     "spins" => Some(Token::Spins),
     "]" => Some(Token::SquareBracketClose),
     "[" => Some(Token::SquareBracketOpen),
     "structure_properties" => Some(Token::StructureProperties),
     "structures" => Some(Token::Structures),
+    "temperature" => Some(Token::Temperature),
     "tensors" => Some(Token::Tensors),
     "*" => Some(Token::Times),
     "true" => Some(Token::True),
@@ -879,129 +918,145 @@ mod tests{
   
   #[test]
   fn test_identify_token(){
-    assert_eq!(identify_token("!").unwrap(), Token::Bang);
-    assert_eq!(identify_token("*/").unwrap(), Token::BlockCommentEnd);
-    assert_eq!(identify_token("/*").unwrap(), Token::BlockCommentStart);
-    assert_eq!(identify_token("cp").unwrap(), Token::CarrPurcell);
-    assert_eq!(identify_token("cce").unwrap(), Token::CCE);
-    assert_eq!(identify_token("centroid_over_serials").unwrap(), 
-        Token::CentroidOverSerials);
-    assert_eq!(identify_token("cluster_method").unwrap(), Token::ClusterMethod);
-    assert_eq!(identify_token("clusters").unwrap(), Token::Clusters);
-    assert_eq!(identify_token(",").unwrap(), Token::Comma);
-    assert_eq!(identify_token("config").unwrap(), Token::Config);
-    assert_eq!(identify_token("}").unwrap(), Token::CurlyBracketClose);
-    assert_eq!(identify_token("{").unwrap(), Token::CurlyBracketOpen);
-    assert_eq!(identify_token("detected_spin_position").unwrap(), 
-        Token::DetectedSpinPosition);
-    assert_eq!(identify_token("\"").unwrap(), Token::DoubleQuote);
-    assert_eq!(identify_token("electric_quadrupole_coupling").unwrap(), 
-        Token::ElectricQuadrupoleCoupling);
-    assert_eq!(identify_token("electric_quadrupole_x").unwrap(), 
-        Token::ElectricQuadrupoleX);
-    assert_eq!(identify_token("electric_quadrupole_y").unwrap(), 
-        Token::ElectricQuadrupoleY);
-    assert_eq!(identify_token("electric_quadrupole_z").unwrap(), 
-        Token::ElectricQuadrupoleZ);
-    assert_eq!(identify_token("element").unwrap(), Token::Element);
-    assert_eq!(identify_token("\n").unwrap(), Token::EOL);
-    assert_eq!(identify_token("=").unwrap(), Token::Equals);
-    assert_eq!(identify_token("false").unwrap(), Token::False);
-    assert_eq!(identify_token("filter").unwrap(), Token::Filter);
-    assert_eq!(identify_token(">").unwrap(), Token::GreaterThan);
-    assert_eq!(identify_token(">=").unwrap(), Token::GreaterThanEqualTo);
-    assert_eq!(identify_token("hahn").unwrap(), Token::Hahn);
-    assert_eq!(identify_token("^").unwrap(), Token::Hat);
-    assert_eq!(identify_token("hyperfine_coupling").unwrap(), 
-        Token::HyperfineCoupling);
-    assert_eq!(identify_token("hyperfine_x").unwrap(), Token::HyperfineX);
-    assert_eq!(identify_token("hyperfine_y").unwrap(), Token::HyperfineY);
-    assert_eq!(identify_token("hyperfine_z").unwrap(), Token::HyperfineZ);
-    assert_eq!(identify_token("in").unwrap(), Token::In);
-    assert_eq!(identify_token("input_structure_file").unwrap(), 
-        Token::InputStructureFile);
-    assert_eq!(identify_token("isotope").unwrap(), Token::Isotope);
-    assert_eq!(identify_token("label").unwrap(), Token::Label);
-    assert_eq!(identify_token("lebedev").unwrap(), Token::Lebedev);
-    assert_eq!(identify_token("<").unwrap(), Token::LessThan);
-    assert_eq!(identify_token("<=").unwrap(), Token::LessThanEqualTo);
-    assert_eq!(identify_token("//").unwrap(), Token::LineComment);
-    assert_eq!(identify_token("magnetic_field").unwrap(), Token::MagneticField);
-    assert_eq!(identify_token("max_cluster_size").unwrap(), 
-        Token::MaxClusterSize);
-    assert_eq!(identify_token("-").unwrap(), Token::Minus);
-    assert_eq!(identify_token("neighbor_cutoff_delta_hyperfine").unwrap(), 
-        Token::NeighborCutoffDeltaHyperfine);
-    assert_eq!(identify_token("neighbor_cutoff_dipole_dipole").unwrap(), 
-        Token::NeighborCutoffDipoleDipole);
-    assert_eq!(identify_token("neighbor_cutoff_distance").unwrap(), 
-        Token::NeighborCutoffDistance);
-    assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_mod_depth").unwrap(), 
-        Token::NeighborCutoff3SpinHahnModDepth);
-    assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_taylor_4").unwrap(), 
-        Token::NeighborCutoff3SpinHahnTaylor4);
-    assert_eq!(identify_token("not").unwrap(), Token::Not);
-    assert_eq!(identify_token("!=").unwrap(), Token::NotEqual);
-    assert_eq!(identify_token("not in").unwrap(), Token::NotIn);
-    assert_eq!(identify_token("number_timepoints").unwrap(), 
-        Token::NumberTimepoints);
-    assert_eq!(identify_token("path").unwrap(), Token::Path);
-    assert_eq!(identify_token(")").unwrap(), Token::ParenthesisClose);
-    assert_eq!(identify_token("(").unwrap(), Token::ParenthesisOpen);
-    assert_eq!(identify_token("+").unwrap(), Token::Plus);
-    assert_eq!(identify_token("pulse_sequence").unwrap(), Token::PulseSequence);
-    assert_eq!(identify_token("radius").unwrap(), Token::Radius);
-    assert_eq!(identify_token("random").unwrap(), Token::Random);
-    assert_eq!(identify_token("remove_partial_methyls").unwrap(), 
-        Token::RemovePartialMethyls);
-    assert_eq!(identify_token("residue").unwrap(), Token::Residue);
-    assert_eq!(identify_token("rng_seed").unwrap(), Token::RNGSeed);
-    assert_eq!(identify_token(";").unwrap(), Token::Semicolon);
-    assert_eq!(identify_token("#").unwrap(), Token::Sharp);
-    assert_eq!(identify_token("/").unwrap(), Token::Slash);
-    assert_eq!(identify_token("spin_properties").unwrap(), 
-        Token::SpinProperties);
-    assert_eq!(identify_token("spins").unwrap(), Token::Spins);
-    assert_eq!(identify_token("]").unwrap(), Token::SquareBracketClose);
-    assert_eq!(identify_token("[").unwrap(), Token::SquareBracketOpen);
-    assert_eq!(identify_token("structure_properties").unwrap(), 
-        Token::StructureProperties);
-    assert_eq!(identify_token("structures").unwrap(), Token::Structures);
-    assert_eq!(identify_token("tensors").unwrap(), Token::Tensors);
-    assert_eq!(identify_token("time_increments").unwrap(), 
-        Token::TimeIncrements);
-    assert_eq!(identify_token("*").unwrap(), Token::Times);
-    assert_eq!(identify_token("true").unwrap(), Token::True);
-    assert_eq!(identify_token("tunnel_splitting").unwrap(), 
-        Token::TunnelSplitting);
-    assert_eq!(identify_token("type").unwrap(), Token::Type);
-    assert_eq!(identify_token(" ").unwrap(), Token::Whitespace);
-    assert_eq!(identify_token("write_auxiliary_signals").unwrap(), 
-        Token::WriteAuxiliarySignals);
-    assert_eq!(identify_token("write_bath").unwrap(), 
-        Token::WriteBath);
-    assert_eq!(identify_token("write_clusters").unwrap(), 
-        Token::WriteClusters);
-    assert_eq!(identify_token("write_exchange_groups").unwrap(), 
-        Token::WriteExchangeGroups);
-    assert_eq!(identify_token("write_info").unwrap(), 
-        Token::WriteInfo);
-    assert_eq!(identify_token("write_orientation_signals").unwrap(), 
-        Token::WriteOrientationSignals);
-    assert_eq!(identify_token("write_structure_pdb").unwrap(), 
-        Token::WriteStructurePDB);
-    assert_eq!(identify_token("write_tensors").unwrap(), 
-        Token::WriteTensors);
-    assert_eq!(identify_token("indices").unwrap(), Token::Indices); 
-    assert_eq!(identify_token("elements").unwrap(), Token::Elements); 
-    assert_eq!(identify_token("serials").unwrap(), Token::Serials); 
-    assert_eq!(identify_token("r2cce").unwrap(), Token::R2CCE);
-    assert_eq!(identify_token("residues").unwrap(), Token::Residues);
-    assert_eq!(identify_token("residue_sequence_numbers").unwrap(), 
-        Token::ResSeqNums);
-    assert_eq!(identify_token("bonded_indices").unwrap(), Token::BondedIndices);
-    assert_eq!(identify_token("bonded_elements").unwrap(),
-        Token::BondedElements);
+    assert_eq!(identify_token("!"), Some(Token::Bang));
+    assert_eq!(identify_token("*/"), Some(Token::BlockCommentEnd));
+    assert_eq!(identify_token("/*"),Some( Token::BlockCommentStart));
+    assert_eq!(identify_token("cp"),Some( Token::CarrPurcell));
+    assert_eq!(identify_token("cce"),Some( Token::CCE));
+    assert_eq!(identify_token("centroid_over_serials"),
+        Some(Token::CentroidOverSerials));
+    assert_eq!(identify_token("cluster_batch_size"),
+        Some(Token::ClusterBatchSize));
+    assert_eq!(identify_token("cluster_method"),Some(Token::ClusterMethod));
+    assert_eq!(identify_token("clusters"),Some( Token::Clusters));
+    assert_eq!(identify_token(","),Some( Token::Comma));
+    assert_eq!(identify_token("config"),Some( Token::Config));
+    assert_eq!(identify_token("cube"),Some( Token::Cube));
+    assert_eq!(identify_token("}"),Some( Token::CurlyBracketClose));
+    assert_eq!(identify_token("{"),Some( Token::CurlyBracketOpen));
+    assert_eq!(identify_token("detected_spin_g_matrix"),
+        Some(Token::DetectedSpinGMatrix));
+    assert_eq!(identify_token("detected_spin_g_x"),Some(Token::DetectedSpinGX));
+    assert_eq!(identify_token("detected_spin_g_y"),Some(Token::DetectedSpinGY));
+    assert_eq!(identify_token("detected_spin_g_z"),Some(Token::DetectedSpinGZ));
+    assert_eq!(identify_token("detected_spin_multiplicity"),
+        Some( Token::DetectedSpinMultiplicity));
+    assert_eq!(identify_token("detected_spin_identity"),
+        Some(Token::DetectedSpinIdentity));
+    assert_eq!(identify_token("detected_spin_position"),
+        Some(Token::DetectedSpinPosition));
+    assert_eq!(identify_token("detected_spin_transition"),
+        Some(Token::DetectedSpinTransition));
+    assert_eq!(identify_token("\""),Some( Token::DoubleQuote));
+    assert_eq!(identify_token("electric_quadrupole_coupling"),
+        Some(Token::ElectricQuadrupoleCoupling));
+    assert_eq!(identify_token("electric_quadrupole_x"),
+        Some(Token::ElectricQuadrupoleX));
+    assert_eq!(identify_token("electric_quadrupole_y"),
+        Some(Token::ElectricQuadrupoleY));
+    assert_eq!(identify_token("electric_quadrupole_z"),
+        Some(Token::ElectricQuadrupoleZ));
+    assert_eq!(identify_token("element"),Some( Token::Element));
+    assert_eq!(identify_token("\n"),Some( Token::EOL));
+    assert_eq!(identify_token("="),Some( Token::Equals));
+    assert_eq!(identify_token("false"),Some( Token::False));
+    assert_eq!(identify_token("filter"),Some( Token::Filter));
+    assert_eq!(identify_token(">"),Some( Token::GreaterThan));
+    assert_eq!(identify_token(">="),Some( Token::GreaterThanEqualTo));
+    assert_eq!(identify_token("hahn"),Some( Token::Hahn));
+    assert_eq!(identify_token("^"),Some( Token::Hat));
+    assert_eq!(identify_token("hyperfine_coupling"),
+        Some(Token::HyperfineCoupling));
+    assert_eq!(identify_token("hyperfine_x"),Some( Token::HyperfineX));
+    assert_eq!(identify_token("hyperfine_y"),Some( Token::HyperfineY));
+    assert_eq!(identify_token("hyperfine_z"),Some( Token::HyperfineZ));
+    assert_eq!(identify_token("in"),Some( Token::In));
+    assert_eq!(identify_token("input_structure_file"),
+        Some(Token::InputStructureFile));
+    assert_eq!(identify_token("isotope"),Some( Token::Isotope));
+    assert_eq!(identify_token("label"),Some( Token::Label));
+    assert_eq!(identify_token("lebedev"),Some( Token::Lebedev));
+    assert_eq!(identify_token("load_geometry"),Some( Token::LoadGeometry));
+    assert_eq!(identify_token("<"),Some( Token::LessThan));
+    assert_eq!(identify_token("<="),Some( Token::LessThanEqualTo));
+    assert_eq!(identify_token("//"),Some( Token::LineComment));
+    assert_eq!(identify_token("magnetic_field"),Some( Token::MagneticField));
+    assert_eq!(identify_token("max_cluster_size"),
+        Some(Token::MaxClusterSize));
+    assert_eq!(identify_token("-"),Some( Token::Minus));
+    assert_eq!(identify_token("neighbor_cutoff_delta_hyperfine"),
+        Some(Token::NeighborCutoffDeltaHyperfine));
+    assert_eq!(identify_token("neighbor_cutoff_dipole_dipole"),
+        Some(Token::NeighborCutoffDipoleDipole));
+    assert_eq!(identify_token("neighbor_cutoff_distance"),
+        Some(Token::NeighborCutoffDistance));
+    assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_mod_depth"),
+        Some(Token::NeighborCutoff3SpinHahnModDepth));
+    assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_taylor_4"),
+        Some(Token::NeighborCutoff3SpinHahnTaylor4));
+    assert_eq!(identify_token("not"),Some( Token::Not));
+    assert_eq!(identify_token("!="),Some( Token::NotEqual));
+    assert_eq!(identify_token("not in"),Some( Token::NotIn));
+    assert_eq!(identify_token("number_timepoints"),
+        Some(Token::NumberTimepoints));
+    assert_eq!(identify_token("path"),Some( Token::Path));
+    assert_eq!(identify_token(")"),Some( Token::ParenthesisClose));
+    assert_eq!(identify_token("("),Some( Token::ParenthesisOpen));
+    assert_eq!(identify_token("+"),Some( Token::Plus));
+    assert_eq!(identify_token("pulse_sequence"),Some( Token::PulseSequence));
+    assert_eq!(identify_token("radius"),Some( Token::Radius));
+    assert_eq!(identify_token("random"),Some( Token::Random));
+    assert_eq!(identify_token("read_csv"), Some(Token::ReadCSV));
+    assert_eq!(identify_token("remove_partial_methyls"),
+        Some(Token::RemovePartialMethyls));
+    assert_eq!(identify_token("residue"),Some( Token::Residue));
+    assert_eq!(identify_token("rng_seed"),Some( Token::RNGSeed));
+    assert_eq!(identify_token(";"),Some( Token::Semicolon));
+    assert_eq!(identify_token("#"),Some( Token::Sharp));
+    assert_eq!(identify_token("/"),Some( Token::Slash));
+    assert_eq!(identify_token("sphere"),Some( Token::Sphere));
+    assert_eq!(identify_token("spin_properties"),
+        Some(Token::SpinProperties));
+    assert_eq!(identify_token("spins"),Some( Token::Spins));
+    assert_eq!(identify_token("]"),Some( Token::SquareBracketClose));
+    assert_eq!(identify_token("["),Some( Token::SquareBracketOpen));
+    assert_eq!(identify_token("structure_properties"),
+        Some(Token::StructureProperties));
+    assert_eq!(identify_token("structures"),Some( Token::Structures));
+    assert_eq!(identify_token("temperature"),Some( Token::Temperature));
+    assert_eq!(identify_token("tensors"),Some( Token::Tensors));
+    assert_eq!(identify_token("time_increments"),
+        Some(Token::TimeIncrements));
+    assert_eq!(identify_token("*"),Some( Token::Times));
+    assert_eq!(identify_token("true"),Some( Token::True));
+    assert_eq!(identify_token("tunnel_splitting"),
+        Some(Token::TunnelSplitting));
+    assert_eq!(identify_token("type"),Some( Token::Type));
+    assert_eq!(identify_token(" "),Some( Token::Whitespace));
+    assert_eq!(identify_token("write_auxiliary_signals"),
+        Some(Token::WriteAuxiliarySignals));
+    assert_eq!(identify_token("write_bath"),
+        Some(Token::WriteBath));
+    assert_eq!(identify_token("write_clusters"),
+        Some(Token::WriteClusters));
+    assert_eq!(identify_token("write_exchange_groups"),
+        Some(Token::WriteExchangeGroups));
+    assert_eq!(identify_token("write_info"),Some(Token::WriteInfo));
+    assert_eq!(identify_token("write_orientation_signals"),
+        Some(Token::WriteOrientationSignals));
+    assert_eq!(identify_token("write_structure_pdb"),
+        Some(Token::WriteStructurePDB));
+    assert_eq!(identify_token("write_tensors"),
+        Some(Token::WriteTensors));
+    assert_eq!(identify_token("indices"),Some( Token::Indices)); 
+    assert_eq!(identify_token("elements"),Some( Token::Elements)); 
+    assert_eq!(identify_token("serials"),Some( Token::Serials)); 
+    assert_eq!(identify_token("r2cce"),Some( Token::R2CCE));
+    assert_eq!(identify_token("residues"),Some( Token::Residues));
+    assert_eq!(identify_token("residue_sequence_numbers"),
+        Some(Token::ResSeqNums));
+    assert_eq!(identify_token("bonded_indices"),Some( Token::BondedIndices));
+    assert_eq!(identify_token("bonded_elements"),Some(Token::BondedElements));
 
   }
   //----------------------------------------------------------------------------

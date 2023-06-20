@@ -98,12 +98,13 @@ impl HamiltonianTensors{
     };
 
     let eye = SymmetricTensor3D::eye();
-    let gamma_e = detected_particle.isotope.gyromagnetic_ratio();
 
-    spin_multiplicities.push(detected_particle.isotope.spin_multiplicity());
+    let gamma_matrix = detected_particle.gyromagnetic_ratio_matrix()?;
+
+    spin_multiplicities.push(detected_particle.spin_multiplicity()?);
 
     spin1_tensors.set(0,
-        construct_zeeman_tensor(&(gamma_e*&eye),magnetic_field));
+        construct_zeeman_tensor(&gamma_matrix,magnetic_field));
 
     let mut tensor_indices = Vec::<Option<usize>>::with_capacity(
         structure.bath_particles.len());
@@ -456,6 +457,7 @@ fn construct_hyperfine_tensor(detected_particle: &DetectedSpin,
   }else{
 
     let gamma_e = detected_particle.isotope.gyromagnetic_ratio();
+
     let gamma0 = particle0.isotope.gyromagnetic_ratio();
     
     let mut hf_ten = SymmetricTensor3D::zeros();

@@ -241,7 +241,8 @@ pub fn set_to_vec_usize(target: &mut Vec<usize>,
   Ok(())
 }
 //------------------------------------------------------------------------------
-pub fn set_to_some_string(target: &mut Option<String>, expression: &TokenExpression)
+pub fn set_to_some_string(target: &mut Option<String>, 
+    expression: &TokenExpression)
   -> Result<(),CluEError>
 {
 
@@ -257,12 +258,14 @@ pub fn set_to_some_string(target: &mut Option<String>, expression: &TokenExpress
     return Err(CluEError::TooManyRHSArguments(expression.line_number));
   }
 
+  *target = Some(rhs[0].to_string());
+  /*
   if let Token::UserInputValue(value) = &rhs[0]{
     *target = Some(value.clone());
   }else{
-    println!("DB: {:?}",rhs);
     return Err(CluEError::CannotParseRHS(expression.line_number));
   }
+  */
 
   Ok(())
 }
