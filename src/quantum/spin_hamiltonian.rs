@@ -269,8 +269,8 @@ pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
 
     // nuclear hyperfine
     if let Some(ten) = tensors.spin2_tensors.get(0,ten_idx0){
-      ham_ms = ham_ms + sz0*ten.zx();
-      ham_ms = ham_ms + sz0*ten.zy();
+      ham_ms = ham_ms + sx0*ten.zx();
+      ham_ms = ham_ms + sy0*ten.zy();
       ham_ms = ham_ms + sz0*ten.zz();
     }
 

@@ -20,3 +20,25 @@ remove_partial_methyls = true;
 
 //#[spin_properties(label = tempo, isotope = 1H)]
 //  tunnel_splitting = 80e3; // Hz.
+#[filter(label = tempo_n)]
+  residues in [TEM];
+  elements in [N];
+
+#[filter(label = tempo_o)]
+  residues in [TEM];
+  elements in [O];
+
+#[filter(label = tempo_c)]
+  residues in [TEM];
+  elements in [C];
+
+#[spin_properties(label = tempo_n, isotope = 14N)]
+  hyperfine_coupling = [20,20,100]*1e6;
+  //hyperfine_coupling = [-13.8725, -13.8725, 122.329]*1e6;
+  hyperfine_x = diff(bonded(tempo_c),bonded(tempo_c));
+  hyperfine_y = diff(particle,bonded(tempo_o));
+
+  electric_quadrupole_coupling = [-0.28, -1.47, 1.75]*1e6;
+  electric_quadrupole_x = diff(bonded(tempo_c),bonded(tempo_c));
+  electric_quadrupole_y = diff(particle,bonded(tempo_o));
+

@@ -104,19 +104,20 @@ fn calculate_auxiliary_signals(
 
       // Loop over cluster in this batch and calculate the auxiliary signals
       // from the cluster signals.
-      for cluster in clusters[cluster_size-1].iter().skip(idx)
-        .take(batch_size){
+      for iclu in (0..n_clusters).skip(idx).take(batch_size){
+        let mut cluster = clusters[cluster_size-1][iclu].clone();
         
+        // Find subclusters.
+        let subclusters = build_subclusters(cluster.vertices());
+
         // Unpack signal.
-        let mut aux_signal: Signal = match &cluster.signal{
-          Ok(Some(sig)) => sig.clone(),
+        let aux_signal: &mut Signal = match &mut cluster.signal{
+          Ok(Some(sig)) => sig,
           Ok(None) => return Err(
               CluEError::ClusterHasNoSignal(cluster.to_string())),
           Err(err) => return Err(err.clone()),
         };
 
-        // Find subclusters.
-        let subclusters = build_subclusters(cluster.vertices());
 
         // Loop over subclusters.
         for subcluster_vertices in subclusters.iter(){
@@ -138,7 +139,7 @@ fn calculate_auxiliary_signals(
           {
             let subcluster = &clusters[subcluster_size-1][*subcluster_idx];
             match &subcluster.signal{
-              Ok(Some(subsignal)) =>  aux_signal = &aux_signal/subsignal,
+              Ok(Some(subsignal)) =>  *aux_signal = &(*aux_signal)/subsignal,
               Ok(None) => continue,
               Err(err) => return Err(err.clone()),
             }
@@ -146,6 +147,7 @@ fn calculate_auxiliary_signals(
           }
         
         }
+        clusters[cluster_size-1][iclu] = cluster;
       }
 
 
