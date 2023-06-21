@@ -1,0 +1,13 @@
+[package]
+name = "pyclue"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+name = "clue_oxide"
+crate-type = ["cdylib"]
+
+[dependencies.pyo3]
+version = "0.15.1"
+features = ["extension-module"]
+
