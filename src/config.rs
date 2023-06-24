@@ -358,7 +358,8 @@ impl Config{
     Ok(())
   }
   //----------------------------------------------------------------------------
-  fn parse_config_line(&mut self, expression: &TokenExpression) 
+  /// This function parses a line of tokens and modifies the `Config`. 
+  pub fn parse_config_line(&mut self, expression: &TokenExpression) 
     -> Result<(),CluEError>
   {
 

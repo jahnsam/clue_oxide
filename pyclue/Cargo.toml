@@ -7,7 +7,12 @@ edition = "2018"
 name = "clue_oxide"
 crate-type = ["cdylib"]
 
+[dependencies.clue_oxide]
+path = "../../clue_oxide"
+
 [dependencies.pyo3]
 version = "0.15.1"
-features = ["extension-module"]
+features = ["extension-module","num-complex"]
 
+[dependencies]
+num-complex = "0.4"
