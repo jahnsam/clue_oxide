@@ -14,7 +14,6 @@ use clue_oxide as clue;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[pyclass]
 struct CluEOptions{
-  //base_config: String,
   config: HashMap<String,String>,
   filters: HashMap::<String,Filter>,
   structure_properties: HashMap<String,StructureProperties>,
@@ -31,7 +30,15 @@ impl ToString for CluEOptions{
     out = format!("{}\n",out);
     
     for (_key, filter) in self.filters.iter(){
-      out = format!("{}{}", out, filter.to_string());
+      out = format!("{}{}\n", out, filter.to_string());
+    }
+
+    for (_key, properties) in self.structure_properties.iter(){
+      out = format!("{}{}\n", out, properties.to_string());
+    }
+
+    for (_key, properties) in self.spin_properties.iter(){
+      out = format!("{}{}\n", out, properties.to_string());
     }
 
     out
@@ -43,16 +50,38 @@ impl CluEOptions {
 
   #[new]
   #[args(config = "HashMap::<String,String>::new()",
-     filters = "HashMap::<String,Filter>::new()",
-     structure_properties = "HashMap::<String,StructureProperties>::new()",
-     spin_properties = "HashMap::<(String,String),SpinProperties>::new()",
+     filter_list = "Vec::<Filter>::new()",
+     structure_properties_list = "Vec::<StructureProperties>::new()",
+     spin_properties_list = "Vec::<SpinProperties>::new()",
      )]
   fn new(config: HashMap::<String,String>,
-    filters: HashMap::<String,Filter>,
-    structure_properties: HashMap::<String,StructureProperties>,
-    spin_properties: HashMap<(String,String),SpinProperties>,
+    filter_list: Vec::<Filter>,
+    structure_properties_list: Vec::<StructureProperties>,
+    spin_properties_list: Vec::<SpinProperties>,
     ) -> Self 
   {
+
+    let mut filters = HashMap::<String,Filter>::with_capacity(
+        filter_list.len());
+    for filter in filter_list{
+      filters.insert(filter.label.clone(),filter);
+    }
+
+    let mut structure_properties = HashMap::<String,StructureProperties>::
+      with_capacity(structure_properties_list.len());
+    for structure_property in structure_properties_list{
+      structure_properties.insert(structure_property.label.clone(),
+          structure_property);
+    }
+
+    let mut spin_properties = HashMap::<(String,String),SpinProperties>::
+      with_capacity(spin_properties_list.len());
+    for spin_property in spin_properties_list{
+      spin_properties.insert(
+          (spin_property.label.clone(), spin_property.isotope.clone()),
+          spin_property);
+    }
+
     CluEOptions{
       config,
       filters,
@@ -70,12 +99,13 @@ impl CluEOptions {
 
     let mut config = clue_oxide::config::Config::new();
 
-    for expression in expressions.iter(){
-      match config.parse_config_line(expression){
-        Ok(_) => (),
-        Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
-      }
+    match  config.parse_token_stream(expressions){
+      Ok(_) => (),
+      Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
     }
+    
+    config.set_defaults();
+
     match clue::run(config){
       Ok((time, signal)) => Ok((time,signal)),
       Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
@@ -125,10 +155,11 @@ impl CluEOptions {
     Ok(())
   }
   //----------------------------------------------------------------------------
-  pub fn set_structure_properties(&mut self, label: String, key: String, value: String)
+  pub fn set_structure_properties(&mut self, label: String,
+      key: String, value: String)
     -> PyResult<()>
   {
-    if !self.structure_properties.contains_key(&key){
+    if !self.structure_properties.contains_key(&label){
       self.structure_properties.insert(label.clone(), 
           StructureProperties::new(label.clone(), 
             HashMap::<String,String>::new() ));
@@ -141,6 +172,38 @@ impl CluEOptions {
     };
 
     structure_properties.properties.insert(key,value);
+
+    Ok(())
+  }
+  //----------------------------------------------------------------------------
+  pub fn add_spin_properties(&mut self, 
+      spin_properties: SpinProperties) -> PyResult<()>{
+
+    self.spin_properties.insert(
+        (spin_properties.label.clone(), spin_properties.isotope.clone()),
+        spin_properties);
+    Ok(())
+  }
+  //----------------------------------------------------------------------------
+  pub fn set_spin_properties(&mut self, label: String, isotope: String,
+      key: String, value: String)
+    -> PyResult<()>
+  {
+    let spin_key = (label.clone(),isotope.clone());
+
+    if !self.spin_properties.contains_key(&spin_key){
+      self.spin_properties.insert((label.clone(), isotope.clone()), 
+          SpinProperties::new(label.clone(), isotope.clone(),
+            HashMap::<String,String>::new() ));
+    }
+
+    let Some(spin_properties) = self.spin_properties.get_mut( &spin_key ) 
+    else{
+      return Err(PyErr::new::<PyTypeError, _>(
+            "cannot find spine_properties"));
+    };
+
+    spin_properties.properties.insert(key,value);
 
     Ok(())
   }
@@ -163,7 +226,7 @@ impl ToString for Filter{
     let mut out = format!("#[filter(label = {})]\n",self.label);
 
     for (key,val) in &self.criteria{
-      out = format!("{}  {} {}\n",out,key,val);
+      out = format!("{}  {} {};\n",out,key,val);
     }
     out
   }
@@ -196,7 +259,7 @@ impl ToString for StructureProperties{
     let mut out = format!("#[structure_properties(label = {})]\n",self.label);
 
     for (key,val) in &self.properties{
-      out = format!("{}  {} {}\n",out,key,val);
+      out = format!("{}  {} = {};\n",out,key,val);
     }
     out
   }
@@ -231,7 +294,7 @@ impl ToString for SpinProperties{
         self.label, self.isotope);
 
     for (key,val) in &self.properties{
-      out = format!("{}  {} {}\n",out,key,val);
+      out = format!("{}  {} = {};\n",out,key,val);
     }
     out
   }
@@ -262,9 +325,8 @@ fn clue_oxide(_py: Python, m: &PyModule) -> PyResult<()> {
     //m.add_function(wrap_pyfunction!(run, m)?)?;
     m.add_class::<CluEOptions>()?;
     m.add_class::<Filter>()?;
-    m.add_class::<SpinProperties>()?;
     m.add_class::<StructureProperties>()?;
-    //m.add_class::<SpinProperties>()?;
+    m.add_class::<SpinProperties>()?;
     Ok(())
 }
 }

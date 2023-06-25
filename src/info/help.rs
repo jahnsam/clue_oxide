@@ -1,12 +1,13 @@
 pub fn print_help(){
   println!("\
 Usage:\n    \
-    clue input [-o output] [options]\n\
+    clue input [-o \"options\"]\n\
 \n\
 Options:\n    \
     -h, --help       Prints help information.\n    \
+    -H, --hide-title Do not display title information.\n    \
     -l, --license    Prints license.\n    \
-    -o, --output     Set output file.\n    \
+    -O, --option     input additional options.\n    \
     -V, --version    Prints version information.\n    \
     -W, --warrenty   Prints warrenty information.\n    \
 ");

@@ -3,7 +3,8 @@ use crate::config::Config;
 use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
 use crate::physical_constants::PI;
-use crate::quantum::tensors::HamiltonianTensors;
+use crate::quantum::tensors::{
+  get_perpendicular_dipole_dipole_frequency, HamiltonianTensors};
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   hahn_three_spin_modulation_depth,
   hahn_three_spin_modulation_frequency,
@@ -81,6 +82,25 @@ fn are_spins_neighbors(idx0: usize,idx1: usize,
   if let Some(cutoff) = &config.neighbor_cutoff_dipole_dipole{
     if b < *cutoff {return Ok(false);}
   }
+  if let Some(cutoff) = &config.neighbor_cutoff_dipole_perpendicular{
+    let structure_index0 = structure.get_bath_index_of_nth_active(idx0)?;
+    let structure_index1 = structure.get_bath_index_of_nth_active(idx1)?;
+
+    let r0 = &structure.bath_particles[structure_index0].coordinates;
+    let r1 = &structure.bath_particles[structure_index1].coordinates;
+
+    let delta_r = (r1 - r0).norm();
+
+    let gamma_0 = structure.bath_particles[structure_index0].isotope
+      .gyromagnetic_ratio();
+    let gamma_1 = structure.bath_particles[structure_index1].isotope
+      .gyromagnetic_ratio();
+
+    let b_perp = get_perpendicular_dipole_dipole_frequency(
+        gamma_0, gamma_1, delta_r);
+    if b_perp < *cutoff {return Ok(false);}
+  }
+
   if let Some(cutoff) = &config.neighbor_cutoff_3_spin_hahn_mod_depth{
     let k = hahn_three_spin_modulation_depth(delta_hf,b);
     if k < *cutoff {return Ok(false);}

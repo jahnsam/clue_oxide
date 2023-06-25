@@ -46,6 +46,7 @@ pub struct Config{
   pub max_cluster_size: Option<usize>,
   pub neighbor_cutoff_delta_hyperfine: Option<f64>,
   pub neighbor_cutoff_dipole_dipole: Option<f64>,
+  pub neighbor_cutoff_dipole_perpendicular: Option<f64>,
   pub neighbor_cutoff_distance: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_mod_depth: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_taylor_4: Option<f64>,
@@ -302,7 +303,12 @@ impl Config{
   
     let mut config = Config::new();
 
-    let token_stream = get_tokens_from_file(filename)?;
+    let mut token_stream = get_tokens_from_file(filename)?;
+
+    if let Some(options) = &input.config_options{
+      let mut expressions = get_tokens_from_line(options)?;
+      token_stream.append(&mut expressions);
+    }
 
     config.parse_token_stream(token_stream)?;
 
@@ -524,6 +530,10 @@ impl Config{
         => set_to_some_f64(&mut self.neighbor_cutoff_dipole_dipole,
             expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NeighborCutoffDipolePerpendicular
+        => set_to_some_f64(&mut self.neighbor_cutoff_dipole_perpendicular,
+            expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::NeighborCutoffDistance 
         => {
           set_to_some_f64(&mut self.neighbor_cutoff_distance,expression)?;
@@ -719,6 +729,7 @@ mod tests{
   #[test]
   fn test_parse_config_line(){
     let expressions = get_tokens_from_line("\
+        #[config]\n
         clash_distance_pbc = 0.1;
         cluster_batch_size = 20000;
         cluster_method = cce;
@@ -729,6 +740,7 @@ mod tests{
         number_timepoints = [40,60];
         neighbor_cutoff_delta_hyperfine = 1e4;
         neighbor_cutoff_dipole_dipole = 1e3;
+        neighbor_cutoff_dipole_perpendicular = 100;
         neighbor_cutoff_3_spin_hahn_mod_depth = 1e-10;
         neighbor_cutoff_3_spin_hahn_taylor_4 = 1e-9;
         pulse_sequence = cp-1;
@@ -746,10 +758,7 @@ mod tests{
         ").unwrap();
 
     let mut config = Config::new();
-    for expression in expressions.iter(){
-      config.parse_config_line(expression).unwrap();
-    }
-
+    config.parse_token_stream(expressions).unwrap();
 
     let clash_distance_pbc = config.clash_distance_pbc.unwrap();
     assert!( (clash_distance_pbc - 0.1e-10).abs()/(0.1e-10) < 1e-12 );
@@ -764,6 +773,7 @@ mod tests{
     assert_eq!(config.max_cluster_size, Some(4));
     assert_eq!(config.neighbor_cutoff_delta_hyperfine, Some(1e4));
     assert_eq!(config.neighbor_cutoff_dipole_dipole, Some(1e3));
+    assert_eq!(config.neighbor_cutoff_dipole_perpendicular, Some(1e2));
     assert_eq!(config.neighbor_cutoff_3_spin_hahn_mod_depth, Some(1e-10));
     assert_eq!(config.neighbor_cutoff_3_spin_hahn_taylor_4, Some(1e-9));
     assert_eq!(config.number_timepoints, vec![40,60]);

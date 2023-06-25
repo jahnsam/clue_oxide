@@ -68,6 +68,7 @@ pub enum Token{
  Mode(ModeAttribute),
  NeighborCutoffDeltaHyperfine,
  NeighborCutoffDipoleDipole,
+ NeighborCutoffDipolePerpendicular,
  NeighborCutoffDistance,
  NeighborCutoff3SpinHahnModDepth,
  NeighborCutoff3SpinHahnTaylor4,
@@ -190,6 +191,8 @@ impl fmt::Display for Token{
         => write!(f,"neighbor_cutoff_delta_hyperfine"),
       Token::NeighborCutoffDipoleDipole 
         => write!(f,"neighbor_cutoff_dipole_dipole"),
+      Token::NeighborCutoffDipolePerpendicular 
+        => write!(f,"neighbor_cutoff_dipole_perpendicular"),
       Token::NeighborCutoffDistance 
         => write!(f,"neighbor_cutoff_distance"),
       Token::NeighborCutoff3SpinHahnModDepth 
@@ -313,6 +316,8 @@ pub fn identify_token(word: &str) -> Option<Token>{
       => Some(Token::NeighborCutoffDeltaHyperfine),
     "neighbor_cutoff_dipole_dipole" 
       => Some(Token::NeighborCutoffDipoleDipole),
+    "neighbor_cutoff_dipole_perpendicular" 
+      => Some(Token::NeighborCutoffDipolePerpendicular),
     "neighbor_cutoff_distance" 
       => Some(Token::NeighborCutoffDistance),
     "neighbor_cutoff_3_spin_hahn_mod_depth" 
@@ -996,6 +1001,8 @@ mod tests{
         Some(Token::NeighborCutoffDeltaHyperfine));
     assert_eq!(identify_token("neighbor_cutoff_dipole_dipole"),
         Some(Token::NeighborCutoffDipoleDipole));
+    assert_eq!(identify_token("neighbor_cutoff_dipole_perpendicular"),
+        Some(Token::NeighborCutoffDipolePerpendicular));
     assert_eq!(identify_token("neighbor_cutoff_distance"),
         Some(Token::NeighborCutoffDistance));
     assert_eq!(identify_token("neighbor_cutoff_3_spin_hahn_mod_depth"),
