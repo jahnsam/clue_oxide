@@ -31,6 +31,7 @@ pub enum Token{
  DetectedSpinPosition,
  DetectedSpinMultiplicity,
  DetectedSpinTransition,
+ Diff,
  DoubleQuote,
  ElectricQuadrupoleCoupling,
  ElectricQuadrupoleX,
@@ -110,6 +111,7 @@ pub enum Token{
  TunnelSplitting,
  Type,
  UserInputValue(String),
+ Vector,
  VectorF64(Vec::<f64>),
  VectorI32(Vec::<i32>),
  VectorString(Vec::<String>),
@@ -151,6 +153,7 @@ impl fmt::Display for Token{
       Token::DetectedSpinMultiplicity => write!(f,"detected_spin_multiplicity"),
       Token::DetectedSpinPosition => write!(f,"detected_spin_position"),
       Token::DetectedSpinTransition => write!(f,"detected_spin_transition"),
+      Token::Diff => write!(f,"diff"),
       Token::DoubleQuote => write!(f,"\""),
       Token::ElectricQuadrupoleCoupling  
         => write!(f,"electric_quadrupole_coupling"),
@@ -237,6 +240,7 @@ impl fmt::Display for Token{
       Token::TunnelSplitting => write!(f,"tunnel_splitting"),
       Token::Type => write!(f,"type"),
       Token::UserInputValue(string) => write!(f,"{}",string),
+      Token::Vector => write!(f,"vector"), 
       Token::VectorF64(v) => write!(f,"{:?}",v), 
       Token::VectorI32(v) => write!(f,"{:?}",v), 
       Token::VectorString(v) => write!(f,"{:?}",v), 
@@ -280,6 +284,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "detected_spin_multiplicity" => Some(Token::DetectedSpinMultiplicity),
     "detected_spin_position" => Some(Token::DetectedSpinPosition),
     "detected_spin_transition" => Some(Token::DetectedSpinTransition),
+    "diff" => Some(Token::Diff),
     "\"" => Some(Token::DoubleQuote),
     "electric_quadrupole_coupling" => Some(Token::ElectricQuadrupoleCoupling),
     "electric_quadrupole_x" => Some(Token::ElectricQuadrupoleX),
@@ -361,6 +366,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "time_increments" => Some(Token::TimeIncrements),
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     "type" => Some(Token::Type),
+    "vector" => Some(Token::Vector),
     " " => Some(Token::Whitespace),
     "write_auxiliary_signals" => Some(Token::WriteAuxiliarySignals),
     "write_bath" => Some(Token::WriteBath),
@@ -960,6 +966,7 @@ mod tests{
         Some(Token::DetectedSpinPosition));
     assert_eq!(identify_token("detected_spin_transition"),
         Some(Token::DetectedSpinTransition));
+    assert_eq!(identify_token("diff"),Some( Token::Diff));
     assert_eq!(identify_token("\""),Some( Token::DoubleQuote));
     assert_eq!(identify_token("electric_quadrupole_coupling"),
         Some(Token::ElectricQuadrupoleCoupling));
@@ -1048,6 +1055,7 @@ mod tests{
     assert_eq!(identify_token("tunnel_splitting"),
         Some(Token::TunnelSplitting));
     assert_eq!(identify_token("type"),Some( Token::Type));
+    assert_eq!(identify_token("vector"),Some( Token::Vector));
     assert_eq!(identify_token(" "),Some( Token::Whitespace));
     assert_eq!(identify_token("write_auxiliary_signals"),
         Some(Token::WriteAuxiliarySignals));

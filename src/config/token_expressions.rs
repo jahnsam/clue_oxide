@@ -309,10 +309,9 @@ pub fn set_to_some_vector_specifier(
 
   let vector_specifier: VectorSpecifier;
 
-  let vector_keyword = tokens[0].to_string();
-  match &vector_keyword as &str{
+  match tokens[0]{
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    "diff" => {
+    Token::Diff => {
       let Some( (idx0,idx1) ) = find_outermost_parentheses(&tokens, 
           expression.line_number)? else{  
          return Err(CluEError::CannotConvertToVector(
@@ -357,7 +356,7 @@ pub fn set_to_some_vector_specifier(
          secondary_particle_filters[1].clone(),labels[1].clone());
     },
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    "vector" => {
+      Token::Vector => {
       let Some( (idx0,idx1) ) = find_brackets(&tokens, expression.line_number)?
       else{  
         return Err(CluEError::CannotConvertToVector(
@@ -383,8 +382,16 @@ pub fn set_to_some_vector_specifier(
       }
     },
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    _ => return Err(CluEError::UnrecognizedVectorSpecifier(
-          vector_keyword)),  
+    _ => {
+      let mut vec3d_opt: Option<Vector3D> =  None;
+      set_to_some_vector3d(&mut vec3d_opt, expression)?;
+      if let Some(r) = vec3d_opt{
+        vector_specifier = VectorSpecifier::Vector(r);
+      }else{
+        return 
+          Err(CluEError::UnrecognizedVectorSpecifier(tokens[0].to_string() ) );
+      }
+    },
   }
   
   *target = Some(vector_specifier);
@@ -512,7 +519,7 @@ mod tests{
 
     let expression = TokenExpression{ 
       lhs: vec![Token::HyperfineX], 
-      rhs: Some(vec![Token::UserInputValue("vector".to_string()), 
+      rhs: Some(vec![Token::Vector, 
           Token::ParenthesisOpen, Token::SquareBracketOpen, Token::Minus, 
           Token::UserInputValue("1".to_string()), Token::Comma, 
           Token::UserInputValue("0".to_string()), Token::Comma, 

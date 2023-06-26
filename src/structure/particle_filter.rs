@@ -199,6 +199,7 @@ impl ParticleFilter{
       Some(idx)
     }
 //------------------------------------------------------------------------------
+/*
   /// This function augments a particle filter, making it specific to the
   /// specified particle.  
   /// The secondary filter specifies how the filter should be restricted.
@@ -242,6 +243,7 @@ impl ParticleFilter{
 
     Ok(())
   }
+*/
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -252,6 +254,7 @@ impl ParticleFilter{
 #[derive(Debug,Clone,PartialEq)]
 pub enum SecondaryParticleFilter{
   Bonded, // atoms bonded to particle
+  Filter,
   Particle, // the particle itself
   SameMolecule, // atoms on the same molecule as particle 
   //SameResidueSequenceNumber, // atoms with the same ResSeq as particle.
@@ -260,6 +263,7 @@ impl ToString for SecondaryParticleFilter{
   fn to_string(&self) -> String{
     match self{
       SecondaryParticleFilter::Bonded => String::from("bonded"),
+      SecondaryParticleFilter::Filter => String::from("filter"),
       SecondaryParticleFilter::Particle => String::from("particle"),
       SecondaryParticleFilter::SameMolecule
         => String::from("same_molecule"),
@@ -272,6 +276,7 @@ impl SecondaryParticleFilter{
   {
     match secondary_filter{
       "bonded" => Ok(SecondaryParticleFilter::Bonded),
+      "filter" => Ok(SecondaryParticleFilter::Filter),
       "particle" => Ok(SecondaryParticleFilter::Particle),
       "same_molecule" => Ok(SecondaryParticleFilter::SameMolecule),
       _ => Err(CluEError::CannotParseSecondaryParticleFilter(
@@ -291,21 +296,28 @@ impl SecondaryParticleFilter{
       return Err(CluEError::MissingFilter(label.to_string()));
     };
 
-    let mut indices = Vec::<usize>::new();
+    //let mut indices = Vec::<usize>::new();
   
-    match self{
+    let indices = match self{
+      //
       SecondaryParticleFilter::Bonded => {
         if let Some(bonded) = structure.connections
           .get_neighbors(particle_index){
-          indices = filter.filter_indices(structure,bonded);
+          filter.filter_indices(structure,bonded)
+        }else{
+          return Err(CluEError::BondsAreNotDefined);
         }
       },
-      SecondaryParticleFilter::Particle => indices = vec![particle_index],
+      SecondaryParticleFilter::Filter => filter.filter(structure),
+      //
+      SecondaryParticleFilter::Particle => vec![particle_index],
+      //
       SecondaryParticleFilter::SameMolecule => {
         let mol_id = structure.molecule_ids[particle_index];
-        indices = filter.filter_indices(structure,&structure.molecules[mol_id]);
+        filter.filter_indices(structure,&structure.molecules[mol_id])
       },
-    }
+      //
+    };
     Ok(indices)
   }
 }
@@ -314,6 +326,7 @@ impl SecondaryParticleFilter{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone,PartialEq)]
 pub enum VectorSpecifier{
+  //CentroidOverSerials(Vec::<u32>),
   Diff(SecondaryParticleFilter,String,SecondaryParticleFilter,String),
   Vector(Vector3D)
 }
@@ -323,7 +336,11 @@ impl VectorSpecifier{
       config: &Config) -> Result<Vector3D,CluEError>
   {
     match self{ 
-      VectorSpecifier::Diff(sec_fltr_0,label_0,sec_fltr_1,label_1) =>{
+      //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      //VectorSpecifier::CentroidOverSerials(serials) 
+      //  => structure.centroid_over_serials(serials.clone()),
+      //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      VectorSpecifier::Diff(sec_fltr_0,label_0,sec_fltr_1,label_1) => {
 
 
         let mut indices_0 = sec_fltr_0.filter(particle_index, label_0, 
@@ -372,7 +389,9 @@ impl VectorSpecifier{
         
         Ok(vector3d)
       },
+      //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       VectorSpecifier::Vector(vector3d) => Ok(vector3d.clone()),
+      //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     }
   }
 }
@@ -468,6 +487,7 @@ mod tests{
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
   }
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_augment_filter(){
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
@@ -502,6 +522,7 @@ mod tests{
     let indices = filter.filter(&structure);
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
   }
+  */
   //----------------------------------------------------------------------------
   #[test]
   fn test_filter(){

@@ -5,6 +5,7 @@ pub enum CluEError{
   AllSignalsNotSameLength(String),
   AtomDoesNotSpecifyElement(usize),
   AllVectorsNotSameLength(String),
+  BondsAreNotDefined,
   CannotAddPointToGrid(usize,usize),
   CannotAddTokens,
   CannontAugmentFilter(usize,String),
@@ -78,6 +79,7 @@ pub enum CluEError{
   NoClustersOfSize(usize),
   NoDensityMatrixMethod,
   NoDetectedSpinIdentity,
+  NoGMatrixSpecifier,
   NoHyperfineSpecifier(String,String),
   NoInputFile,
   NoLoadGeometry,
@@ -142,6 +144,9 @@ impl fmt::Display for CluEError{
 
       CluEError::AllVectorsNotSameLength(filename) => write!(f,
           "for \"{}\",signals must all have the same length", filename),
+
+      CluEError:: BondsAreNotDefined => write!(f,
+          "no chemical bonds are established"),
 
       CluEError::CannotAddPointToGrid(point_dim, grid_dim) => write!(f,
           "cannot add {}D point t0 {}D grid",point_dim, grid_dim),
@@ -373,6 +378,9 @@ followed by a column for the weights", filename),
       CluEError::NoDetectedSpinIdentity => write!(f,
           "detected_spin_identity is not set"),
 
+      CluEError::NoGMatrixSpecifier => write!(f,
+          "no g-matrix specifier"),
+      
       CluEError::NoInputFile => write!(f,
           "no input file"),
       

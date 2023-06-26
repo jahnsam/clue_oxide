@@ -6,23 +6,26 @@ pub mod particle;
 pub mod particle_filter;
 
 //use crate::config::particle_config;
-use crate::config::{Config, particle_config::ParticleProperties};
-use crate::config::particle_config::IsotopeProperties;
-use crate::config::particle_config::TensorSpecifier;
+use crate::config::{
+  Config, 
+  particle_config::{ParticleProperties,IsotopeProperties,TensorSpecifier},
+};
 use crate::clue_errors::CluEError;
-use crate::integration_grid::IntegrationGrid;
-use crate::structure::particle::Particle;
-use crate::structure::particle_filter::*;
-use crate::space_3d::Vector3D;
 use crate::cluster::adjacency::AdjacencyList;
-use crate::structure::exchange_groups::ExchangeGroupManager;
+use crate::integration_grid::IntegrationGrid;
+use crate::math;
+use crate::space_3d::Vector3D;
+use crate::structure::{
+  exchange_groups::ExchangeGroupManager,
+  particle::Particle,
+  particle_filter::*
+};
 use crate::physical_constants::{ANGSTROM,Isotope};
 use crate::space_3d::SymmetricTensor3D;
 
 use rand_chacha::ChaCha20Rng;
 use std::fs::File;
-use std::io::BufWriter;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // TODO: remove in favor of config properties.
@@ -251,6 +254,24 @@ impl Structure{
     }
 
     self.nth_active_to_reference_index = act_to_ref;
+  }
+  //----------------------------------------------------------------------------
+  pub fn centroid_over_serials(&self, serials: Vec::<u32>) 
+    -> Result<Vector3D,CluEError>
+  {
+    let mut filter = ParticleFilter::new();
+    filter.serials = serials;
+    filter.indices = math::unique(self.primary_cell_indices.clone());
+
+    let indices = filter.filter(self);
+    let mut r_ave = Vector3D::zeros();
+    for &idx in indices.iter(){
+      let r = &self.bath_particles[idx].coordinates;
+      r_ave = &r_ave + r;
+    }
+    r_ave = r_ave.scale(1.0/(indices.len() as f64));
+
+    Ok(r_ave)
   }
   //----------------------------------------------------------------------------
   /*

@@ -409,6 +409,52 @@ impl Config{
 
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::DetectedSpinGMatrix 
+        | Token::DetectedSpinGX| Token::DetectedSpinGY | Token::DetectedSpinGZ
+        =>{
+          if self.detected_spin_g_matrix.is_none() {
+            self.detected_spin_g_matrix = Some(TensorSpecifier::new())
+          }
+          let Some(g_matrix) = &mut self.detected_spin_g_matrix else{
+            return Err(CluEError::NoGMatrixSpecifier );
+          };
+          let Some(rhs) = &expression.rhs else{
+            return Err(CluEError::NoRHS(expression.line_number));
+          }; 
+
+          match expression.lhs[0]{
+            Token::DetectedSpinGMatrix => {
+              let mut g_values = Vec::<f64>::new();
+        
+              set_to_vec_f64(&mut g_values,expression)?;
+            
+              if g_matrix.values.is_some(){
+                return Err(already_set());
+              }
+
+              if g_values.len() == 1{
+                g_matrix.values = Some([g_values[0],g_values[0],g_values[0]]);
+              }else if g_values.len() == 3{
+                g_matrix.values = Some([g_values[0],g_values[1],g_values[2]]);
+              }else{
+                return Err(CluEError::CannotInferEigenvalues(
+                    expression.line_number));
+              }
+            },
+            Token::DetectedSpinGX 
+              => set_to_some_vector_specifier(&mut g_matrix.x_axis, expression,
+                  "detected_spin")?,
+            Token::DetectedSpinGY 
+              => set_to_some_vector_specifier(&mut g_matrix.y_axis, expression,
+                  "detected_spin")?,
+            Token::DetectedSpinGZ
+              => set_to_some_vector_specifier(&mut g_matrix.z_axis, expression,
+                  "detected_spin")?,
+            _ => return Err(CluEError::InvalidToken(expression.line_number,
+                  rhs[0].to_string())),
+          }
+        },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::DetectedSpinPosition =>{
         if let Some(_value) = &self.detected_spin_position{
           return Err(already_set());
@@ -726,6 +772,9 @@ impl Config{
 #[cfg(test)]
 mod tests{
   use super::*;
+  use crate::structure::particle_filter::{
+    SecondaryParticleFilter,VectorSpecifier};
+
   #[test]
   fn test_parse_config_line(){
     let expressions = get_tokens_from_line("\
@@ -733,6 +782,9 @@ mod tests{
         clash_distance_pbc = 0.1;
         cluster_batch_size = 20000;
         cluster_method = cce;
+        detected_spin_g_matrix = [2.01,2.02,2.03];
+        detected_spin_g_y = [-1.1500, -0.4700, 0.7100];
+        detected_spin_g_x = diff(filter(tempo_c1) , filter(tempo_c19) );
         detected_spin_position = centroid_over_serials([28,29]);
         input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
         load_geometry = cube;
@@ -764,6 +816,20 @@ mod tests{
     assert!( (clash_distance_pbc - 0.1e-10).abs()/(0.1e-10) < 1e-12 );
     assert_eq!(config.cluster_batch_size,Some(20000));
     assert_eq!(config.cluster_method,Some(ClusterMethod::CCE));
+
+    let g_matrix = config.detected_spin_g_matrix.unwrap();
+    assert_eq!(g_matrix.values, 
+        Some([2.01,2.02,2.03] ) );
+    assert_eq!(g_matrix.z_axis, None);
+    assert_eq!(g_matrix.y_axis, 
+        Some(VectorSpecifier::Vector(
+            Vector3D::from([-1.1500, -0.4700, 0.7100]) ) ) );
+    assert_eq!(g_matrix.x_axis, 
+        Some(VectorSpecifier::Diff(
+            SecondaryParticleFilter::Filter, "tempo_c1".to_string(),
+            SecondaryParticleFilter::Filter, "tempo_c19".to_string(),
+            )));
+
     assert_eq!(config.detected_spin_position, 
         Some(DetectedSpinCoordinates::CentroidOverSerials(vec![28,29])));
     assert_eq!(config.input_structure_file, 

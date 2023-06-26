@@ -48,18 +48,8 @@ impl Structure{
     let mut weighted_coordinates = IntegrationGrid::new(3);
     match detected_spin_position{
       DetectedSpinCoordinates::CentroidOverSerials(serials) => {
-        let mut filter = ParticleFilter::new();
-        filter.serials = serials.clone();
-        let indices = filter.filter(self);
-        let mut r_ave = Vector3D::zeros();
-        for &idx in indices.iter(){
-          let r = &self.bath_particles[idx].coordinates;
-          r_ave = &r_ave + r;
-        }
-        r_ave = r_ave.scale(1.0/(indices.len() as f64));
-
+        let r_ave = self.centroid_over_serials(serials.clone())?;
         weighted_coordinates.push(vec![r_ave.x(),r_ave.y(),r_ave.z()],1.0)?;
-
       },
       DetectedSpinCoordinates::XYZ(r) => {
         weighted_coordinates.push(vec![r.x(),r.y(),r.z()],1.0)?;
@@ -409,6 +399,8 @@ fn update_cosubstitution_ids(
             indices = filter.filter_indices(structure,bonded);
           }
         },
+        Some(SecondaryParticleFilter::Filter) 
+          => indices = filter.filter(structure),
         Some(SecondaryParticleFilter::Particle) => (),
         Some(SecondaryParticleFilter::SameMolecule) => {
           let mol_id = structure.molecule_ids[idx0];
