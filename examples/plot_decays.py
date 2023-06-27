@@ -1,5 +1,4 @@
 import matplotlib
-matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -39,7 +38,7 @@ def main():
 
   ax.set_xlabel("time (μs)")
   ax.set_ylabel("Re(signal)")
-  plt.show()
+  plt.savefig("CluE-fig.png")
 
 #-------------------------------------------------------------------------------
 def read_time_axis(csv_file):
