@@ -660,7 +660,7 @@ mod tests {
     config.time_increments = vec![0.05/freq];
     config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
     config.construct_time_axis().unwrap();
   
     let hamiltonian = build_hamiltonian(&spin_indices,&spin_ops, &tensors,
@@ -707,7 +707,7 @@ mod tests {
     let spin_indices = vec![1,2];
     let spin_ops = ClusterSpinOperators::new(&vec![2],2).unwrap();
     let mut config = Config::new();
-    config.set_defaults();
+    config.set_defaults().unwrap();
 
     let hamiltonian = build_hamiltonian(&spin_indices,&spin_ops, &tensors,
         &config).unwrap();

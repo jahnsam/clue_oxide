@@ -66,7 +66,11 @@ fn main() {
         std::process::exit(1);
       });
 
-  config.set_defaults();
+  config.set_defaults().unwrap_or_else(
+      |err| {
+        eprintln!("CluE Error:\n  {}.",err);
+        std::process::exit(1);
+      });
 
   config.construct_time_axis().unwrap_or_else(
       |err| {

@@ -1,16 +1,16 @@
-use crate::structure::{Structure, exchange_groups::*}; 
-use crate::config::Config;
-use crate::config::DetectedSpinCoordinates;
-use crate::space_3d;
-use crate::physical_constants::Element;
-use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
-use crate::structure::ParticleFilter;
+use crate::config::{Config,DetectedSpinCoordinates};
 use crate::CluEError;
+use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
+use crate::physical_constants::{Element,HBAR,Isotope,MUB,MUN};
+use crate::quantum::tensors::construct_symmetric_tensor_from_tensor_specifier;
+use crate::structure::ParticleFilter;
+use crate::structure::{Structure, exchange_groups::*}; 
 use crate::structure::ParticleProperties;
 use crate::structure::SecondaryParticleFilter;
 use crate::structure::IntegrationGrid;
-use crate::space_3d::Vector3D;
 use crate::structure::DetectedSpin;
+use crate::space_3d;
+use crate::space_3d::Vector3D;
 
 impl Structure{
   /// This method uses an input `Config` to set the structure's
@@ -86,8 +86,32 @@ impl Structure{
       return Err(CluEError::NoCentralSpinTransition);
     };
 
+    let Some(spin_multiplicity) = config.detected_spin_multiplicity else{
+      return Err(CluEError::NoDetectedSpinMultiplicity);
+    };
+
+    let Some(g_matrix_specifier) = &config.detected_spin_g_matrix else{
+      return Err(CluEError::NoGMatrixSpecifier);
+    };
+    
+    let g_matrix = construct_symmetric_tensor_from_tensor_specifier(
+        g_matrix_specifier, None, self,config)?;
+    
+    let mu: f64 = if isotope == Isotope::Electron{
+      MUB
+    } else {
+      MUN
+    };
+    let gamma_matrix = g_matrix.scale(mu/HBAR);
+
+
     self.detected_particle = Some(DetectedSpin{
-        isotope,weighted_coordinates,transition});
+        gamma_matrix,
+        isotope,
+        weighted_coordinates,
+        spin_multiplicity,
+        transition,
+        });
 
 
     Ok(())
@@ -436,7 +460,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
     let mut filter_nx = ParticleFilter::new();
@@ -478,7 +502,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
   
@@ -495,7 +519,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
     assert_eq!(structure.bath_particles
@@ -546,7 +570,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
     
     assert_eq!(structure.molecules.len(), 1 + n_wat + n_gly);

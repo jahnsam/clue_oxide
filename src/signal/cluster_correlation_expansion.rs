@@ -223,7 +223,7 @@ mod tests{
     config.time_increments = vec![0.05/freq];
     config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
     config.construct_time_axis().unwrap();
   
 
@@ -276,7 +276,7 @@ mod tests{
     config.time_increments = vec![0.05/freq];
     config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
     config.construct_time_axis().unwrap();
   
     let signal_opt  = calculate_cluster_signal(&vec![1,2], &spin_ops, &tensors, 

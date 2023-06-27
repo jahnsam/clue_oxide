@@ -613,7 +613,7 @@ mod tests{
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
 
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
     let num_particles = structure.bath_particles.len();
 
@@ -738,7 +738,7 @@ mod tests{
     let n_uc = 125;
 
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
 
@@ -858,7 +858,7 @@ mod tests{
         DetectedSpinCoordinates::XYZ(r_e) );
 
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
 
@@ -1012,7 +1012,7 @@ mod tests{
     let n_uc = 125;
 
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
     let mut rng =  ChaCha20Rng::from_entropy();

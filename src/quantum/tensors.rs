@@ -99,9 +99,9 @@ impl HamiltonianTensors{
 
     let eye = SymmetricTensor3D::eye();
 
-    let gamma_matrix = detected_particle.gyromagnetic_ratio_matrix()?;
+    let gamma_matrix = detected_particle.gyromagnetic_ratio_matrix();
 
-    spin_multiplicities.push(detected_particle.spin_multiplicity()?);
+    spin_multiplicities.push(detected_particle.spin_multiplicity());
 
     spin1_tensors.set(0,
         construct_zeeman_tensor(&gamma_matrix,magnetic_field));
@@ -433,7 +433,7 @@ fn construct_electric_quadrupole_tensor(
   {
     Some(tensor_specifier) => {
       let tensor = construct_symmetric_tensor_from_tensor_specifier(
-        tensor_specifier, particle_index,structure, config)?;
+        tensor_specifier, Some(particle_index),structure, config)?;
 
       Ok(Some(tensor))
     },
@@ -452,7 +452,7 @@ fn construct_hyperfine_tensor(detected_particle: &DetectedSpin,
     .extract_hyperfine_specifier(particle_index,config)
   {
     tensor = construct_symmetric_tensor_from_tensor_specifier(
-        tensor_specifier, particle_index,structure, config)?;
+        tensor_specifier, Some(particle_index),structure, config)?;
 
   }else{
 
@@ -524,8 +524,11 @@ pub fn construct_symmetric_tensor_from_values_and_vectors(
 
 }
 //------------------------------------------------------------------------------
-fn construct_symmetric_tensor_from_tensor_specifier(
-    tensor_specifier: &TensorSpecifier, particle_index: usize,
+/// This function takes `&TensorSpecifier` and generates a `SymmetricTensor3D`.
+/// Depending on the `TensorSpecifier`, additional information may be 
+/// required, which is supplied by the other arguments.
+pub fn construct_symmetric_tensor_from_tensor_specifier(
+    tensor_specifier: &TensorSpecifier, particle_index_opt: Option<usize>,
     structure: &Structure, config: &Config) 
   -> Result<SymmetricTensor3D, CluEError>
 {
@@ -540,7 +543,7 @@ fn construct_symmetric_tensor_from_tensor_specifier(
   const Y: usize = 1;
   const Z: usize = 2;
   if let Some(axis_specifier) = &tensor_specifier.z_axis{
-    let mut axis = axis_specifier.to_vector3d(particle_index,structure,
+    let mut axis = axis_specifier.to_vector3d(particle_index_opt,structure,
         config)?;
     axis = axis.normalize();
     axes.push(axis);
@@ -548,7 +551,7 @@ fn construct_symmetric_tensor_from_tensor_specifier(
   }
 
   if let Some(axis_specifier) = &tensor_specifier.x_axis{
-    let mut axis = axis_specifier.to_vector3d(particle_index,structure,
+    let mut axis = axis_specifier.to_vector3d(particle_index_opt,structure,
         config)?;
 
     if axes.len() == 1{
@@ -561,7 +564,7 @@ fn construct_symmetric_tensor_from_tensor_specifier(
 
   if axes.len() < 2 {
     if let Some(axis_specifier) = &tensor_specifier.y_axis{
-      let mut axis = axis_specifier.to_vector3d(particle_index, structure, 
+      let mut axis = axis_specifier.to_vector3d(particle_index_opt, structure, 
           config)?;
       if axes.len() == 1{
         axis = &axis - &axes[0].scale(axes[0].dot(&axis));
@@ -672,7 +675,7 @@ mod tests{
 
     config.parse_token_stream(token_stream).unwrap();
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
 
     let mut rng = ChaCha20Rng::from_entropy();
 
@@ -753,7 +756,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
     config.particles.push( ParticleConfig::new("nitrogen".to_string()) );
@@ -792,11 +795,11 @@ mod tests{
     let particle_index = 27;
     assert_eq!(structure.bath_particles[particle_index].element,
         Element::Nitrogen);
-    let r_no = vector_specifier_no.to_vector3d(particle_index,&structure,
+    let r_no = vector_specifier_no.to_vector3d(Some(particle_index),&structure,
         &config).unwrap();
     assert_eq!(r_no,delta_r_no);
 
-    let r_cc = vector_specifier_cc.to_vector3d(particle_index,&structure,
+    let r_cc = vector_specifier_cc.to_vector3d(Some(particle_index),&structure,
         &config).unwrap();
     assert_eq!(r_cc,delta_r_cc);
 
@@ -821,7 +824,7 @@ mod tests{
     };
 
     let tensor = construct_symmetric_tensor_from_tensor_specifier(
-        &tensor_specifier, particle_index,&structure, &config).unwrap();
+        &tensor_specifier, Some(particle_index),&structure, &config).unwrap();
 
     let x = r_no.normalize();
     let y = (&r_cc - &x.scale(x.dot(&r_cc))).normalize();

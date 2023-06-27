@@ -31,27 +31,23 @@ use std::io::{BufWriter, Write};
 // TODO: remove in favor of config properties.
 #[derive(Debug,Clone)]
 pub struct DetectedSpin{
-  //pub gamma_matrix: Option<TensorSpecifier>,
+  pub gamma_matrix: SymmetricTensor3D,
   pub isotope: Isotope,
   pub weighted_coordinates: IntegrationGrid,
-  //pub spin_multiplicity: Option<usize>,
+  pub spin_multiplicity: usize,
   pub transition: [usize;2],
 }
 //------------------------------------------------------------------------------
 impl DetectedSpin{
   pub fn gyromagnetic_ratio_matrix(&self) 
-    -> Result<SymmetricTensor3D, CluEError>
+    -> &SymmetricTensor3D
   {
-    // TODO: allow for other g-matrices.
 
-    let eye = SymmetricTensor3D::eye();
-    let gamma_e = self.isotope.gyromagnetic_ratio();
-
-    Ok(gamma_e*&eye)
+    &self.gamma_matrix
   }
   //----------------------------------------------------------------------------
-  pub fn spin_multiplicity(&self) -> Result<usize,CluEError>{
-    Ok(self.isotope.spin_multiplicity())
+  pub fn spin_multiplicity(&self) -> usize{
+    self.spin_multiplicity
   }
   //----------------------------------------------------------------------------
 }
@@ -470,7 +466,7 @@ mod tests{
 
     config.parse_token_stream(token_stream).unwrap();
 
-    config.set_defaults();
+    config.set_defaults().unwrap();
 
     let mut rng = ChaCha20Rng::from_entropy();
 

@@ -284,7 +284,7 @@ impl SecondaryParticleFilter{
     }
   }
   //----------------------------------------------------------------------------
-  pub fn filter(&self, particle_index: usize, label: &str, 
+  pub fn filter(&self, particle_index_opt: Option<usize>, label: &str, 
       structure: &Structure, config: &Config ) -> Result<Vec::<usize>,CluEError>
   {
 
@@ -296,11 +296,19 @@ impl SecondaryParticleFilter{
       return Err(CluEError::MissingFilter(label.to_string()));
     };
 
+    let get_particle_index = |sec_filt: &SecondaryParticleFilter|{
+      let Some(particle_index) = particle_index_opt else{
+        return
+          Err(CluEError::SecondaryFilterRequiresAnIndex(sec_filt.to_string()));
+      };
+      Ok(particle_index)
+    };
     //let mut indices = Vec::<usize>::new();
   
     let indices = match self{
       //
       SecondaryParticleFilter::Bonded => {
+        let particle_index =get_particle_index(self)?;
         if let Some(bonded) = structure.connections
           .get_neighbors(particle_index){
           filter.filter_indices(structure,bonded)
@@ -310,9 +318,13 @@ impl SecondaryParticleFilter{
       },
       SecondaryParticleFilter::Filter => filter.filter(structure),
       //
-      SecondaryParticleFilter::Particle => vec![particle_index],
+      SecondaryParticleFilter::Particle => {
+        let particle_index =get_particle_index(self)?;
+        vec![particle_index]
+      },
       //
       SecondaryParticleFilter::SameMolecule => {
+        let particle_index =get_particle_index(self)?;
         let mol_id = structure.molecule_ids[particle_index];
         filter.filter_indices(structure,&structure.molecules[mol_id])
       },
@@ -332,8 +344,8 @@ pub enum VectorSpecifier{
 }
 //------------------------------------------------------------------------------
 impl VectorSpecifier{
-  pub fn to_vector3d(&self, particle_index: usize, structure: &Structure, 
-      config: &Config) -> Result<Vector3D,CluEError>
+  pub fn to_vector3d(&self, particle_index_opt: Option<usize>, 
+      structure: &Structure, config: &Config) -> Result<Vector3D,CluEError>
   {
     match self{ 
       //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -342,11 +354,10 @@ impl VectorSpecifier{
       //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       VectorSpecifier::Diff(sec_fltr_0,label_0,sec_fltr_1,label_1) => {
 
-
-        let mut indices_0 = sec_fltr_0.filter(particle_index, label_0, 
+        let mut indices_0 = sec_fltr_0.filter(particle_index_opt, label_0, 
             structure, config)?;
 
-        let mut indices_1 = sec_fltr_1.filter(particle_index, label_1, 
+        let mut indices_1 = sec_fltr_1.filter(particle_index_opt, label_1, 
             structure, config)?;
 
 
@@ -414,7 +425,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
     config.particles.push( ParticleConfig::new("nitrogen".to_string()) );
@@ -441,8 +452,8 @@ mod tests{
     let particle_index = 27;
     assert_eq!(structure.bath_particles[particle_index].element, 
         Element::Nitrogen);
-    let r = vector_specifier.to_vector3d(particle_index,&structure,&config)
-      .unwrap();
+    let r = vector_specifier.to_vector3d(Some(particle_index),
+        &structure,&config).unwrap();
 
     assert_eq!(r,delta_r);
 
@@ -457,7 +468,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
     let label = String::from("test_label");
@@ -468,13 +479,13 @@ mod tests{
 
     let particle_index = 43;
     let secondary_filter = SecondaryParticleFilter::Bonded;
-    let indices = secondary_filter.filter(particle_index, &label, &structure, 
-        &config ).unwrap(); 
+    let indices = secondary_filter.filter(Some(particle_index), &label, 
+        &structure, &config ).unwrap(); 
     assert_eq!(indices,vec![44,45]);
 
     let secondary_filter = SecondaryParticleFilter::Particle;
-    let indices = secondary_filter.filter(particle_index, &label, &structure, 
-        &config ).unwrap(); 
+    let indices = secondary_filter.filter(Some(particle_index), &label, 
+        &structure, &config ).unwrap(); 
     assert_eq!(indices,vec![43]);
 
 
@@ -482,8 +493,8 @@ mod tests{
     let secondary_filter = SecondaryParticleFilter::SameMolecule;
     filter.elements = vec![Element::Hydrogen];
     config.particles[0].filter = Some(filter);
-    let indices = secondary_filter.filter(particle_index, &label, &structure, 
-        &config ).unwrap(); 
+    let indices = secondary_filter.filter(Some(particle_index), &label, 
+        &structure, &config ).unwrap(); 
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
   }
   //----------------------------------------------------------------------------
@@ -495,7 +506,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
 
@@ -531,7 +542,7 @@ mod tests{
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults();
+    config.set_defaults().unwrap();
     structure.build_primary_structure(&config).unwrap();
 
   

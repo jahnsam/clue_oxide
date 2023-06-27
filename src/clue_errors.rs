@@ -79,7 +79,9 @@ pub enum CluEError{
   NoClustersOfSize(usize),
   NoDensityMatrixMethod,
   NoDetectedSpinIdentity,
+  NoDetectedSpinMultiplicity,
   NoGMatrixSpecifier,
+  NoGMatrixValues,
   NoHyperfineSpecifier(String,String),
   NoInputFile,
   NoLoadGeometry,
@@ -109,6 +111,7 @@ pub enum CluEError{
   OptionAlreadySet(usize,String),
   SaveNameEmpty,
   SaveNameNotSet,
+  SecondaryFilterRequiresAnIndex(String),
   SpinPropertiesNeedsALabel,
   SpinPropertiesNeedsAnIsotope(String),
   StructurePropertiesNeedsALabel,
@@ -378,8 +381,14 @@ followed by a column for the weights", filename),
       CluEError::NoDetectedSpinIdentity => write!(f,
           "detected_spin_identity is not set"),
 
+      CluEError::NoDetectedSpinMultiplicity => write!(f,
+          "detected_spin_identity is not set"),
+
       CluEError::NoGMatrixSpecifier => write!(f,
           "no g-matrix specifier"),
+      
+      CluEError::NoGMatrixValues => write!(f,
+          "g-matrix values are not set"),
       
       CluEError::NoInputFile => write!(f,
           "no input file"),
@@ -480,6 +489,10 @@ followed by a column for the weights", filename),
 
       CluEError::SaveNameNotSet => write!(f,
           "save name not set"),
+
+      CluEError::SecondaryFilterRequiresAnIndex(filter) => write!(f,
+          "secondary particle filter, \"{}\", requires a particle index",
+          filter),
 
       CluEError::SpinPropertiesNeedsALabel => write!(f,
           "spin_properties requires a label to be set: 

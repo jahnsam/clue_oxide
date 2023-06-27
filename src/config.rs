@@ -7,8 +7,9 @@ use crate::config::token_algebra::*;
 use crate::config::token_expressions::*;
 use crate::config::particle_config::{ParticleConfig,TensorSpecifier};
 
-use crate::physical_constants::{ANGSTROM,Isotope};
+use crate::physical_constants::{ANGSTROM,ELECTRON_G, Isotope};
 use crate::space_3d::Vector3D;
+use crate::structure::particle_filter::VectorSpecifier;
 use crate::integration_grid::IntegrationGrid;
 
 
@@ -86,15 +87,9 @@ impl Config{
   /// This function sets config setting that are necessary to be `Some`,
   /// but will likely be the same for most simulations.  
   /// Any field that is already `Some` will be left alone.
-  pub fn set_defaults(&mut self){
+  pub fn set_defaults(&mut self) -> Result<(),CluEError> {
     if self.cluster_batch_size.is_none(){
       self.cluster_batch_size = Some(10000);
-    }
-    if self.detected_spin_identity.is_none(){
-      self.detected_spin_identity = Some(Isotope::Electron);
-    }
-    if self.detected_spin_transition.is_none(){
-      self.detected_spin_transition = Some([0,1]);
     }
     if self.load_geometry.is_none(){
       self.load_geometry = Some(LoadGeometry::Sphere);
@@ -165,6 +160,49 @@ impl Config{
     set_default_write_path(&mut self.write_tensors,
         "tensors");
     */
+
+    self.set_detected_spin()
+  }
+  //----------------------------------------------------------------------------
+  fn set_detected_spin(&mut self) -> Result<(),CluEError>{
+
+    if self.detected_spin_identity.is_none(){
+      self.detected_spin_identity = Some(Isotope::Electron);
+    }
+
+    // Set g-matrix
+    if let Some(g_matrix) = &mut self.detected_spin_g_matrix{
+      let Some(values) = &mut g_matrix.values else{
+        return Err(CluEError::NoGMatrixValues);
+      };
+
+      // The electron g free is conventionally positive and are entered as such,
+      // but CluE uses a negative electron g free.
+      // This line applies the sign change.
+      if self.detected_spin_identity == Some(Isotope::Electron){
+        for v in values.iter_mut(){
+          *v *= -1.0;
+        }
+      }
+     
+    }else{
+      self.detected_spin_g_matrix = Some(TensorSpecifier{
+        values: Some([ELECTRON_G,ELECTRON_G,ELECTRON_G]),
+        x_axis: Some(VectorSpecifier::Vector(Vector3D::from([1.0, 0.0, 0.0]))),
+        y_axis: Some(VectorSpecifier::Vector(Vector3D::from([0.0, 1.0, 0.0]))),
+        z_axis: None,
+          });
+    }
+    if self.detected_spin_multiplicity.is_none(){
+      self.detected_spin_multiplicity = match self.detected_spin_identity{
+        Some(isotope) => Some(isotope.spin_multiplicity()),
+        None => return Err(CluEError::NoDetectedSpinIdentity),
+      };
+    }
+    if self.detected_spin_transition.is_none(){
+      self.detected_spin_transition = Some([0,1]);
+    }
+    Ok(())
   }
   //----------------------------------------------------------------------------
   pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) 
@@ -782,7 +820,7 @@ mod tests{
         clash_distance_pbc = 0.1;
         cluster_batch_size = 20000;
         cluster_method = cce;
-        detected_spin_g_matrix = [2.01,2.02,2.03];
+        detected_spin_g_matrix = [2.0097, 2.0064, 2.0025];
         detected_spin_g_y = [-1.1500, -0.4700, 0.7100];
         detected_spin_g_x = diff(filter(tempo_c1) , filter(tempo_c19) );
         detected_spin_position = centroid_over_serials([28,29]);
@@ -811,6 +849,7 @@ mod tests{
 
     let mut config = Config::new();
     config.parse_token_stream(expressions).unwrap();
+    config.set_defaults().unwrap();
 
     let clash_distance_pbc = config.clash_distance_pbc.unwrap();
     assert!( (clash_distance_pbc - 0.1e-10).abs()/(0.1e-10) < 1e-12 );
@@ -819,7 +858,7 @@ mod tests{
 
     let g_matrix = config.detected_spin_g_matrix.unwrap();
     assert_eq!(g_matrix.values, 
-        Some([2.01,2.02,2.03] ) );
+        Some([-2.0097, -2.0064, -2.0025] ) );
     assert_eq!(g_matrix.z_axis, None);
     assert_eq!(g_matrix.y_axis, 
         Some(VectorSpecifier::Vector(
@@ -830,6 +869,8 @@ mod tests{
             SecondaryParticleFilter::Filter, "tempo_c19".to_string(),
             )));
 
+    assert_eq!(config.detected_spin_identity, Some(Isotope::Electron));
+    assert_eq!(config.detected_spin_multiplicity, Some(2));
     assert_eq!(config.detected_spin_position, 
         Some(DetectedSpinCoordinates::CentroidOverSerials(vec![28,29])));
     assert_eq!(config.input_structure_file, 
