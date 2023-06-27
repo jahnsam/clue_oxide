@@ -105,6 +105,7 @@ impl Config{
     }
 
     if self.remove_partial_methyls.is_none(){
+      self.remove_partial_methyls = Some(false);
       'part_met : for particle_config in self.particles.iter(){
         if let Some(properties) = &particle_config.properties{
           for (_key, isotope_props) in properties.isotope_properties.iter(){
@@ -119,9 +120,6 @@ impl Config{
 
     if self.root_dir.is_none(){
       self.root_dir = Some("./".to_string());
-    }
-    if self.save_name.is_none(){
-      self.save_name = Some("CluE-".to_string());
     }
 
 
@@ -661,8 +659,15 @@ impl Config{
               return Err(CluEError::TooManyRHSArguments(expression.line_number));
             }
 
+            let new_expression = TokenExpression{
+              lhs: expression.lhs.clone(),
+              rhs: Some(args),
+              relationship: Some(Token::Equals),
+              line_number: expression.line_number
+            };
+
             let mut n_grid_opt: Option<usize> = None;
-            set_to_some_usize(&mut n_grid_opt,expression)?;
+            set_to_some_usize(&mut n_grid_opt,&new_expression)?;
             if let Some(n_grid) = n_grid_opt{
               self.orientation_grid 
                 = Some(OrientationAveraging::Lebedev(n_grid));
@@ -833,6 +838,7 @@ mod tests{
         neighbor_cutoff_dipole_perpendicular = 100;
         neighbor_cutoff_3_spin_hahn_mod_depth = 1e-10;
         neighbor_cutoff_3_spin_hahn_taylor_4 = 1e-9;
+        orientation_grid = lebedev(170);
         pulse_sequence = cp-1;
         radius = 80;
         temperature = 20;

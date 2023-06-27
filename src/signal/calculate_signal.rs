@@ -1,17 +1,19 @@
+
+use crate::build_adjacency_list;
+use crate::find_clusters;
 use crate::config::{Config,ClusterMethod,OrientationAveraging};
 use crate::CluEError;
 use crate::cluster::methyl_clusters::partition_cluster_set_by_exchange_groups;
 use crate::cluster::find_clusters::ClusterSet;
-use crate::Structure;
 use crate::HamiltonianTensors;
 use crate::integration_grid::IntegrationGrid;
-use crate::build_adjacency_list;
-use crate::find_clusters;
+use crate::physical_constants::PI;
 use crate::signal::Signal;
 use crate::signal::write_vec_signals;
 use crate::signal::cluster_correlation_expansion::*;
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   calculate_analytic_restricted_2cluster_signals};
+use crate::Structure;
 use crate::quantum::spin_hamiltonian::*;
 use crate::math;
 use crate::space_3d::UnitSpherePoint;
@@ -146,14 +148,18 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   -> Result<Vec::<Signal>,CluEError>
 {
   
+  let theta_degrees = rot_dir.theta()*180.0/PI;
+  let phi_degrees = rot_dir.phi()*180.0/PI;
+  println!("\nOrientation: theta = {} degrees; phi = {} degrees.", 
+      theta_degrees, phi_degrees);
   // Determine if/where to save results.
   let save_dir_opt = match path_opt{
     Some(path) => {
 
       if let Some(ori_path) = &config.write_orientation_signals{ 
       
-        let save_dir = format!("{}/{}/theta_{}_phi_{}",path, ori_path,
-            rot_dir.theta(), rot_dir.phi());
+        let save_dir = format!("{}/{}/theta_{}deg_phi_{}deg",path, ori_path,
+            theta_degrees, phi_degrees);
       
         match std::fs::create_dir_all(save_dir.clone()){
           Ok(_) => (),

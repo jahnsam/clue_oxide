@@ -26,6 +26,7 @@ use crate::quantum::tensors::HamiltonianTensors;
 use crate::cluster::build_adjacency_list::build_adjacency_list;
 use crate::cluster::find_clusters::find_clusters;
 use crate::signal::calculate_signal;
+use crate::signal::write_vec_signals;
 
 use num_complex::Complex;
 use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
@@ -43,36 +44,51 @@ pub fn run(config: Config)
     None => rng = ChaCha20Rng::from_entropy(),
   }
 
-  let config_hash = math::str_hash(&config);
-  let mut save_path = String::new();
-  if let Some(root_dir) = &config.root_dir{
-    save_path = root_dir.to_string();
-  }
-
-  if let Some(save_name) = &config.save_name{
-    if save_name.is_empty(){
-      return Err(CluEError::SaveNameEmpty);
-    }
-    save_path = format!("{}/{}{}",save_path,save_name,config_hash);
+  let root_path = if let Some(root_dir) = &config.root_dir{
+    root_dir.to_string()
   }else{
-    return Err(CluEError::SaveNameNotSet);
+    String::from("./")
   };
 
-  match std::fs::create_dir_all(save_path.clone()){
-    Ok(_) => (),
-    Err(_) => return Err(CluEError::CannotCreateDir(save_path)),
-  }
+  let save_path_opt = match &config.save_name{
+    Some(save_name) => {
+      if save_name == ""{
+        None
+      }else{
+        Some(format!("{}/{}", root_path, save_name))
+      }
+    },
+    None => {
+     let config_hash = math::str_hash(&config);
+    Some(format!("{}/CluE-{}", root_path, config_hash))
+    },
+  };
 
-  config.write_time_axis(save_path.clone())?;
+  if let Some(save_path) = &save_path_opt{
+    match std::fs::create_dir_all(save_path.clone()){
+      Ok(_) => (),
+      Err(_) => return Err(CluEError::CannotCreateDir(save_path.to_string())),
+    }
+
+    config.write_time_axis(save_path.clone())?;
+  }
 
   let order_n_signals 
     = calculate_signal::calculate_structure_signal(&mut rng, &config,
-      &Some(save_path) )?;
+      &save_path_opt )?;
 
 
   let time_axis = config.get_time_axis()?;
 
   let max_size = order_n_signals.len();
+
+  if let Some(save_dir) =  &save_path_opt{
+    let save_path = format!("{}/signal.csv", save_dir);
+    let headers = (1..=max_size)
+      .map(|ii| format!("signal_{}",ii))
+      .collect::<Vec::<String>>();
+    write_vec_signals(&order_n_signals, headers, &save_path)?;
+  }
 
   Ok((time_axis.clone(), order_n_signals[max_size-1].data.clone()))
 }

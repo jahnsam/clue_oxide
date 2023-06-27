@@ -42,65 +42,6 @@ pub fn get_tokens_from_line(input: &str)
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/*
-// TokenExpression holds a line of input, organized for easy parsing.
-pub struct TokenExpression{
-  pub lhs: Vec::<Token>,
-  pub rhs: Option<Vec::<Token>>,
-  pub relationship: Option<Token>,
-  pub line_number: usize,
-}
-
-impl TokenExpression{
-  //----------------------------------------------------------------------------
-  // This function processes a vector of tokens into a TokenExpression.
-  fn from(tokens: Vec::<Token>, line_number:usize) -> Result<Self,CluEError>{
-
-    if tokens[0]==Token::Sharp{
-      let mode = ModeAttribute::from(tokens)?;
-      let mut lhs = Vec::<Token>::with_capacity(1);
-      lhs.push(Token::Mode(mode));
-      return Ok(TokenExpression{lhs, rhs: None, relationship: None,line_number});
-    }
-
-    let idx: usize; 
-    let idx_option = find_lhs_rhs_delimiter_index(&tokens, line_number)?;
-    
-    if let Some(index) = idx_option{
-      idx = index;
-    }else{
-      idx = tokens.len();
-    }
-
-    let mut lhs = Vec::<Token>::with_capacity(idx);
-    let mut rhs = Vec::<Token>::with_capacity(tokens.len() - idx - 1);
-
-    for (ii,token) in tokens.iter().enumerate(){
-
-      if ii < idx{
-        lhs.push(token.clone());
-      }else if ii > idx{
-        rhs.push(token.clone());
-      }
-    }
-
-    if rhs.is_empty(){
-      return Ok(TokenExpression{lhs, rhs: None,relationship: None,line_number})
-    }
-
-    let rhs = Some(rhs);
-    let relationship = Some(tokens[idx].clone());
-    Ok(TokenExpression{lhs, rhs, relationship, line_number})
-
-  }
-}
-*/
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-
-
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Lexer holds the string data the current reading position and line number.
 struct Lexer{
   input: String,

@@ -203,7 +203,7 @@ impl Vector3D{
   //----------------------------------------------------------------------------
   pub fn phi(&self) -> f64 {
   
-    let rho = self.r()*f64::sin(self.theta());
+    let rho = (self.x()*self.x() + self.y()*self.y()).sqrt();
     if rho < 1e-12{ return 0.0};
     let mut phi = (self.x()/rho).acos();
     

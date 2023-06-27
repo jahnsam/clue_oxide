@@ -339,10 +339,15 @@ mod tests{
     spin2_tensors.set(0,4,hf2);
     spin2_tensors.set(3,4,dip);
 
+    let ge = -1.7609e11;
     HamiltonianTensors{
       spin_multiplicities,
       spin1_tensors,
       spin2_tensors,
+      detected_gamma_matrix: SymmetricTensor3D::from([ge, 0.0, 0.0,
+                                                           ge, 0.0,
+                                                                ge]),
+      magnetic_field: Vector3D::from([0.0,0.0,1.2]),
       }
   }  
 }

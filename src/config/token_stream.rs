@@ -25,8 +25,8 @@ pub fn add_token_at_index(add_this_token: Token, idx: usize,
   Ok(out)
 }  
 //------------------------------------------------------------------------------
-// This function unwraps TokenExpression right hand side or returns an
-// appropriate error message.
+/// This function unwraps TokenExpression right hand side or returns an
+/// appropriate error message.
 pub fn extract_rhs(expression: &TokenExpression)
   -> Result<Vec::<Token>,CluEError>
 {

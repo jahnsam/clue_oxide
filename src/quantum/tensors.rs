@@ -23,6 +23,8 @@ pub struct HamiltonianTensors{
   pub spin_multiplicities: Vec::<usize>,
   pub spin1_tensors: Spin1Tensors, // O(S)
   pub spin2_tensors: Spin2Tensors, // O(S^2)
+  pub detected_gamma_matrix: SymmetricTensor3D,
+  pub magnetic_field: Vector3D,
 }
 impl HamiltonianTensors{
   //----------------------------------------------------------------------------
@@ -35,7 +37,10 @@ impl HamiltonianTensors{
   }
   //----------------------------------------------------------------------------
   pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
-    self.spin1_tensors.rotate_active(dir);
+    let gamma_matrix = self.detected_gamma_matrix.rotate_active(dir);
+    self.spin1_tensors.set(0,
+        construct_zeeman_tensor(&gamma_matrix,&self.magnetic_field));
+
     self.spin2_tensors.rotate_active(dir);
   }
   //----------------------------------------------------------------------------
@@ -97,14 +102,14 @@ impl HamiltonianTensors{
       return Err(CluEError::NoCentralSpin);
     };
 
-    let eye = SymmetricTensor3D::eye();
-
     let gamma_matrix = detected_particle.gyromagnetic_ratio_matrix();
 
     spin_multiplicities.push(detected_particle.spin_multiplicity());
 
     spin1_tensors.set(0,
         construct_zeeman_tensor(&gamma_matrix,magnetic_field));
+
+    let eye = SymmetricTensor3D::eye();
 
     let mut tensor_indices = Vec::<Option<usize>>::with_capacity(
         structure.bath_particles.len());
@@ -215,6 +220,8 @@ impl HamiltonianTensors{
       spin_multiplicities,
       spin1_tensors,
       spin2_tensors,
+      detected_gamma_matrix: gamma_matrix.clone(),
+      magnetic_field: magnetic_field.clone(),
       })
 
   }
@@ -353,11 +360,13 @@ impl<'a> Spin1Tensors{
     self.tensors.is_empty()
   }
   //----------------------------------------------------------------------------
+  /*
   pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
     for tensor in self.tensors.iter_mut().flatten(){
       *tensor = tensor.rotate_active(dir);
     }
   }
+  */
   //----------------------------------------------------------------------------
 
 }
@@ -400,7 +409,7 @@ impl<'a> Spin2Tensors{
   pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
 
     let dim = self.tensors.dim();
-    for m in 1..dim{
+    for m in 0..dim{
       for n in 0..=m{
         if let Some(ten) = self.tensors.get(m,n){
           self.tensors.set(m,n, ten.rotate_active(dir) );
