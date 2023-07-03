@@ -36,12 +36,22 @@ impl HamiltonianTensors{
     self.spin1_tensors.is_empty()
   }
   //----------------------------------------------------------------------------
+  /*
   pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
     let gamma_matrix = self.detected_gamma_matrix.rotate_active(dir);
     self.spin1_tensors.set(0,
         construct_zeeman_tensor(&gamma_matrix,&self.magnetic_field));
 
     self.spin2_tensors.rotate_active(dir);
+  }
+  */
+  //----------------------------------------------------------------------------
+  pub fn rotate_pasive(&mut self, dir: &UnitSpherePoint){
+    let gamma_matrix = self.detected_gamma_matrix.rotate_pasive(dir);
+    self.spin1_tensors.set(0,
+        construct_zeeman_tensor(&gamma_matrix,&self.magnetic_field));
+
+    self.spin2_tensors.rotate_pasive(dir);
   }
   //----------------------------------------------------------------------------
   /*
@@ -110,6 +120,9 @@ impl HamiltonianTensors{
         construct_zeeman_tensor(&gamma_matrix,magnetic_field));
 
     let eye = SymmetricTensor3D::eye();
+    let zz = SymmetricTensor3D::from([0.0,0.0,0.0,
+                                          0.0,0.0,
+                                              1.0]);
 
     let mut tensor_indices = Vec::<Option<usize>>::with_capacity(
         structure.bath_particles.len());
@@ -132,7 +145,7 @@ impl HamiltonianTensors{
 
       // nuclear Zeeman
       spin1_tensors.set(idx0, 
-          construct_zeeman_tensor(&(gamma0*&eye),magnetic_field));
+          construct_zeeman_tensor(&(gamma0*&zz),magnetic_field));
 
 
       // hyperfine
@@ -406,17 +419,34 @@ impl<'a> Spin2Tensors{
     self.tensors.remove(m,n);
   }
   //----------------------------------------------------------------------------
+  /*
   pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
 
     let dim = self.tensors.dim();
     for m in 0..dim{
       for n in 0..=m{
         if let Some(ten) = self.tensors.get(m,n){
-          self.tensors.set(m,n, ten.rotate_active(dir) );
+          let rot_ten = ten.rotate_active(dir);
+          self.tensors.set(m,n, rot_ten );
         } 
       }
     }
   }
+  */
+  //----------------------------------------------------------------------------
+  pub fn rotate_pasive(&mut self, dir: &UnitSpherePoint){
+
+    let dim = self.tensors.dim();
+    for m in 0..dim{
+      for n in 0..=m{
+        if let Some(ten) = self.tensors.get(m,n){
+          let rot_ten = ten.rotate_pasive(dir);
+          self.tensors.set(m,n, rot_ten );
+        } 
+      }
+    }
+  }
+  //----------------------------------------------------------------------------
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

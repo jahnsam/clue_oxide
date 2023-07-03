@@ -21,6 +21,78 @@ impl SymmetricTensor3D{
                                            1.0]}
   }
   //----------------------------------------------------------------------------
+  pub fn rotate_pasive(&self, dir: &UnitSpherePoint) -> Self
+  {
+    let txx = self.xx();
+    let txy = self.xy();
+    let txz = self.xz();
+    let tyy = self.yy();
+    let tyz = self.yz();
+    let tzz = self.zz();
+
+    let cos_theta = dir.cos_theta();
+    let cos_theta_squared = dir.cos_theta_squared();
+
+    let sin_theta = dir.sin_theta();
+    let sin_theta_squared = dir.sin_theta_squared();
+
+    let cos_phi = dir.cos_phi();
+    let cos_phi_squared = dir.cos_phi_squared();
+
+    let sin_phi = dir.sin_phi();
+    let sin_phi_squared = dir.sin_phi_squared();
+
+    SymmetricTensor3D{ elements: [
+      // xx
+      txx*cos_theta_squared*cos_phi_squared 
+      + 2.0*txy*sin_phi*cos_theta_squared*cos_phi 
+      - 2.0*txz*sin_theta*cos_theta*cos_phi 
+      + tyy*sin_phi_squared*cos_theta_squared 
+      - 2.0*tyz*sin_theta*sin_phi*cos_theta 
+      + tzz*sin_theta_squared
+      ,
+      // xy
+      -txx*sin_phi*cos_theta*cos_phi 
+      - txy*sin_phi_squared*cos_theta 
+      + txy*cos_theta*cos_phi_squared 
+      + txz*sin_theta*sin_phi 
+      + tyy*sin_phi*cos_theta*cos_phi 
+      - tyz*sin_theta*cos_phi
+      ,
+      // xz
+      txx*sin_theta*cos_theta*cos_phi_squared 
+      + 2.0*txy*sin_theta*sin_phi*cos_theta*cos_phi 
+      - txz*sin_theta_squared*cos_phi 
+      + txz*cos_theta_squared*cos_phi 
+      + tyy*sin_theta*sin_phi_squared*cos_theta 
+      - tyz*sin_theta_squared*sin_phi 
+      + tyz*sin_phi*cos_theta_squared 
+      - tzz*sin_theta*cos_theta
+      ,
+      // yy
+      txx*sin_phi_squared 
+      - 2.0*txy*sin_phi*cos_phi 
+      + tyy*cos_phi_squared
+      ,
+      // yz
+      -txx*sin_theta*sin_phi*cos_phi 
+      - txy*sin_theta*sin_phi_squared 
+      + txy*sin_theta*cos_phi_squared 
+      - txz*sin_phi*cos_theta 
+      + tyy*sin_theta*sin_phi*cos_phi 
+      + tyz*cos_theta*cos_phi
+      ,
+      // zz
+      txx*sin_theta_squared*cos_phi_squared 
+      + 2.0*txy*sin_theta_squared*sin_phi*cos_phi 
+      + 2.0*txz*sin_theta*cos_theta*cos_phi 
+      + tyy*sin_theta_squared*sin_phi_squared 
+      + 2.0*tyz*sin_theta*sin_phi*cos_theta 
+      + tzz*cos_theta_squared
+      ]}
+  }
+  //----------------------------------------------------------------------------
+  /*
   pub fn rotate_active(&self, dir: &UnitSpherePoint) -> Self
   {
 
@@ -69,6 +141,7 @@ impl SymmetricTensor3D{
         + cos_theta_squared*tzz
     ]}
   }
+  */
   //----------------------------------------------------------------------------
   pub fn trace(&self) -> f64{
     self.xx() + self.yy() + self.zz()
@@ -272,6 +345,7 @@ impl Vector3D{
     SymmetricTensor3D::from(elements)
   }
   //----------------------------------------------------------------------------
+  /*
   pub fn rotate_active(&self, dir: &UnitSpherePoint) -> Self
   {
     let x = self.x();
@@ -288,6 +362,26 @@ impl Vector3D{
       cos_phi*cos_theta*x - sin_phi*y + cos_phi*sin_theta*z,
       cos_theta*sin_phi*x + cos_phi*y + sin_phi*sin_theta*z,
       -sin_theta*x + cos_theta*z
+    ]}
+  }
+  */
+  //----------------------------------------------------------------------------
+  pub fn rotate_pasive(&self, dir: &UnitSpherePoint) -> Self
+  {
+    let x = self.x();
+    let y = self.y();
+    let z = self.z();
+
+    let cos_theta = dir.cos_theta();
+    let sin_theta = dir.sin_theta();
+
+    let cos_phi = dir.cos_phi();
+    let sin_phi = dir.sin_phi();
+
+    Vector3D{ elements: [
+      cos_phi*cos_theta*x + sin_phi*cos_theta*y - sin_theta*z,
+      -sin_phi*x + cos_phi*y,
+      sin_theta*cos_phi*x + sin_phi*sin_theta*y + cos_theta*z
     ]}
   }
   //----------------------------------------------------------------------------
@@ -455,6 +549,7 @@ impl std::ops::Mul<&SymmetricTensor3D> for &Vector3D
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug, Clone,PartialEq)]
 pub struct UnitSpherePoint{ 
   theta: f64,
   phi: f64,
@@ -526,6 +621,7 @@ mod tests{
   use crate::physical_constants::PI;
 
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_rotate_active(){
 
@@ -533,9 +629,14 @@ mod tests{
     let x_axis = Vector3D::from([1.0,0.0,0.0]);
     let y_axis = Vector3D::from([0.0,1.0,0.0]);
     let z_axis = Vector3D::from([0.0,0.0,1.0]);
+    let xyz = Vector3D::from([1.0,1.0,1.0]);
     let ten = SymmetricTensor3D::from([2.0, 0.0, 0.0,
-                                            3.0, 0.0,
-                                                 5.0 ]);
+                                            73.0, 0.0,
+                                                 547.0 ]);
+    
+    let vec4 = Vector3D::from([-1.0,4.1,16.3]);
+    let ten4 = vec4.self_outer();
+
 
     let phi_list = (0..=10).map(|x| (x as f64)/10.0*PI*2.0)
       .collect::<Vec::<f64>>();
@@ -565,10 +666,17 @@ mod tests{
         let rot_z = Vector3D::from([st*cp,st*sp,ct]);
         assert!( (&rot_vec-&rot_z).norm() < tol );
 
+        let rot_vec = xyz.rotate_active(&point);
+        let rot_xyz = Vector3D::from([
+            ct*cp -sp + st*cp, 
+            ct*sp + cp +st*sp, 
+            -st + ct]);
+        assert!( (&rot_vec-&rot_xyz).norm() < tol );
+
         let rot_ten = ten.rotate_active(&point);
         let ref_ten = &(
-            &(&rot_x.self_outer()*2.0) + &(&rot_y.self_outer()*3.0))
-          + &(&rot_z.self_outer()*5.0);
+            &(&rot_x.self_outer()*2.0) + &(&rot_y.self_outer()*73.0))
+          + &(&rot_z.self_outer()*547.0);
 
         assert!((rot_ten.xx()-ref_ten.xx()).abs() < tol );
         assert!((rot_ten.xy()-ref_ten.xy()).abs() < tol );
@@ -576,6 +684,100 @@ mod tests{
         assert!((rot_ten.yy()-ref_ten.yy()).abs() < tol );
         assert!((rot_ten.yz()-ref_ten.yz()).abs() < tol );
         assert!((rot_ten.zz()-ref_ten.zz()).abs() < tol );
+
+        let rot_vec4 = vec4.rotate_active(&point);
+        let ref_ten4 = rot_vec4.self_outer();
+        let rot_ten4 = ten4.rotate_active(&point);
+        assert!((rot_ten4.xx()-ref_ten4.xx()).abs() < tol );
+        assert!((rot_ten4.xy()-ref_ten4.xy()).abs() < tol );
+        assert!((rot_ten4.xz()-ref_ten4.xz()).abs() < tol );
+        assert!((rot_ten4.yy()-ref_ten4.yy()).abs() < tol );
+        assert!((rot_ten4.yz()-ref_ten4.yz()).abs() < tol );
+        assert!((rot_ten4.zz()-ref_ten4.zz()).abs() < tol );
+
+      }
+    }
+
+  }
+  */
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_rotate_pasive(){
+
+    let tol = 1e-12;
+    let x_axis = Vector3D::from([1.0,0.0,0.0]);
+    let y_axis = Vector3D::from([0.0,1.0,0.0]);
+    let z_axis = Vector3D::from([0.0,0.0,1.0]);
+    let xyz = Vector3D::from([1.0,1.0,1.0]);
+    let ten = SymmetricTensor3D::from([2.0, 0.0, 0.0,
+                                            73.0, 0.0,
+                                                 547.0 ]);
+    
+    let vec4 = Vector3D::from([-1.0,4.1,16.3]);
+    let ten4 = vec4.self_outer();
+
+
+    let phi_list = (0..=10).map(|x| (x as f64)/10.0*PI*2.0)
+      .collect::<Vec::<f64>>();
+
+    let theta_list = (0..=10).map(|x| (2.0*(x as f64)/10.0 - 1.0f64).acos())
+      .collect::<Vec::<f64>>();
+
+    for &theta in theta_list.iter(){
+      let ct = theta.cos();
+      let st = theta.sin();
+
+      for &phi in phi_list.iter(){
+        let cp = phi.cos();
+        let sp = phi.sin();
+
+        let point = UnitSpherePoint::new(theta,phi);
+
+        let rot_vec = x_axis.rotate_pasive(&point);
+        assert!((rot_vec.norm() - x_axis.norm()) < tol);
+        let rot_x = Vector3D::from([ct*cp, -sp, st*cp]);
+        assert!( (&rot_vec-&rot_x).norm() < tol );
+
+        let rot_vec = y_axis.rotate_pasive(&point);
+        assert!((rot_vec.norm() - y_axis.norm()) < tol);
+        let rot_y = Vector3D::from([sp*ct, cp, st*sp]);
+        assert!( (&rot_vec-&rot_y).norm() < tol );
+
+        let rot_vec = z_axis.rotate_pasive(&point);
+        assert!((rot_vec.norm() - z_axis.norm()) < tol);
+        let rot_z = Vector3D::from([-st, 0.0,ct]);
+        assert!( (&rot_vec-&rot_z).norm() < tol );
+
+        let rot_vec = xyz.rotate_pasive(&point);
+        assert!((rot_vec.norm() - xyz.norm()) < tol);
+        let rot_xyz = Vector3D::from([
+            ct*cp  +sp*ct  - st, 
+            -sp + cp, 
+            st*cp + st*sp + ct]);
+        assert!( (&rot_vec-&rot_xyz).norm() < tol );
+
+        let rot_ten = ten.rotate_pasive(&point);
+        let ref_ten = &(
+            &(&rot_x.self_outer()*2.0) + &(&rot_y.self_outer()*73.0))
+          + &(&rot_z.self_outer()*547.0);
+
+        assert!((rot_ten.xx()-ref_ten.xx()).abs() < tol );
+        assert!((rot_ten.xy()-ref_ten.xy()).abs() < tol );
+        assert!((rot_ten.xz()-ref_ten.xz()).abs() < tol );
+        assert!((rot_ten.yy()-ref_ten.yy()).abs() < tol );
+        assert!((rot_ten.yz()-ref_ten.yz()).abs() < tol );
+        assert!((rot_ten.zz()-ref_ten.zz()).abs() < tol );
+
+        let rot_vec4 = vec4.rotate_pasive(&point);
+        let ref_ten4 = rot_vec4.self_outer();
+        let rot_ten4 = ten4.rotate_pasive(&point);
+        assert!((rot_ten4.xx()-ref_ten4.xx()).abs() < tol );
+        assert!((rot_ten4.xy()-ref_ten4.xy()).abs() < tol );
+        assert!((rot_ten4.xz()-ref_ten4.xz()).abs() < tol );
+        assert!((rot_ten4.yy()-ref_ten4.yy()).abs() < tol );
+        assert!((rot_ten4.yz()-ref_ten4.yz()).abs() < tol );
+        assert!((rot_ten4.zz()-ref_ten4.zz()).abs() < tol );
+
       }
     }
 

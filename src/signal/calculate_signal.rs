@@ -107,7 +107,7 @@ pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
   // Determin orientation averaging method.
   let integration_grid = match &config.orientation_grid{
     Some(OrientationAveraging::Lebedev(n_ori)) 
-      => IntegrationGrid::lebedev(*n_ori)?,
+      => IntegrationGrid::lebedev(*n_ori)?.remove_3d_hemisphere(),
     Some(OrientationAveraging::Grid(grid)) => grid.clone(),
     None => IntegrationGrid::z_3d(),
   };
@@ -176,7 +176,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   
 
   // Rotate the coupling tensor to the specified orientation.
-  tensors.rotate_active(&rot_dir);
+  tensors.rotate_pasive(&rot_dir);
 
   // Determine adjacencies.
   let adjacency_list = build_adjacency_list(&tensors, structure, config)?;

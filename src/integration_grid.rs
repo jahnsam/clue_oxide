@@ -250,6 +250,7 @@ impl IntegrationGrid{
 mod tests{
   use super::*;
 
+  //----------------------------------------------------------------------------
   #[test]
   fn test_lebedev(){
     let grid = IntegrationGrid::lebedev(6).unwrap();
