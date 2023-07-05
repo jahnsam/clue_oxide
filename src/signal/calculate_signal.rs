@@ -150,7 +150,8 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   
   let theta_degrees = rot_dir.theta()*180.0/PI;
   let phi_degrees = rot_dir.phi()*180.0/PI;
-  println!("\nOrientation: theta = {} degrees; phi = {} degrees.", 
+  println!(
+      "\nMagnetic field orientation: θ = {} degrees; φ = {} degrees.", 
       theta_degrees, phi_degrees);
   // Determine if/where to save results.
   let save_dir_opt = match path_opt{

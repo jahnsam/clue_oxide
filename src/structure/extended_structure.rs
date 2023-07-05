@@ -1,9 +1,9 @@
 use crate::clue_errors::CluEError;
 use crate::config::{Config,LoadGeometry};
-use crate::space_3d::Vector3D;
-use crate::structure::Structure;
-use crate::structure::exchange_groups::*;
 use crate::math;  
+use crate::physical_constants::ANGSTROM;
+use crate::space_3d::Vector3D;
+use crate::structure::{Structure, exchange_groups::*};
 
 use rand::seq::index::sample;
 use rand_chacha::ChaCha20Rng;
@@ -36,6 +36,8 @@ impl Structure{
     self.update_exhange_groups(config)?;
 
     self.trim_system(config)?;
+
+    self.check_primary_clashes(config)?;
 
     self.trim_pbc_clashes(&config)?;
 
@@ -90,7 +92,41 @@ impl Structure{
   }
   
   //----------------------------------------------------------------------------
+  fn check_primary_clashes(&mut self, config: &Config) -> Result<(),CluEError>{
+
+    let Some(clash_distance) = &config.clash_distance else{
+      return Ok(());
+    };
+
+    for (idx0, particle0) in self.bath_particles.iter().enumerate(){
+      if !particle0.active { continue; }
+      let cell_id0 = self.cell_id(idx0)?;
+      if cell_id0 != 0 { break; } 
+      let r0 = &self.bath_particles[idx0].coordinates;
+
+      for (idx1, particle1) in self.bath_particles.iter().enumerate()
+        .skip(idx0+1){
+        if !particle1.active { continue; }
+        let cell_id1 = self.cell_id(idx1)?;
+        if cell_id1 != 0 { break; } 
+        let r1 = &self.bath_particles[idx1].coordinates;
+
+        let delta_r = (r1 -r0).norm();
+
+        if delta_r < *clash_distance{
+          return
+            Err(CluEError::ParticlesClash(idx0,particle0.element.to_string(),
+                  idx1,particle1.element.to_string(),
+                  delta_r/ANGSTROM, clash_distance/ANGSTROM));
+        }
+      }
+    }
+
+    Ok(())
+  }
+  //----------------------------------------------------------------------------
   fn trim_pbc_clashes(&mut self, config: &Config) -> Result<(),CluEError>{
+
     let Some(clash_distance) = &config.clash_distance_pbc else {
       return Ok(());
     };
@@ -105,6 +141,8 @@ impl Structure{
       for (idx1, particle1) in self.bath_particles.iter().enumerate()
         .skip(idx0){
         if !particle1.active { continue; }
+        if to_remove[idx1] { continue; }
+
         let cell_id1 = self.cell_id(idx1)?;
 
         if cell_id1 <= cell_id0 { continue; }
@@ -119,6 +157,7 @@ impl Structure{
 
     for (idx, remove) in to_remove.iter().enumerate(){
       if *remove{
+
         self.bath_particles[idx].active = false;
       }
     }

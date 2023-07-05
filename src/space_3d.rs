@@ -7,6 +7,15 @@ pub struct SymmetricTensor3D{
 
 impl SymmetricTensor3D{
   //----------------------------------------------------------------------------
+  pub fn any_nan(&self) -> bool {
+    for x in self.elements.iter(){
+      if x.is_nan(){
+        return true;
+      }
+    }
+    false
+  }
+  //----------------------------------------------------------------------------
   pub fn zeros() -> Self{
     SymmetricTensor3D{elements: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
   }
@@ -241,6 +250,15 @@ pub struct Vector3D{
 
 impl Vector3D{
 
+  //----------------------------------------------------------------------------
+  pub fn any_nan(&self) -> bool {
+    for x in self.elements.iter(){
+      if x.is_nan(){
+        return true;
+      }
+    }
+    false
+  }
   pub fn from(elements: [f64;3]) -> Self{
     Vector3D{elements}
   }

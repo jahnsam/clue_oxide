@@ -79,6 +79,14 @@ impl IntegrationGrid{
     IntegrationGrid{dim,points,weights}
   }
   //----------------------------------------------------------------------------
+  pub fn scale(&self, scale_factor: f64) -> Self{
+
+    let points = self.points.iter().map(|x| x*scale_factor)
+      .collect::<Vec::<f64>>();
+    IntegrationGrid{dim: self.dim ,points,weights: self.weights.clone()}
+
+  }
+  //----------------------------------------------------------------------------
   pub fn push(&mut self, points: Vec::<f64>,weight: f64)
     -> Result<(),CluEError>
   {

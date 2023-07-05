@@ -116,8 +116,11 @@ impl HamiltonianTensors{
 
     spin_multiplicities.push(detected_particle.spin_multiplicity());
 
-    spin1_tensors.set(0,
-        construct_zeeman_tensor(&gamma_matrix,magnetic_field));
+    let det_zeeman = construct_zeeman_tensor(&gamma_matrix,magnetic_field);
+    if det_zeeman.any_nan(){
+      return Err(CluEError::NANTensorDetectedZeeman);
+    }
+    spin1_tensors.set(0, det_zeeman);
 
     let eye = SymmetricTensor3D::eye();
     let zz = SymmetricTensor3D::from([0.0,0.0,0.0,
@@ -144,8 +147,12 @@ impl HamiltonianTensors{
 
 
       // nuclear Zeeman
-      spin1_tensors.set(idx0, 
-          construct_zeeman_tensor(&(gamma0*&zz),magnetic_field));
+      let bath_zeeman = construct_zeeman_tensor(&(gamma0*&zz),magnetic_field);
+      if bath_zeeman.any_nan(){
+        return Err(CluEError::NANTensorBathZeeman(
+              particle_idx0,particle0.isotope.to_string()));
+      }
+      spin1_tensors.set(idx0, bath_zeeman);
 
 
       // hyperfine
@@ -166,7 +173,9 @@ impl HamiltonianTensors{
 
       // nucleus-nucleus dipole-dipole
       let mut idx1 = 0;
-      for particle1 in structure.bath_particles.iter(){
+      for (particle_idx1,particle1) in structure.bath_particles.iter()
+        .enumerate()
+      {
         if !particle1.active {continue;}
          idx1 += 1;
          if idx1 == idx0 {break;}
@@ -178,6 +187,12 @@ impl HamiltonianTensors{
          let dd_ten = construct_point_dipole_dipole_tensor(gamma1,gamma0,
               &delta_r01);
 
+         if dd_ten.any_nan(){
+           return Err(CluEError::NANTensorBathDipoleDipole(
+                 particle_idx0,particle0.isotope.to_string(),
+                 particle_idx1,particle1.isotope.to_string(),
+               ));
+         }
 
          spin2_tensors.set(idx1,idx0, dd_ten);
       }
@@ -216,6 +231,14 @@ impl HamiltonianTensors{
                   let Some(h1_idx) = tensor_indices[h1] else{
                     return Err(CluEError::TensorNotSet(h1));
                   };
+
+                  if j_tensor.any_nan(){
+                    return Err(CluEError::NANTensorExchangeCoupling(
+                      h0, structure.bath_particles[h0].isotope.to_string(),
+                      h1, structure.bath_particles[h1].isotope.to_string(),
+                      ));
+                  }
+
                   spin2_tensors.add(h0_idx,h1_idx, j_tensor.clone());
 
                 }
@@ -374,6 +397,22 @@ impl<'a> Spin1Tensors{
   }
   //----------------------------------------------------------------------------
   /*
+  pub fn find_nans(&self) -> Vec::<usize>{
+
+    let mut nan_indices = Vec::<usize>::new();
+    for (idx, ten_opt) in self.tensors.iter().enumerate(){
+      if let Some(ten) = &ten_opt{
+        if ten.any_nan(){
+          nan_indices.push(idx);
+        }
+      }
+    }
+
+    nan_indices
+  }
+  */
+  //----------------------------------------------------------------------------
+  /*
   pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
     for tensor in self.tensors.iter_mut().flatten(){
       *tensor = tensor.rotate_active(dir);
@@ -447,6 +486,25 @@ impl<'a> Spin2Tensors{
     }
   }
   //----------------------------------------------------------------------------
+  /*
+  pub fn find_nans(&self) -> Vec::<(usize,usize)>{
+
+    let mut nan_indices = Vec::<(usize,usize)>::new();
+    let dim = self.tensors.dim();
+    for m in 0..dim{
+      for n in 0..=m{
+        if let Some(ten) = self.tensors.get(m,n){
+          if ten.any_nan(){
+            nan_indices.push((m,n));
+          }
+        } 
+      }
+    }
+
+    nan_indices
+  }
+  */
+  //----------------------------------------------------------------------------
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -474,6 +532,10 @@ fn construct_electric_quadrupole_tensor(
       let tensor = construct_symmetric_tensor_from_tensor_specifier(
         tensor_specifier, Some(particle_index),structure, config)?;
 
+      if tensor.any_nan(){
+        return Err(CluEError::NANTensorQuadrupole(
+          particle_index,particle0.isotope.to_string()));
+      }
       Ok(Some(tensor))
     },
     None => Ok(None),
@@ -515,6 +577,10 @@ fn construct_hyperfine_tensor(detected_particle: &DetectedSpin,
         
   }
 
+  if tensor.any_nan(){
+    return Err(CluEError::NANTensorHyperfine(
+          particle_index,particle0.isotope.to_string()));
+  }
   Ok(tensor)
 }
 //------------------------------------------------------------------------------

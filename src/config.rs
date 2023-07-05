@@ -32,6 +32,7 @@ pub mod parse_properties;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
+  pub clash_distance: Option<f64>,
   pub clash_distance_pbc: Option<f64>,
   pub cluster_batch_size: Option<usize>,
   pub cluster_method: Option<ClusterMethod>,
@@ -88,6 +89,11 @@ impl Config{
   /// but will likely be the same for most simulations.  
   /// Any field that is already `Some` will be left alone.
   pub fn set_defaults(&mut self) -> Result<(),CluEError> {
+
+    if self.clash_distance.is_none(){
+      self.clash_distance = Some(1e-12);
+    }
+
     if self.cluster_batch_size.is_none(){
       self.cluster_batch_size = Some(10000);
     }
@@ -530,7 +536,8 @@ impl Config{
               return Err(CluEError::TooManyRHSArguments(expression.line_number));
             }
 
-            let grid = IntegrationGrid::read_from_csv(&(args[0].to_string()))?;
+            let grid = IntegrationGrid::read_from_csv(&(args[0].to_string()))?
+              .scale(ANGSTROM);
 
             if grid.dim() != 3{
               return Err(CluEError::WrongProbabilityDistributionDim(
@@ -544,7 +551,8 @@ impl Config{
           Token::SquareBracketOpen =>{
             let mut r_opt: Option<Vector3D> = None;
             set_to_some_vector3d(&mut r_opt, expression)?;
-            if let Some(r) = r_opt{
+            if let Some(r_angstrom) = r_opt{
+              let r = r_angstrom.scale(ANGSTROM); 
               self.detected_spin_position 
                 = Some(DetectedSpinCoordinates::XYZ(r));
             }else{

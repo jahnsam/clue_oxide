@@ -68,6 +68,12 @@ pub enum CluEError{
   ModeAttributeWrongOption(String),
   ModeAttributeWrongSharp,
   MultipleCosubstitutionGroups(usize),
+  NANTensorBathDipoleDipole(usize,String,usize,String),
+  NANTensorBathZeeman(usize,String),
+  NANTensorDetectedZeeman,
+  NANTensorExchangeCoupling(usize,String,usize,String),
+  NANTensorHyperfine(usize,String),
+  NANTensorQuadrupole(usize,String),
   NoArgument(usize),
   NoCentralSpin,
   NoCentralSpinCoor,
@@ -109,6 +115,7 @@ pub enum CluEError{
   NoTimeIncrements,
   NoTimepoints,
   OptionAlreadySet(usize,String),
+  ParticlesClash(usize,String,usize,String,f64,f64),
   SaveNameEmpty,
   SaveNameNotSet,
   SecondaryFilterRequiresAnIndex(String),
@@ -348,6 +355,29 @@ followed by a column for the weights", filename),
       CluEError::ModeAttributeWrongSharp => write!(f,
           "modes are specified with a single '#' at the start"),
 
+      CluEError::NANTensorBathDipoleDipole(idx0,isotope0,idx1,isotope1) 
+        => write!(f,
+          "dipole-dipole tensor for particles {} {} and {} {} contains NANs",
+          idx0,isotope0,idx1,isotope1),
+
+      CluEError::NANTensorBathZeeman(idx,isotope) => write!(f,
+          "zeeman tensor for particle {} {} contains NANs",idx,isotope),
+
+      CluEError::NANTensorDetectedZeeman => write!(f,
+          "Zeeman tensor for the detected particle contains NANs"),
+
+      CluEError::NANTensorExchangeCoupling(idx0,isotope0,idx1,isotope1) 
+        => write!(f,
+          "exchange tensor for particles {} {} and {} {} contains NANs",
+          idx0,isotope0,idx1,isotope1),
+
+      CluEError::NANTensorHyperfine(idx,isotope) => write!(f,
+          "hyperfine tensor for particle {} {} contains NANs",idx,isotope),
+
+      CluEError::NANTensorQuadrupole(idx,isotope) => write!(f,
+          "electric quadrupole tensor for particle {} {} contains NANs",
+          idx,isotope),
+
       CluEError::NoArgument(line_number) => write!(f,
           "line {}, expected a function argument",line_number),
 
@@ -474,6 +504,10 @@ followed by a column for the weights", filename),
 
       CluEError::NoStructureFile => write!(f,
           "no structure file defined"),
+
+      CluEError::ParticlesClash(idx0,elmt0,idx1,elmt1,r,r_clash) => write!(f,
+          "particle {} {} and particle {} {} are {} Å apart, closer than the
+clash distance of {} Å",idx0,elmt0,idx1,elmt1,r,r_clash),
 
       CluEError::OptionAlreadySet(line_number,err_token) => write!(f,
           "line {}, \"{}\" has already been set",line_number, err_token),
