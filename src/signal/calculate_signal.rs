@@ -7,7 +7,7 @@ use crate::cluster::methyl_clusters::partition_cluster_set_by_exchange_groups;
 use crate::cluster::find_clusters::ClusterSet;
 use crate::HamiltonianTensors;
 use crate::integration_grid::IntegrationGrid;
-use crate::physical_constants::PI;
+use crate::physical_constants::{ONE,PI};
 use crate::signal::Signal;
 use crate::signal::write_vec_signals;
 use crate::signal::cluster_correlation_expansion::*;
@@ -19,11 +19,54 @@ use crate::math;
 use crate::space_3d::UnitSpherePoint;
 
 use num_complex::Complex;
-use rand_chacha::ChaCha20Rng;
+use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use rand_distr::{Distribution,Uniform};
+
 //------------------------------------------------------------------------------
-/// This function builds the spin structure and calculates the signal over
-/// one or multiple orientations.
-pub fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
+/// This function averages of `number_system_instances` instances of building
+/// a system and calculating the signal.
+pub fn calculate_signals(rng: &mut ChaCha20Rng, config: &Config,
+    path_opt: &Option<String>) -> Result<Vec::<Signal>,CluEError>
+{
+  let Some(max_cluster_size) = config.max_cluster_size else {
+    return Err(CluEError::NoMaxClusterSize);
+  };
+  let Some(number_system_instances) = config.number_system_instances else {
+    return Err(CluEError::NoNumberSystemInstances);
+  }; 
+
+  let range = Uniform::from(0..std::u64::MAX);
+  let new_seeds = (0..number_system_instances).map(|_ii|
+      range.sample(rng) )
+    .collect::<Vec::<u64>>();
+
+  let n_tot = config.number_timepoints.iter().sum::<usize>();
+
+  let mut signals = (0..max_cluster_size).map(|_ii| Signal::zeros(n_tot))
+    .collect::<Vec::<Signal>>();
+
+  for ii in 0..number_system_instances{
+
+    println!("\nSystem instance: {}/{}.", ii+1, number_system_instances);
+
+    let mut inst_rng = ChaCha20Rng::seed_from_u64(new_seeds[ii]);
+    let inst_signals = calculate_structure_signal(&mut inst_rng, 
+        config, path_opt)?;
+
+    for (order_idx, sig) in inst_signals.iter().enumerate(){
+      signals[order_idx] = &signals[order_idx] + sig;
+    }
+  }
+
+  for sig in signals.iter_mut(){
+    sig.scale(ONE/(number_system_instances as f64));
+  }
+  Ok(signals)
+}
+//------------------------------------------------------------------------------
+// This function builds the spin structure and calculates the signal over
+// one or multiple orientations.
+fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
     path_opt: &Option<String>) -> Result<Vec::<Signal>,CluEError>
 {
 

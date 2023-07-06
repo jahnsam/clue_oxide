@@ -75,6 +75,22 @@ impl Config{
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::CellIDs => {
+        let value_token = to_i32_token(tokens, expression.line_number)?;
+        if let Token::VectorI32(vec) = value_token{
+          let vec = vec.iter().map(|&x| x as usize).collect();
+          if include{
+            if !filter.cell_ids.is_empty(){return Err(already_set());}
+            filter.cell_ids = vec;
+          }else{
+            if !filter.not_cell_ids.is_empty(){return Err(already_set());}
+            filter.not_cell_ids = vec;
+          }
+        }else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Elements => {
         let value_token = vec_tokens_to_vec_elements(tokens);
         if let Ok(vec) = value_token{

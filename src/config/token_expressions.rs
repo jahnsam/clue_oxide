@@ -417,8 +417,6 @@ pub fn vec_tokens_to_vec_strings(tokens: Vec::<Token>)
   Ok(value_token)
 }
 //------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
 pub fn vec_tokens_to_vec_elements(tokens: Vec::<Token>)
   -> Result<Vec::<Element>,CluEError>
 {

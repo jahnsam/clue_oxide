@@ -47,6 +47,7 @@ pub enum CluEError{
   ExpectedNonNegativeIntRHS(usize),
   ExpectedVecOfNFloatsRHS(usize,usize),
   ExpectedNumber(usize),
+  IncorrectFormattingIsotopeAbundances(usize),
   IncorrectNumberOfAxes(usize,usize),
   InorrectNumberOfCellOffsets(usize,usize),
   IndexOutOfBounds(usize,usize,usize),
@@ -57,6 +58,8 @@ pub enum CluEError{
   InvalidGeometry(usize,String),
   InvalidPulseSequence(usize),
   InvalidToken(usize,String),
+  IsotopeAbundancesCannotBeNormalized(usize),
+  IsotopeAbundancesMustBeNonnegative(usize),
   LenghMismatchTimepointsIncrements(usize,usize),
   MissingFilter(String),
   MissingFilterArgument(usize,String),
@@ -86,6 +89,7 @@ pub enum CluEError{
   NoDensityMatrixMethod,
   NoDetectedSpinIdentity,
   NoDetectedSpinMultiplicity,
+  NoExtracellIsotopicDistribution(String),
   NoGMatrixSpecifier,
   NoGMatrixValues,
   NoHyperfineSpecifier(String,String),
@@ -95,6 +99,7 @@ pub enum CluEError{
   NoModelIndex,
   NoMaxClusterSize,
   NoNeighborCutoffDistance,
+  NoNumberSystemInstances,
   NoOrientationGrid,
   NoPulseSequence,
   NoQuadrupoleSpecifier(String,String),
@@ -288,6 +293,11 @@ followed by a column for the weights", filename),
           "line {}, expected a vector of {} floats on the right hand side",
           line_number,n),
 
+      CluEError::IncorrectFormattingIsotopeAbundances(line_number) 
+        => write!(f,"line {}, isotope distributions are expected as
+\"isotope_distribution = {{X0: p0, X1: p1 }}\", where X0 and X1 are isotopes 
+and p0,p1 > 0 are abundances",line_number),
+
       CluEError::IncorrectNumberOfAxes(n,n_ref)=> write!(f,
           "expected {} axes, but {} were provided",n_ref, n),
 
@@ -319,6 +329,12 @@ followed by a column for the weights", filename),
 
       CluEError::InvalidToken(line_number,err_token) => write!(f,
           "line {}, invalid token \"{}\"",line_number, err_token),
+
+      CluEError::IsotopeAbundancesCannotBeNormalized(line_number) => write!(f,
+          "line {}, isotope abundances cannot be normalized",line_number),
+
+      CluEError::IsotopeAbundancesMustBeNonnegative(line_number) => write!(f,
+          "line {}, isotope abundances must be non-negative",line_number),
 
       CluEError::LenghMismatchTimepointsIncrements(n_dts,dts) => write!(f,
           "there are {} timepoint specifications, but {} time increments",
@@ -414,6 +430,9 @@ followed by a column for the weights", filename),
       CluEError::NoDetectedSpinMultiplicity => write!(f,
           "detected_spin_identity is not set"),
 
+      CluEError::NoExtracellIsotopicDistribution(label) => write!(f,
+          "extracel_isotopic_distribution is not set for {}",label),
+
       CluEError::NoGMatrixSpecifier => write!(f,
           "no g-matrix specifier"),
       
@@ -441,6 +460,9 @@ followed by a column for the weights", filename),
       CluEError::NoNeighborCutoffDistance => write!(f,
           "neighbor_cutoff_distance is not defined"),
       
+      CluEError::NoNumberSystemInstances => write!(f,
+          "number_system_instances is not set"),
+
       CluEError::NoOrientationGrid => write!(f,
           "orientation_grid is not defined"),
       

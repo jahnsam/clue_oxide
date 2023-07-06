@@ -74,7 +74,7 @@ pub fn run(config: Config)
   }
 
   let order_n_signals 
-    = calculate_signal::calculate_structure_signal(&mut rng, &config,
+    = calculate_signal::calculate_signals(&mut rng, &config,
       &save_path_opt )?;
 
 

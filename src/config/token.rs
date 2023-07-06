@@ -6,18 +6,21 @@ use std::fmt;
 //------------------------------------------------------------------------------
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token{
+ Active,
  Bang,
  BondedElements,                                               
  BondedIndices,                                                     
  BlockCommentEnd, 
  BlockCommentStart, 
- CCE,
  CarrPurcell,
+ CCE,
+ CellIDs,
  CentroidOverSerials,
  ClashDistancePBC,
  ClusterBatchSize,
  ClusterMethod,
  Clusters,
+ Colon,
  Comma,
  Config,
  Cube,
@@ -41,6 +44,8 @@ pub enum Token{
  Elements,                                                    
  EOL,
  Equals,
+ ExtracellIsotopeAbundances,
+ ExtracellVoidProbability,
  False,
  Filter,
  Float(f64),
@@ -57,6 +62,7 @@ pub enum Token{
  InputStructureFile,
  Int(i32),
  Isotope,
+ IsotopeAbundances,
  Label,
  Lebedev,
  LessThan,
@@ -76,6 +82,7 @@ pub enum Token{
  Not,
  NotEqual,
  NotIn,
+ NumberSystemInstances,
  NumberTimepoints,
  OrientationGrid,
  Path,
@@ -128,6 +135,7 @@ pub enum Token{
 impl fmt::Display for Token{
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
+      Token::Active => write!(f,"active"), 
       Token::Bang => write!(f,"!"), 
       Token::BondedIndices => write!(f,"bonded_indices"),
       Token::BondedElements => write!(f,"bonded_elements"),
@@ -135,11 +143,13 @@ impl fmt::Display for Token{
       Token::BlockCommentStart => write!(f,"/*"), 
       Token::CarrPurcell => write!(f,"cp"),
       Token::CCE => write!(f,"cce"),
+      Token::CellIDs => write!(f,"cell_ids"),
       Token::CentroidOverSerials => write!(f,"centroid_over_serials"),
       Token::ClashDistancePBC => write!(f,"clash_distance_pbc"),
       Token::ClusterBatchSize => write!(f,"cluster_batch_size"),
       Token::ClusterMethod => write!(f,"cluster_method"),
       Token::Clusters => write!(f,"clusters"),
+      Token::Colon => write!(f,":"),
       Token::Comma => write!(f,","),
       Token::Config => write!(f,"config"),
       Token::Cube => write!(f,"cube"),
@@ -164,6 +174,10 @@ impl fmt::Display for Token{
       Token::Elements => write!(f,"elements"),
       Token::EOL => writeln!(f),
       Token::Equals => write!(f,"="),
+      Token::ExtracellIsotopeAbundances 
+        => write!(f,"extracell_isotope_abundances"),
+      Token::ExtracellVoidProbability 
+        => write!(f,"extracell_void_probability"),
       Token::False => writeln!(f,"false"),
       Token::Filter => write!(f,"filter"),
       Token::Float(x) => write!(f,"{}",x),
@@ -180,6 +194,7 @@ impl fmt::Display for Token{
       Token::InputStructureFile => write!(f,"input_structure_file"),
       Token::Int(n) => write!(f,"{}",n),
       Token::Isotope => write!(f,"isotope"),
+      Token::IsotopeAbundances => write!(f,"isotope_abundances"),
       Token::Label => write!(f,"label"),
       Token::Lebedev => write!(f,"lebedev"),
       Token::LessThan => write!(f,"<"),
@@ -205,7 +220,8 @@ impl fmt::Display for Token{
       Token::Not => write!(f,"not"),
       Token::NotEqual => write!(f,"!="),
       Token::NotIn => write!(f,"not in"),
-      Token::NumberTimepoints => write!(f,"*"),
+      Token::NumberSystemInstances => write!(f,"number_system_instances"),
+      Token::NumberTimepoints => write!(f,"number_timepoints"),
       Token::OrientationGrid => write!(f,"orientation_grid"),
       Token::Path => write!(f,"path"),
       Token::ParenthesisClose => write!(f,")"),
@@ -259,6 +275,7 @@ impl fmt::Display for Token{
 //------------------------------------------------------------------------------
 pub fn identify_token(word: &str) -> Option<Token>{
   match word{
+    "active" => Some(Token::Active),
     "!" => Some(Token::Bang),
     "bonded_indices" => Some(Token::BondedIndices),
     "bonded_elements" => Some(Token::BondedElements),
@@ -266,11 +283,13 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "/*" => Some(Token::BlockCommentStart),
     "cp" => Some(Token::CarrPurcell),
     "cce" => Some(Token::CCE),
+    "cell_ids" => Some(Token::CellIDs),
     "centroid_over_serials" => Some(Token::CentroidOverSerials),
     "clash_distance_pbc" => Some(Token::ClashDistancePBC),
     "cluster_batch_size" => Some(Token::ClusterBatchSize),
     "cluster_method" => Some(Token::ClusterMethod),
     "clusters" => Some(Token::Clusters),
+    ":" => Some(Token::Colon),
     "," => Some(Token::Comma),
     "config" => Some(Token::Config),
     "cube" => Some(Token::Cube),
@@ -294,6 +313,8 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "elements" => Some(Token::Elements), 
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
+    "extracell_isotope_abundances" => Some(Token::ExtracellIsotopeAbundances),
+    "extracell_void_probability" => Some(Token::ExtracellVoidProbability),
     "false" => Some(Token::False),
     "filter" => Some(Token::Filter),
     ">" => Some(Token::GreaterThan),
@@ -302,6 +323,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "input_structure_file" => Some(Token::InputStructureFile),
     "indices" => Some(Token::Indices), 
     "isotope" => Some(Token::Isotope),
+    "isotope_abundances" => Some(Token::IsotopeAbundances),
     "label" => Some(Token::Label),
     "load_geometry" => Some(Token::LoadGeometry),
     "lebedev" => Some(Token::Lebedev),
@@ -332,6 +354,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "not" => Some(Token::Not),
     "!=" => Some(Token::NotEqual),
     "not in" => Some(Token::NotIn),
+    "number_system_instances" => Some(Token::NumberSystemInstances),
     "number_timepoints" => Some(Token::NumberTimepoints),
     "orientation_grid" => Some(Token::OrientationGrid),
     "path" => Some(Token::Path),
@@ -935,11 +958,13 @@ mod tests{
   
   #[test]
   fn test_identify_token(){
+    assert_eq!(identify_token("active"), Some(Token::Active));
     assert_eq!(identify_token("!"), Some(Token::Bang));
     assert_eq!(identify_token("*/"), Some(Token::BlockCommentEnd));
     assert_eq!(identify_token("/*"),Some( Token::BlockCommentStart));
     assert_eq!(identify_token("cp"),Some( Token::CarrPurcell));
     assert_eq!(identify_token("cce"),Some( Token::CCE));
+    assert_eq!(identify_token("cell_ids"),Some( Token::CellIDs));
     assert_eq!(identify_token("centroid_over_serials"),
         Some(Token::CentroidOverSerials));
     assert_eq!(identify_token("clash_distance_pbc"),
@@ -948,6 +973,7 @@ mod tests{
         Some(Token::ClusterBatchSize));
     assert_eq!(identify_token("cluster_method"),Some(Token::ClusterMethod));
     assert_eq!(identify_token("clusters"),Some( Token::Clusters));
+    assert_eq!(identify_token(":"),Some( Token::Colon));
     assert_eq!(identify_token(","),Some( Token::Comma));
     assert_eq!(identify_token("config"),Some( Token::Config));
     assert_eq!(identify_token("cube"),Some( Token::Cube));
@@ -979,6 +1005,10 @@ mod tests{
     assert_eq!(identify_token("element"),Some( Token::Element));
     assert_eq!(identify_token("\n"),Some( Token::EOL));
     assert_eq!(identify_token("="),Some( Token::Equals));
+    assert_eq!(identify_token("extracell_isotope_abundances"),
+        Some( Token::ExtracellIsotopeAbundances));
+    assert_eq!(identify_token("extracell_void_probability"),
+        Some( Token::ExtracellVoidProbability));
     assert_eq!(identify_token("false"),Some( Token::False));
     assert_eq!(identify_token("filter"),Some( Token::Filter));
     assert_eq!(identify_token(">"),Some( Token::GreaterThan));
@@ -994,6 +1024,8 @@ mod tests{
     assert_eq!(identify_token("input_structure_file"),
         Some(Token::InputStructureFile));
     assert_eq!(identify_token("isotope"),Some( Token::Isotope));
+    assert_eq!(identify_token("isotope_abundances"),
+        Some( Token::IsotopeAbundances));
     assert_eq!(identify_token("label"),Some( Token::Label));
     assert_eq!(identify_token("lebedev"),Some( Token::Lebedev));
     assert_eq!(identify_token("load_geometry"),Some( Token::LoadGeometry));
@@ -1019,6 +1051,8 @@ mod tests{
     assert_eq!(identify_token("not"),Some( Token::Not));
     assert_eq!(identify_token("!="),Some( Token::NotEqual));
     assert_eq!(identify_token("not in"),Some( Token::NotIn));
+    assert_eq!(identify_token("number_system_instances"),
+        Some(Token::NumberSystemInstances));
     assert_eq!(identify_token("number_timepoints"),
         Some(Token::NumberTimepoints));
     assert_eq!(identify_token("orientation_grid"),Some(Token::OrientationGrid));

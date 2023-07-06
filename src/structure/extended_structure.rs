@@ -391,6 +391,14 @@ impl Structure{
             } 
           }
 
+          if let Some(isotope_properties) = properties.isotope_properties
+              .get(&particle.isotope.to_string()){
+            
+            if let Some(active) = isotope_properties.active{
+              particle.active = active;
+            } 
+          }
+
         }
       }
     }

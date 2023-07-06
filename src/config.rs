@@ -52,6 +52,7 @@ pub struct Config{
   pub neighbor_cutoff_distance: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_mod_depth: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_taylor_4: Option<f64>,
+  pub number_system_instances: Option<usize>,
   pub number_timepoints: Vec::<usize>,
   //pub inner_radius: Option<f64>,
   //pbc_style: PBCStyle,
@@ -93,6 +94,10 @@ impl Config{
     if self.clash_distance.is_none(){
       self.clash_distance = Some(1e-12);
     }
+    //if self.clash_distance_pbc.is_none(){
+    //  self.clash_distance_pbc = Some(1e-12);
+    //}
+
 
     if self.cluster_batch_size.is_none(){
       self.cluster_batch_size = Some(10000);
@@ -110,6 +115,9 @@ impl Config{
       }
     }
 
+    if self.number_system_instances.is_none(){
+      self.number_system_instances = Some(1);
+    }
     if self.remove_partial_methyls.is_none(){
       self.remove_partial_methyls = Some(false);
       'part_met : for particle_config in self.particles.iter(){
@@ -641,6 +649,9 @@ impl Config{
       Token::NeighborCutoff3SpinHahnTaylor4 
         => set_to_some_f64(&mut self.neighbor_cutoff_3_spin_hahn_taylor_4,
             expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::NumberSystemInstances
+        => set_to_some_usize(&mut self.number_system_instances, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::NumberTimepoints 
         => set_to_vec_usize(&mut self.number_timepoints, expression)?,
