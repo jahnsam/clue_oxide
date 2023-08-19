@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import re
+from scipy.optimize import curve_fit
 import sys
 
 color_palette = [
@@ -32,9 +33,15 @@ def main():
   fig, (ax) = plt.subplots(1,1,figsize=(8, 6) );
   
   for ii,signal in enumerate(signals):
+    popt, pcov = curve_fit(stretched_exponential, time, signal)
+    
+    fit_sim = stretched_exponential(time,popt[0],popt[1],popt[2])
+    
     color = color_palette[ii % 8]
     ax.plot(time*1e6,np.real(signal),
         linewidth=1,color=color);
+    ax.plot(time*1e6,fit_sim,
+        linewidth=1,color=color,linestyle='--');
 
   ax.set_xlabel("time (μs)")
   ax.set_ylabel("Re(signal)")
@@ -64,7 +71,9 @@ def read_signal_file(csv_file):
       lambda z: complex(z));
   return np.array(v)
 #-------------------------------------------------------------------------------
-
+def stretched_exponential(t,V0,TM,xi):
+  return V0*np.exp( -(t/TM)**xi )
+#-------------------------------------------------------------------------------
 
 #===============================================================================
 if __name__ == "__main__":

@@ -91,6 +91,7 @@ impl CluEOptions {
   }
   //----------------------------------------------------------------------------
   pub fn run(&self) -> PyResult<(Vec::<f64>, Vec::<Complex::<f64>>)>{
+    /*
     let expressions 
       = match clue::config::lexer::get_tokens_from_line(&self.to_string()){
         Ok(exps) => exps,
@@ -105,6 +106,16 @@ impl CluEOptions {
     }
     
     config.set_defaults();
+
+    match config.construct_time_axis(){
+      Ok(_) => (),
+      Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
+    }
+    */
+    let config = match clue::config::Config::from(&self.to_string()){
+      Ok(cfg) => cfg,
+      Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
+    };
 
     match clue::run(config){
       Ok((time, signal)) => Ok((time,signal)),

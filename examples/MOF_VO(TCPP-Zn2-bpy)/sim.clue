@@ -16,6 +16,8 @@ max_cluster_size = 2;
 magnetic_field = 0.35; // tesla.
 pulse_sequence = hahn;
 
+temperature = 5; // kelvin.
+
 orientation_grid = lebedev(302);
 
 neighbor_cutoff_3_spin_hahn_mod_depth = 3.23e-8; 

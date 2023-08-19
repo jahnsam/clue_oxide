@@ -149,9 +149,11 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
 
   // Determin orientation averaging method.
   let integration_grid = match &config.orientation_grid{
+    Some(OrientationAveraging::Grid(grid)) => grid.clone(),
     Some(OrientationAveraging::Lebedev(n_ori)) 
       => IntegrationGrid::lebedev(*n_ori)?.remove_3d_hemisphere(),
-    Some(OrientationAveraging::Grid(grid)) => grid.clone(),
+    Some(OrientationAveraging::Random(n_ori)) 
+      => IntegrationGrid::random_unit_sphere(*n_ori,rng),
     None => IntegrationGrid::z_3d(),
   };
 

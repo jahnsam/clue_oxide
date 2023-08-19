@@ -1,3 +1,8 @@
+use crate::physical_constants::PI;
+
+use rand::distributions::Uniform;
+use rand_distr::Distribution;
+use rand_chacha::ChaCha20Rng;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug, Clone)]
@@ -266,7 +271,22 @@ impl Vector3D{
   pub fn zeros() -> Self{
     Vector3D{elements: [0.0, 0.0, 0.0]}
   }
+  //----------------------------------------------------------------------------
+  pub fn random_direction(rng: &mut ChaCha20Rng) -> Self {
+    let range = Uniform::new(0.0f64, 1.0);
+    
+    let random_number_for_phi = range.sample(rng);
+    let phi: f64 = 2.0*PI*random_number_for_phi;
 
+    let random_number_for_theta = range.sample(rng);
+    let theta: f64 = (2.0*random_number_for_theta-1.0).acos();
+
+    let x = theta.sin()*phi.cos();
+    let y = theta.sin()*phi.sin();
+    let z = theta.cos();
+
+    Vector3D::from([x,y,z])
+  }
   //----------------------------------------------------------------------------
   pub fn x(&self) -> f64 { self.elements[0]}
   //----------------------------------------------------------------------------

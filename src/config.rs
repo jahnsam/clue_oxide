@@ -32,18 +32,21 @@ pub mod parse_properties;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
-  pub clash_distance: Option<f64>,
+  pub clash_distance: Option<f64>, // default: Some(1e-12)
   pub clash_distance_pbc: Option<f64>,
-  pub cluster_batch_size: Option<usize>,
+  pub cluster_batch_size: Option<usize>, // default: Some(10000)
   pub cluster_method: Option<ClusterMethod>,
   pub density_matrix: Option<DensityMatrixMethod>,
+    // default(temperature = None):  DensityMatrixMethod::Identity
+    // default(temperature = Some(T)):  DensityMatrixMethod::Thermal
   pub detected_spin_g_matrix: Option<TensorSpecifier>,
   pub detected_spin_identity: Option<Isotope>,
   pub detected_spin_multiplicity: Option<usize>,
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
   pub input_structure_file: Option<String>,
-  pub load_geometry: Option<LoadGeometry>,
+  pub load_geometry: Option<LoadGeometry>, 
+    // default: Some(LoadGeometry::Sphere)
   pub magnetic_field: Option<Vector3D>,
   pub max_cluster_size: Option<usize>,
   pub neighbor_cutoff_delta_hyperfine: Option<f64>,
@@ -52,38 +55,70 @@ pub struct Config{
   pub neighbor_cutoff_distance: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_mod_depth: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_taylor_4: Option<f64>,
-  pub number_system_instances: Option<usize>,
+  pub number_system_instances: Option<usize>, // Some(1)
   pub number_timepoints: Vec::<usize>,
-  //pub inner_radius: Option<f64>,
-  //pbc_style: PBCStyle,
-  //error_tolerance: f64,
-  //use_periodic_boundary_conditions: bool,
   pub orientation_grid: Option<OrientationAveraging>,
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
+    // default: Some(0)
   pub pulse_sequence: Option<PulseSequence>,
   pub remove_partial_methyls: Option<bool>,
-  pub root_dir: Option<String>,
+    // default(no tunnel splitting): Some(false)
+    // default(with tunnel splitting): Some(true)
+  pub root_dir: Option<String>, // default: Some("./".to_string())
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
   pub save_name: Option<String>,
   pub temperature: Option<f64>,
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
-  pub write_auxiliary_signals: Option<String>,
+  pub write_auxiliary_signals: Option<String>, 
+    // default: Some("auxiliary_signals".to_string())
   pub write_bath: Option<String>,
+    // default: Some("bath".to_string())
   pub write_clusters: Option<String>,
+    // default: Some("clusters".to_string())
   pub write_info: Option<String>,
+    // default: Some("info".to_string())
   pub write_exchange_groups: Option<String>,
+    // default: Some("exchange_groups".to_string())
   pub write_orientation_signals: Option<String>,
+    // default: Some("orientations".to_string())
   pub write_structure_pdb: Option<String>,
+    // default: Some("spin_system".to_string())
   pub write_tensors: Option<String>,
 }
 
 
 impl Config{
+  //----------------------------------------------------------------------------
   pub fn new() -> Self{
     Default::default()
+  }
+  //----------------------------------------------------------------------------
+  pub fn from(input: &str) -> Result<Self,CluEError>
+  {
+    let expressions
+      = match get_tokens_from_line(input){
+        Ok(exps) => exps,
+        Err(err) => return Err(err),
+      };
+
+    let mut config = Config::new();
+
+    match  config.parse_token_stream(expressions){
+      Ok(_) => (),
+      Err(err) => return Err(err),
+    }
+
+    config.set_defaults()?;
+
+    match config.construct_time_axis(){
+      Ok(_) => (),
+      Err(err) => return Err(err),
+    }
+
+    Ok(config)
   }
   //----------------------------------------------------------------------------
   /// This function sets config setting that are necessary to be `Some`,
@@ -100,7 +135,7 @@ impl Config{
 
 
     if self.cluster_batch_size.is_none(){
-      self.cluster_batch_size = Some(10000);
+      self.cluster_batch_size = Some(1000);
     }
     if self.load_geometry.is_none(){
       self.load_geometry = Some(LoadGeometry::Sphere);
@@ -334,6 +369,7 @@ pub enum PulseSequence{
 pub enum OrientationAveraging{
   Grid(IntegrationGrid),
   Lebedev(usize),
+  Random(usize),
 }
 /*
 
@@ -669,7 +705,7 @@ impl Config{
 
         match rhs[0]{
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-          Token::Lebedev => {
+          Token::Lebedev | Token::Random => {
             let args = get_function_arguments(rhs,expression.line_number)?;
 
             if args.is_empty(){
@@ -688,8 +724,14 @@ impl Config{
             let mut n_grid_opt: Option<usize> = None;
             set_to_some_usize(&mut n_grid_opt,&new_expression)?;
             if let Some(n_grid) = n_grid_opt{
-              self.orientation_grid 
-                = Some(OrientationAveraging::Lebedev(n_grid));
+              match rhs[0]{
+                Token::Lebedev => self.orientation_grid 
+                  = Some(OrientationAveraging::Lebedev(n_grid)),
+                Token::Random => self.orientation_grid 
+                  = Some(OrientationAveraging::Random(n_grid)),
+                _ => return Err(CluEError::InvalidToken(expression.line_number,
+                  expression.lhs[0].to_string())),
+              }
             }else{
               return Err(CluEError::NoOrientationGrid);
             }

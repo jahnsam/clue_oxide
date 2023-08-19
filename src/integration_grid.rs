@@ -2,6 +2,7 @@ use crate::space_3d::Vector3D;
 use crate::clue_errors::*;
 
 use lebedev_laikov;
+use rand_chacha::ChaCha20Rng;
 
 /// `IntegrationGrid` is a struct for use in 
 /// [quadrature](https://en.wikipedia.org/wiki/Quadrature_(mathematics)).
@@ -75,6 +76,23 @@ impl IntegrationGrid{
   pub fn new(dim: usize) -> Self {
     let points = Vec::<f64>::new();
     let weights = Vec::<f64>::new();
+
+    IntegrationGrid{dim,points,weights}
+  }
+  //----------------------------------------------------------------------------
+  pub fn random_unit_sphere(num_points: usize,rng: &mut ChaCha20Rng) -> Self
+  {
+    let dim = 3;
+    let mut points = Vec::<f64>::with_capacity(dim*num_points);
+    let w = 1.0/(num_points as f64);
+    let weights = (0..num_points).map(|_| w).collect::<Vec::<f64>>();
+
+    for _ii in 0..num_points{
+      let r = Vector3D::random_direction(rng);
+      points.push(r.x());
+      points.push(r.y());
+      points.push(r.z());
+    }
 
     IntegrationGrid{dim,points,weights}
   }
@@ -258,6 +276,17 @@ impl IntegrationGrid{
 mod tests{
   use super::*;
 
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_read_from_csv(){
+    let grid = IntegrationGrid::read_from_csv("assets/xyzw.csv").unwrap();
+    assert_eq!(grid.dim, 3);
+    assert_eq!(grid.points, vec![1.0,0.0,0.0,
+                                 0.0,1.0,0.0,
+                                 0.0,0.0,1.0]);
+    assert_eq!(grid.weights, vec![0.3333,0.3333,0.3333]);
+
+  }
   //----------------------------------------------------------------------------
   #[test]
   fn test_lebedev(){
