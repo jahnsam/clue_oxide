@@ -29,9 +29,9 @@ substring = "1.4"
 [target.'cfg(unix)'.dependencies]
 ndarray-linalg = { version = "0.15", features = ["openblas-static"] }
 
-#[target.'cfg(windows)'.dependencies.ndarray-linalg]
-#version = '0.15.0'
-#features = ['intel-mkl']
+[target.'cfg(windows)'.dependencies.ndarray-linalg]
+version = '0.15.0'
+features = ['intel-mkl']
 
 
 [target.'cfg(windows)'.dev-dependencies]

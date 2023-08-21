@@ -36,6 +36,10 @@ pub enum CluEError{
   CannotSubTokens,
   CannotTakeTrace(String),
   CannotWriteFile(String),
+  CIFCannotDeclareDataItem(usize,String),
+  CIFCannotStartLoop(usize),
+  CIFDataItemAlreadyDeclared(usize,String),
+  CIFNoDeclaredDataItem(usize,String),
   ClusterHasNoSignal(String),
   ConfigModeNotRecognized(String),
   EmptyVector(usize),
@@ -259,6 +263,18 @@ followed by a column for the weights", filename),
 
       CluEError::CannotWriteFile(file) => write!(f,
           "cannot write to \"{}\"", file),
+
+      CluEError::CIFCannotDeclareDataItem(line_number,item) => write!(f,
+          "line {}, cannot declare data item \"{}\"", line_number,item),
+
+      CluEError::CIFCannotStartLoop(line_number) => write!(f,
+          "line {}, cannot start loop_", line_number),
+
+      CluEError::CIFDataItemAlreadyDeclared(line_number,item) => write!(f,
+          "line {}, cannot declare data item again\"{}\"", line_number,item),
+
+      CluEError::CIFNoDeclaredDataItem(line_number,item) => write!(f,
+          "line {}, no declared data item for \"{}\"", line_number,item),
 
       CluEError::ConfigModeNotRecognized(mode) => write!(f,
           "#[{}] is not recognized",mode),

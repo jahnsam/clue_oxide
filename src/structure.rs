@@ -1,3 +1,4 @@
+pub mod cif;
 pub mod pdb;
 pub mod extended_structure;
 pub mod primary_structure;
