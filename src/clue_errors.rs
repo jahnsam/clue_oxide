@@ -37,9 +37,17 @@ pub enum CluEError{
   CannotTakeTrace(String),
   CannotWriteFile(String),
   CIFCannotDeclareDataItem(usize,String),
+  CIFCannotFindSymmetryEquivalentSite(String),
+  CIFCannotParseFloat(String),
   CIFCannotStartLoop(usize),
   CIFDataItemAlreadyDeclared(usize,String),
+  CIFInconsistantCoorDataSizes(usize),
   CIFNoDeclaredDataItem(usize,String),
+  CIFNoField(String),
+  CIFNoFractX,
+  CIFNoFractY,
+  CIFNoFractZ,
+  CIFNoTypeSymbol,
   ClusterHasNoSignal(String),
   ConfigModeNotRecognized(String),
   EmptyVector(usize),
@@ -267,6 +275,12 @@ followed by a column for the weights", filename),
       CluEError::CIFCannotDeclareDataItem(line_number,item) => write!(f,
           "line {}, cannot declare data item \"{}\"", line_number,item),
 
+      CluEError::CIFCannotFindSymmetryEquivalentSite(item) => write!(f,
+          "cannot find symmetry equivalent site from \"{}\"", item),
+
+      CluEError::CIFCannotParseFloat(item) => write!(f,
+          "cannot parse \"{}\" as a float", item),
+
       CluEError::CIFCannotStartLoop(line_number) => write!(f,
           "line {}, cannot start loop_", line_number),
 
@@ -275,6 +289,25 @@ followed by a column for the weights", filename),
 
       CluEError::CIFNoDeclaredDataItem(line_number,item) => write!(f,
           "line {}, no declared data item for \"{}\"", line_number,item),
+
+      CluEError::CIFInconsistantCoorDataSizes(n_atoms)=> write!(f,
+          "x, y and z coordinates must have {} elements in cif file",
+          n_atoms),
+
+      CluEError::CIFNoField(field) => write!(f,
+          "no \"{}\" in cif file",field),
+
+      CluEError::CIFNoFractX => write!(f,
+          "no \"_atom_site_fract_x\" in cif file"),
+
+      CluEError::CIFNoFractY => write!(f,
+          "no \"_atom_site_fract_y\" in cif file"),
+
+      CluEError::CIFNoFractZ => write!(f,
+          "no \"_atom_site_fract_z\" in cif file"),
+
+      CluEError::CIFNoTypeSymbol => write!(f,
+          "no \"_atom_site_type_symbol\" in cif file"),
 
       CluEError::ConfigModeNotRecognized(mode) => write!(f,
           "#[{}] is not recognized",mode),

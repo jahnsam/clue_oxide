@@ -1,4 +1,4 @@
-pub mod cif;
+//pub mod cif;
 pub mod pdb;
 pub mod extended_structure;
 pub mod primary_structure;
@@ -410,7 +410,7 @@ impl Structure{
 
     let mut stream = BufWriter::with_capacity(n_bytes,file);
     
-    let line = format!("index,particle,x,y,z,active\n");
+    let line = "index,particle,x,y,z,active\n";
     if stream.write(line.as_bytes()).is_err(){
       return Err(CluEError::CannotWriteFile(filename.to_string()) );
     }    
@@ -423,7 +423,7 @@ impl Structure{
 
       let line = format!("{},{},{},{},{},{}\n",idx, particle.isotope.to_string(),
           r.x()/ANGSTROM, r.y()/ANGSTROM, r.z()/ANGSTROM,
-          particle.active.to_string());
+          particle.active);
     
       if stream.write(line.as_bytes()).is_err(){
         return Err(CluEError::CannotWriteFile(filename.to_string()) );

@@ -62,7 +62,7 @@ impl CommandLineInput{
           Some(opt_str) => opt_str.clone(),
           None => String::new(),
         };
-        self.config_options = Some(format!("{}\n{}",opt,arg.to_string()));
+        self.config_options = Some(format!("{}\n{}",opt,arg));
       }
       NextArg::InputConfig => self.config_file = Some(arg.to_string()),
       //NextArg::Output => self.output_file = Some(arg.to_string()),

@@ -45,11 +45,11 @@ pub fn calculate_signals(rng: &mut ChaCha20Rng, config: &Config,
   let mut signals = (0..max_cluster_size).map(|_ii| Signal::zeros(n_tot))
     .collect::<Vec::<Signal>>();
 
-  for ii in 0..number_system_instances{
+  for (ii,&seed) in new_seeds.iter().enumerate(){
 
     println!("\nSystem instance: {}/{}.", ii+1, number_system_instances);
 
-    let mut inst_rng = ChaCha20Rng::seed_from_u64(new_seeds[ii]);
+    let mut inst_rng = ChaCha20Rng::seed_from_u64(seed);
     let inst_signals = calculate_structure_signal(&mut inst_rng, 
         config, path_opt)?;
 

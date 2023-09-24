@@ -123,6 +123,7 @@ fn parse_tokens(mut lexer: Lexer) -> Result<Vec::<Token>, CluEError>{
 
   let mut tokens = Vec::<Token>::with_capacity(lexer.input.len());
 
+  let mut is_attribute = false;
   let mut previous_token: Token;
   let mut token = Token::EOL;
   while lexer.position < lexer.input.len(){
@@ -139,9 +140,16 @@ fn parse_tokens(mut lexer: Lexer) -> Result<Vec::<Token>, CluEError>{
       continue;
     }else if token == Token::EOL {
       lexer.line_number += 1;
+    }else if token == Token::Sharp{
+      is_attribute = true;
     }
 
-    tokens.push(token.clone())
+    tokens.push(token.clone());
+    
+    if is_attribute && token == Token::SquareBracketClose{
+      tokens.push(Token::EOL);
+      is_attribute = false;
+    }
     
   }
   Ok(tokens)

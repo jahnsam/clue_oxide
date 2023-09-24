@@ -66,22 +66,22 @@ impl SymmetricTensor3D{
       + tzz*sin_theta_squared
       ,
       // xy
-      -txx*sin_phi*cos_theta*cos_phi 
+      (-txx*sin_phi*cos_theta*cos_phi 
       - txy*sin_phi_squared*cos_theta 
       + txy*cos_theta*cos_phi_squared 
       + txz*sin_theta*sin_phi 
       + tyy*sin_phi*cos_theta*cos_phi 
-      - tyz*sin_theta*cos_phi
+      - tyz*sin_theta*cos_phi)
       ,
       // xz
-      txx*sin_theta*cos_theta*cos_phi_squared 
+      (txx*sin_theta*cos_theta*cos_phi_squared 
       + 2.0*txy*sin_theta*sin_phi*cos_theta*cos_phi 
       - txz*sin_theta_squared*cos_phi 
       + txz*cos_theta_squared*cos_phi 
       + tyy*sin_theta*sin_phi_squared*cos_theta 
       - tyz*sin_theta_squared*sin_phi 
       + tyz*sin_phi*cos_theta_squared 
-      - tzz*sin_theta*cos_theta
+      - tzz*sin_theta*cos_theta)
       ,
       // yy
       txx*sin_phi_squared 

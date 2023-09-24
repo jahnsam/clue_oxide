@@ -39,7 +39,7 @@ impl Structure{
 
     self.check_primary_clashes(config)?;
 
-    self.trim_pbc_clashes(&config)?;
+    self.trim_pbc_clashes(config)?;
 
     Ok(())
   }

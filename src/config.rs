@@ -820,6 +820,9 @@ impl Config{
         }else{ return Err(CluEError::NoRadius);}
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::SaveDir 
+        => set_to_some_string(&mut self.save_name, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::RNGSeed => {
         if let Some(_value) = &self.rng_seed{
           return Err(already_set());
@@ -902,6 +905,7 @@ mod tests{
         orientation_grid = lebedev(170);
         pulse_sequence = cp-1;
         radius = 80;
+        save_dir = \"save_directory\";
         temperature = 20;
         time_increments = [1e-9, 5e-7];
         write_auxiliary_signals = out_aux;
@@ -953,6 +957,7 @@ mod tests{
     assert_eq!(config.number_timepoints, vec![40,60]);
     assert_eq!(config.pulse_sequence, Some(PulseSequence::CarrPurcell(1)));
     assert_eq!(config.radius, Some(80.0e-10));
+    assert_eq!(config.save_name, Some(String::from("save_directory")));
     assert_eq!(config.temperature, Some(20.0));
     assert_eq!(config.time_increments, vec![1e-9,5e-7]);
     assert_eq!(config.write_auxiliary_signals, Some("out_aux".to_string()));

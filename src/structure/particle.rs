@@ -19,6 +19,22 @@ pub struct Particle{
 
   //pub cell_id: usize,
 }
+impl Particle{
+  pub fn new(element: Element, x: f64, y: f64, z: f64) -> Self{
+    let isotope = Isotope::most_common_for(&element);
+    let coordinates = Vector3D::from([x,y,z]);
+
+    Particle{
+      element,
+      isotope,
+      coordinates,
+      active: true,
+      serial: None,
+      residue: None,
+      residue_sequence_number: None,
+    }
+  }
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

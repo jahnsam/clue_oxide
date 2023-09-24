@@ -99,6 +99,7 @@ pub enum Token{
  Residues,                                                     
  ResSeqNums,                                                   
  RNGSeed,
+ SaveDir,
  Semicolon,
  Serials,                                                      
  Sharp,
@@ -237,6 +238,7 @@ impl fmt::Display for Token{
       Token::Residues => write!(f,"residues"),
       Token::ResSeqNums => write!(f,"residue_sequence_numbers"),
       Token::RNGSeed => write!(f,"rng_seed"),
+      Token::SaveDir => write!(f,"save_dir"),
       Token::Semicolon => write!(f,";"),
       Token::Serials => write!(f,"serials"),
       Token::Sharp => write!(f,"#"),
@@ -371,6 +373,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "residues" => Some(Token::Residues),
     "residue_sequence_numbers" => Some(Token::ResSeqNums),
     "rng_seed" => Some(Token::RNGSeed),
+    "save_dir" => Some(Token::SaveDir),
     ";" => Some(Token::Semicolon),
     "serials" => Some(Token::Serials), 
     "#" => Some(Token::Sharp),
@@ -1068,6 +1071,7 @@ mod tests{
         Some(Token::RemovePartialMethyls));
     assert_eq!(identify_token("residue"),Some( Token::Residue));
     assert_eq!(identify_token("rng_seed"),Some( Token::RNGSeed));
+    assert_eq!(identify_token("save_dir"),Some( Token::SaveDir));
     assert_eq!(identify_token(";"),Some( Token::Semicolon));
     assert_eq!(identify_token("#"),Some( Token::Sharp));
     assert_eq!(identify_token("/"),Some( Token::Slash));

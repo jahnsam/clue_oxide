@@ -1,0 +1,17 @@
+[0] Config.pm:307> INFO - This is Biber 2.19
+[0] Config.pm:310> INFO - Logfile is 'CluE.blg'
+[34] biber:340> INFO - === Mon Sep 11, 2023, 19:07:02
+[41] Biber.pm:419> INFO - Reading 'CluE.bcf'
+[70] Biber.pm:979> INFO - Found 7 citekeys in bib section 0
+[75] Biber.pm:4419> INFO - Processing section 0
+[80] Biber.pm:4610> INFO - Looking for bibtex file '/home/kudarizaka/kudarizaka/uw/stoll/0final/thesis/refs.bib' for section 0
+[84] bibtex.pm:1713> INFO - LaTeX decoding ...
+[181] bibtex.pm:1519> INFO - Found BibTeX data source '/home/kudarizaka/kudarizaka/uw/stoll/0final/thesis/refs.bib'
+[213] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[213] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[213] Biber.pm:4239> INFO - Sorting list 'none/global//global/global' of type 'entry' with template 'none' and locale 'en-US'
+[213] Biber.pm:4245> INFO - No sort tailoring available for locale 'en-US'
+[217] bbl.pm:660> INFO - Writing 'CluE.bbl' with encoding 'UTF-8'
+[219] bbl.pm:763> INFO - Output to CluE.bbl
+[219] Biber.pm:131> WARN - Duplicate entry key: '2023_Jeschke' in file '/home/kudarizaka/kudarizaka/uw/stoll/0final/thesis/refs.bib', skipping ...
+[219] Biber.pm:133> INFO - WARNINGS: 1

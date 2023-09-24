@@ -116,7 +116,7 @@ impl HamiltonianTensors{
 
     spin_multiplicities.push(detected_particle.spin_multiplicity());
 
-    let det_zeeman = construct_zeeman_tensor(&gamma_matrix,magnetic_field);
+    let det_zeeman = construct_zeeman_tensor(gamma_matrix,magnetic_field);
     if det_zeeman.any_nan(){
       return Err(CluEError::NANTensorDetectedZeeman);
     }

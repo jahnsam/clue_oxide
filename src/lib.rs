@@ -52,7 +52,7 @@ pub fn run(config: Config)
 
   let save_path_opt = match &config.save_name{
     Some(save_name) => {
-      if save_name == ""{
+      if save_name.is_empty(){
         None
       }else{
         Some(format!("{}/{}", root_path, save_name))
