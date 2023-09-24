@@ -216,7 +216,7 @@ cargo build --release
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The compiled binary should be in \textit{target/release/} and ready to use.
 An optional step is to make sure CluE is easy to access from the command line.
-One way to do this on linux is make an alias by adding the following to 
+One way to do this on Linux is make an alias by adding the following to 
 the .bash\_aliases file.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
@@ -1002,7 +1002,7 @@ One potential issue is that when maturin tries to comile CluE,
 it can fail to see the operating system unique flags, and will try to use them
 all.  To account for this, open CluE's Cargo.toml file and comment out 
 everything under the unneeded operating system section.  
-For example, to compile on linux add comments as shown below.
+For example, to compile on Linux add comments as shown below.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
 [target.'cfg(unix)'.dependencies]

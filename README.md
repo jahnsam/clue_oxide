@@ -2,12 +2,12 @@
 CluE (Cluester Evolution) is a quantum spin dynamics program to simulate central spin decoherence,  CluE implements Yang and Liu's cluster correlation expansion [1,2].  For usage information please refer to the manual.
 
 ### Installation
-The installation process has been tested on several linux distributions and on Windows 10, but not macOS.
+The installation process has been tested on several Linux distributions and on Windows 10, but not macOS.
 Before installing, make sure you have the latest version of
 [Rust](https://www.rust-lang.org/)[3]
-instaled.
+installed.
 
-Before compiling CLuE, it is a good idea to check that everything is working properly by running the the tests. 
+Before compiling CluE, it is a good idea to check that everything is working properly by running the tests. 
 ```
 cargo test
 ```
@@ -39,9 +39,9 @@ And the use the following to build the Python interface.
 ```
 maturin build
 ``` 
-One potential issue is that when maturin tries to comile CluE, it can fail to see the operating system unique
+One potential issue is that when maturin tries to compile CluE, it can fail to see the operating system unique
 flags, and will try to use them all. To account for this, open CluE’s Cargo.toml file and comment out
-everything under the unneeded operating system section. For example, to compile on linux add comments
+everything under the unneeded operating system section. For example, to compile on Linux add comments
 as shown below.
 ```
 [target.'cfg(unix)'.dependencies]
@@ -67,7 +67,7 @@ Yang, W.; Liu, R. B. Decoherence of Coupled Electron Spins via Nuclear Spin Dyna
 Yang, W.; Liu, R.-B. Quantum Many-Body Theory of Qubit Decoherence in a Finite-Size Spin Bath. II. Ensemble Dynamics. Phys. Rev. B 2009, 79 (11), 115320. https://doi.org/10.1103/PhysRevB.79.115320.
 
 <a id="3">[3]</a>
-Foundation, R. Rust A language empowering everyone to build reliable and eﬀicient software. https://www.rust-lang.org/.
+Foundation, R. Rust A language empowering everyone to build reliable and efficient software. https://www.rust-lang.org/.
 
 <a id="3">[4]</a>
 PyO3 PyO3/maturin https://github.com/PyO3/maturin.
