@@ -21,14 +21,18 @@ println!("\
 #                          \\ /                  \\ /                          #\n\
 #                           V                    V                           #\n\
 #                                                                            #\n\
+#                               ___            _                             #\n\
+#                              |   | \\/ .  _| |_|                            #\n\
+#                              |___| /\\ | |_| \\-                             #\n\
+#                                                                            #\n\
 ##############################################################################\n");
   println!("CLuE Copyright (C) 2022 Samuel M. Jahn");
   version::print_version();
   println!("\nThis program comes with ABSOLUTELY NO WARRANTY; for details run \n\
-\"clue --warrenty\".");
+\"clue_oxide --warrenty\".");
   println!("\nThis is free software distributed under the GPL v3.0 license; for details run ");
-  println!("\"clue --license\".");
-  println!("\nFor usage information, run \n\"clue --help\".\n");
+  println!("\"clue_oxide --license\".");
+  println!("\nFor usage information, run \n\"clue_oxide --help\".\n");
 
 
 }

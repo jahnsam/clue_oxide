@@ -10,7 +10,7 @@
 %
 \begin{figure} [H]
 	\centering
-	\includegraphics[width=0.25\linewidth]{figs/fig_CluE_logo.png}
+	\includegraphics[width=0.5\linewidth]{figs/fig_CluE_Oxide_logo.png}
   %\caption{}
   \label{fig:clue_logo}
 \end{figure}
@@ -220,7 +220,7 @@ One way to do this on Linux is make an alias by adding the following to
 the .bash\_aliases file.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
-alias clue="path/to/clue/target/release/clue_oxide"
+alias clue_oxide="path/to/clue/target/release/clue_oxide"
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -230,14 +230,14 @@ alias clue="path/to/clue/target/release/clue_oxide"
 To see the basic usage for CluE, run the following.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
-clue --help
+clue_oxide --help
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The output is shown below.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
 Usage:
-    clue input [-o "options"]
+    clue_oxide input [-o "options"]
 
 Options:
     -h, --help       Prints help information.
@@ -252,7 +252,7 @@ To run CluE from the command line, an input file is needed.
 The input file format is .txt file, and is supplied to CluE as shown below. 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
-clue input.txt
+clue_oxide input.txt
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 %-------------------------------------------------------------------------------
@@ -806,7 +806,7 @@ The following table shows the available properties.
  \textbf{field} & \textbf{values} & \textbf{description} \\ 
  %
  \hline 
- extracell\_isotope\_distribution & \{1H: 0.9, 2H: 0.1\} & 
+ extracell\_isotope\_abundances & \{1H: 0.9, 2H: 0.1\} & 
  possible isotopes and probabilities for periodic copies of the primary cell\\
  %
  \hline 
@@ -814,7 +814,7 @@ The following table shows the available properties.
  if it is not in the primary cell\\
  %
  \hline 
- isotope\_distribution & \{1H: 0.9, 2H: 0.1\} & possible isotopes and
+ isotope\_abundances & \{1H: 0.9, 2H: 0.1\} & possible isotopes and
  probabilities\\
  %
  \hline 

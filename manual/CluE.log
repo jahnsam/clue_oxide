@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  24 SEP 2023 15:42
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  24 OCT 2023 16:29
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1020,8 +1020,8 @@ Package biblatex Info: ... file 'CluE.bbl' found.
 Package biblatex Info: Reference section=0 on input line 9.
 Package biblatex Info: Reference segment=0 on input line 9.
 \c@lstlisting=\count458
-File: figs/fig_CluE_logo.png Graphic file (type bmp)
-<figs/fig_CluE_logo.png>
+File: figs/fig_CluE_Oxide_logo.png Graphic file (type bmp)
+<figs/fig_CluE_Oxide_logo.png>
 LaTeX Font Info:    Trying to load font information for U+msa on input line 40.
 
  (/usr/local/texlive/2023/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -1040,13 +1040,13 @@ LaTeX Font Info:    Trying to load font information for U+rsfs on input line 40
 File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 ) [1
 
-]
+] [2]
 (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2023/02/27 1.9 listings language file
 )
 (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2023/02/27 1.9 listings language file
-) [2]
+)
 (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2023/02/27 1.9 listings language file
 )
@@ -1056,9 +1056,7 @@ File: lstmisc.sty 2023/02/27 1.9 (Carsten Heinz)
 File: figs/fig_CluE-sims_n-CCE.png Graphic file (type bmp)
 <figs/fig_CluE-sims_n-CCE.png>
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [4]
+[4]
 Overfull \hbox (1.30087pt too wide) in paragraph at lines 427--428
 []|\TU/lmr/m/n/10 spin_coor| 
  []
@@ -1078,10 +1076,7 @@ Overfull \hbox (9.69336pt too wide) in paragraph at lines 399--526
  [] 
  []
 
-
-Underfull \vbox (badness 6526) has occurred while \output is active []
-
- [5]
+[5]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [6]
@@ -1135,7 +1130,7 @@ Package logreq Info: Writing requests to 'CluE.run.xml'.
  ) 
 Here is how much of TeX's memory you used:
  22015 strings out of 476701
- 446035 string characters out of 5804296
+ 446089 string characters out of 5804296
  2419416 words of memory out of 5000000
  41864 multiletter control sequences out of 15000+600000
  519139 words of font info for 73 fonts, out of 8000000 for 9000

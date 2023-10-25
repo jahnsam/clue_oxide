@@ -1,7 +1,7 @@
 pub fn print_help(){
   println!("\
 Usage:\n    \
-    clue input [-o \"options\"]\n\
+    clue_oxide input [-o \"options\"]\n\
 \n\
 Options:\n    \
     -h, --help       Prints help information.\n    \
