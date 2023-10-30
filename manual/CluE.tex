@@ -15,10 +15,10 @@
   \label{fig:clue_logo}
 \end{figure}
 %
-CluE (Cluster Evolution) is a open source program for simulating electron spin 
-decoherence ab initio using the Cluster Correlation Expansion 
+CluE Oxide (Cluster Evolution Oxide) is a open source program for simulating 
+electron spin decoherence ab initio using the Cluster Correlation Expansion 
 \cite{2008_Yang_Liu,2009_Yang_Liu}.  
-CluE takes as inputs a pbd file and an options file.
+CluE Oxide takes as inputs a pbd file and an options file.
 The pdb file specifies the coordinates and elements types of all the atoms, 
 and the options file specifies all the additional information needed, 
 such as the pulse sequence the applied magnetic field, the central spin
@@ -26,7 +26,7 @@ coordinates and so on.
 %===============================================================================
 \section{Overview}
 %===============================================================================
-The first steps CluE takes is to read the options and PDB files to construct
+The first steps CluE Oxide takes is to read the options and PDB files to construct
 the spin system.  This includes applying periodic boundary conditions, and
 dropping non-magnetic nuclei as well as those beyond the system radius 
 specified in the options.  Isotope substitutions can also be applied at this
@@ -38,26 +38,26 @@ simulation would be too expensive.  The main time cost advantage of dropping
 the deuterons comes in when numerically integrating the Sch{\"o}dinger 
 equation, but for large systems a Bernoulli trial at each atom is also
 expensive.  Algorithmically, time is saved by avoiding $N$ Bernoulli trials
-with a $p$ success rate.  In theses cases CluE samples a random
+with a $p$ success rate.  In theses cases CluE Oxide samples a random
 number from the binomial distribution parameterized by $N$ and $p$, and then 
 selects that many random hydrons to initialize as protons, ignoring the rest.     
 
-Once the system is set up, CluE construct the tensors for the active spins,
-based on the user input.  CluE will default to applying the point-dipole 
+Once the system is set up, CluE Oxide construct the tensors for the active spins,
+based on the user input.  CluE Oxide will default to applying the point-dipole 
 approximation for spin-spin coupling, but the hyperfine tensors can be 
 explicitly set to custom values.  
 Nuclear electric quadrupole coupling tensors can also be set, but default to 
 zero.  Tensor specification requires the eigenvalues, two eigenvectors,
 and which atoms to apply the tensor.
 
-CluE has a filter algorithm that allows atoms to be specified by a combination 
+CluE Oxide has a filter algorithm that allows atoms to be specified by a combination 
 of properties found in the PDB file, such as element, serial number, or residue,
 among others.  The filters can either require or forbid qualifiers.
   
-If unspecified CluE will assume that the applied magnetic field points
+If unspecified CluE Oxide will assume that the applied magnetic field points
 along the $z$-direction of the PDB frame, different orientations can be
-specified.  Additionally, CluE can compute the orientation averaged signal.
-CluE can average over custom orientation with custom weights, 
+specified.  Additionally, CluE Oxide can compute the orientation averaged signal.
+CluE Oxide can average over custom orientation with custom weights, 
 or it use random orientations (inefficient but simple) 
 as well as orientations from a Lebedev grid, which integrates exactly 
 the orientation dependence of the lowest order terms in a 
@@ -75,13 +75,13 @@ an orientation independent distance cutoff,
 an orientation dependent dipole-dipole coupling, $\Delta A$, and others
 based on the analytic solution of a simplified three spin system.
 
-For large simulations, the primary time cost in CluE is from 
+For large simulations, the primary time cost in CluE Oxide is often from 
 diagonalizing and propagating the cluster Hamiltonians.  
 In prototyping, a frequency-space method similar to that of \cite{2009_Stoll}
 was tried, but likely due to the need to perform both 
 a Fourier transform and inverse Fourier transform for each cluster, 
 the time-domain integration of the Schr{\"o}dinger equation is more efficient.
-The method CluE employ is to first diagonalize both
+The method CluE Oxide employ is to first diagonalize both
 electron spin-manifold Hamiltonians separately:
 %
 \begin{equation}
@@ -117,7 +117,7 @@ as the later time propagators can be found via matrix multiplication.
 %
 For some some of the longer time traces, it is helpful to have a small 
 $\delta t$ at early times and a longer $\delta t$ at later times.  
-The way CluE addresses this is allow multiple values of $\delta t$ 
+The way CluE Oxide addresses this is allow multiple values of $\delta t$ 
 accompanied by the number of times each $\delta t$ should be used.  
 This requires that multiple propagators be calculated, 
 but since the eigenvector have already been
@@ -177,17 +177,19 @@ And the inner product between vectors is
 Since there is a bijection between $n$ and $(r,c)$, 
 these expression are equivalent; however, if only the trace is desired and not
 the matrix $AB$ itself, the inner product method requires fewer steps, 
-and is how CluE evaluates $\tr\Big(\hat{\rho} \hat{S}_{+}(t)\Big)$.
+and is how CluE Oxide evaluates $\tr\Big(\hat{\rho} \hat{S}_{+}(t)\Big)$.
 
 After all the cluster signals are calculated the CCE auxiliary signals and 
 products can be constructed.  By the nature of the product, when calculating 
 the $n$-CCE signal, all the $n'$-CCE signals, $n'<n$ are also calculated and 
 saved.
 
-If only a single orientation and isotopologue are requested, then CluE ends 
-at this point.  Different orientations require going back to the orientation
+If only a single orientation and isotopologue are requested, 
+then CluE Oxide ends at this point.  
+Different orientations require going back to the orientation
 generation step, and different isotopologues require rebuilding the system.
-After averaging over all the requested variations, CluE's primary returns are
+After averaging over all the requested variations, 
+CluE Oxide's primary returned data are
 the time domain signal $n$-CCE signal and the time axis.  Depending on the 
 input options other data may be saved, such as the clusters or 
 individual signals from each orientation, the auxiliary signals, 
@@ -215,7 +217,8 @@ cargo build --release
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The compiled binary should be in \textit{target/release/} and ready to use.
-An optional step is to make sure CluE is easy to access from the command line.
+An optional step is to make sure CluE Oxide is easy to access from 
+the command line.
 One way to do this on Linux is make an alias by adding the following to 
 the .bash\_aliases file.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -227,7 +230,7 @@ alias clue_oxide="path/to/clue/target/release/clue_oxide"
 %-------------------------------------------------------------------------------
 \subsection{Running}
 %-------------------------------------------------------------------------------
-To see the basic usage for CluE, run the following.
+To see the basic usage for CluE Oxide, run the following.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
 clue_oxide --help
@@ -248,8 +251,8 @@ Options:
     -W, --warrenty   Prints warrenty information.
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-To run CluE from the command line, an input file is needed.
-The input file format is .txt file, and is supplied to CluE as shown below. 
+To run CluE Oxide from the command line, an input file is needed.
+The input file format is .txt file, and is supplied to CluE Oxide as shown below. 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
 clue_oxide input.txt
@@ -263,7 +266,7 @@ reference.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
 /*
-Example CluE Input File
+Example CluE Oxide Input File
 */
 input_structure_file = "MD_300K_25ns-30ns_center_0001.pdb";
 
@@ -323,8 +326,10 @@ write_orientation_signals = "";
 write_clusters = "";
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The input script is not Turing complete, but is sufficient for starting CluE,
-and as will be discussed later, CluE can run from Turing complete languages
+The input script is not Turing complete, 
+but is sufficient for starting CluE Oxide,
+and as will be discussed later, CluE Oxide 
+can run from Turing complete languages
 like Bash, Python, and Rust.
 The syntax is inspired by C, C++, Rust, MATLAB and Python:
 all normal lines end in semicolons and double slashes indicate that the rest of 
@@ -375,7 +380,7 @@ Note that one filter is used in
 to select the TEMPO nitrogen and other filters are used to specify atoms
 for orientating the coupling tensors.
 Line 59 sets the mode back to \textit{\#[config]}; there is an implied 
-\textit{\#[config]} at the start of every CluE file.
+\textit{\#[config]} at the start of every CluE Oxide file.
 Line 60 and 61 turn off saving orientation dependent signals an clusters,
 respectively.
 %-------------------------------------------------------------------------------
@@ -391,7 +396,7 @@ when no mode is declared; however, the line
 #[config]
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-will set CluE to read in \textit{\#[config]} mode and is needed to exit
+will set CluE Oxide to read in \textit{\#[config]} mode and is needed to exit
 other modes back to \textit{\#[config]}.
 The available fields are explained below.  
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -525,7 +530,7 @@ The available fields are explained below.
 \end{tabular}
 \end{center} 
 \subsubsection{ClusterMethod} % ---------------------------------------------
-There are two cluster evolutions schemes available in CluE, 
+There are two cluster evolutions schemes available in CluE Oxide, 
 \textit{cce}, and \textit{r2cce}.
 The \textit{cce} method implements ensemble CCE
 \cite{2008_Yang_Liu,2009_Yang_Liu} and has no explicit limit on the maximum
@@ -545,13 +550,13 @@ where $\op{H}_{\pm}$ are the cluster Hamiltonians for each of the detected spin
 manifolds.  $Z$ a normalization constant to ensures $\tr(\op{\rho}) = 1$;
 $\kB$ is the Boltzmann constant and $T$ is the bath temperature.
 To set the temperature to 20 K for example, include the following in the
-CluE input file.  
+CluE Oxide input file.  
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
 temperature = 20; // K.
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This will switch CluE from using the identity matrix to the thermal 
+This will switch CluE Oxide from using the identity matrix to the thermal 
 density matrix. 
 
 \subsubsection{DetectedSpinCoordinates} % -------------------------------------
@@ -668,7 +673,7 @@ orientation_grid = random(100);
 
 \subsubsection{TimeAxis} % --------------------------------------------
 The time-axis is specified in two part, the number of timepoints, and 
-the time increments.  For example, the CluE input file could include the
+the time increments.  For example, the CluE Oxide input file could include the
 following.  
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
@@ -676,7 +681,7 @@ number_timepoints = [101,90];
 time_increments = [5,50]*1e-9; // seconds.
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CluE will read this and use $\Delta t = 5$ ns for the first 101 timepoints,
+CluE Oxide will read this and use $\Delta t = 5$ ns for the first 101 timepoints,
 and then $\Delta t = 50$ ns for the remaining 90 timepoints.  
 There will be 191 timepoints total.  Note that these are the $\Delta t$s for 
 the smallest propagator unit, so a Carr-Purcell pulse sequence with $n_\uppi$
@@ -698,7 +703,7 @@ detected_g_z = [0,0,1];
 Note that exactly two axes should be specified: 
 the third axis is found with the appropriate cross product.  
 The specified axes do not need to be normalized or perfectly orthogonal, 
-since CluE will orthonormalize the vectors itself.  
+since CluE Oxide will orthonormalize the vectors itself.  
 The reason for this is allow for directions to be specified by properties of
 the system.    
 The following lines say to use the difference between the atoms in the
@@ -723,7 +728,8 @@ The options file can have zero, one, or multiple
 \textit{\#[filter(label = my\_label)]} sections.  
 Each \textit{\#[filter(label = my\_label)]} section must have a unique label,
 by replacing \textit{my\_label} with the desired label. 
-Under the \textit{\#[filter(label = my\_label)]} header, the filter conditions
+Under the \textit{\#[filter(label = my\_label)]} header, 
+the filter conditions that can have multiple matches 
 are listed as
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
@@ -736,7 +742,18 @@ or
 property not in [forbidden_value_1, forbidden_value_n, ...];
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CluE will find all the spins that fit all specified criteria.
+The distance filter only takes maximum and minimum values and is specified 
+as  
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\begin{lstlisting}[frame=single,numbers=left,language=c]
+distance <= r_max; // angstroms
+distance >= r_min; // angstroms
+\end{lstlisting}
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+where \textit{r\_max} and \textit{r\_min} are floating point numbers
+specifing the maximum and minimum distances in \AA~from the detected spin
+that the particles in the filter can be.
+CluE Oxide will find all the spins that fit all specified criteria.
 Note that depending upon how the criteria are defined it is possible that
 some spins will fall under multiple filters.  
 To resolve this ambiguity, each spin is placed under the
@@ -767,6 +784,11 @@ The following table shows the possible filter criteria.
  \hline 
  cell\_ids & [int] & periodic boundary duplicate id where the particle resides,
  with the detected spin residing in cell 0 
+ \\
+ %
+ \hline 
+ distance & float & maximum (<=) or minimum (>=) allowed distance in 
+ \AA~from the detected spin
  \\
  %
  \hline 
@@ -943,9 +965,9 @@ The table assumes that the user defined
 %===============================================================================
 The previous interface is useful for an isolated simulation, 
 but to run multiple simulations that are nearly the same except for a few
-parameters being investigated, running CluE as a scrip is helpful.  
+parameters being investigated, running CluE Oxide as a scrip is helpful.  
 To this end there are several methods available.
-The first is via a shell script: CluE allows additional option to be appended
+The first is via a shell script: CluE Oxide allows additional option to be appended
 to a base options file with the ``-O'' flag.  
 Here is an example  Bash script to run several different input structures
 with the same setting.
@@ -967,7 +989,7 @@ for file in "${files[@]}"; do
 done
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note that CluE interprets this the same as just appending 
+Note that CluE Oxide interprets this the same as just appending 
 the options to the end of the options file,
 the command line options must be be compatible with the options file.
 This means that the option should not already be set in the options file,
@@ -978,11 +1000,11 @@ not end in another mode like ``\#[filter(label=my\_label)]''.
 %===============================================================================
 \section{pyCluE}
 %===============================================================================
-Additionally, CluE has a Python interface.
+Additionally, CluE Oxide has a Python interface.
 %-------------------------------------------------------------------------------
 \subsection{Installing}
 %-------------------------------------------------------------------------------
-Within the CluE source directory, navigate to the pyclue directory.
+Within the CluE Oxide source directory, navigate to the pyclue directory.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
 cd pyclue
@@ -998,9 +1020,9 @@ pip install maturin
 maturin build
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-One potential issue is that when maturin tries to comile CluE, 
+One potential issue is that when maturin tries to compile CluE Oxide, 
 it can fail to see the operating system unique flags, and will try to use them
-all.  To account for this, open CluE's Cargo.toml file and comment out 
+all.  To account for this, open CluE Oxide's Cargo.toml file and comment out 
 everything under the unneeded operating system section.  
 For example, to compile on Linux add comments as shown below.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1025,7 +1047,7 @@ pip install <pyclue.whl>
 %-------------------------------------------------------------------------------
 \subsection{Running}
 %-------------------------------------------------------------------------------
-Running CluE via Python is done through the \textit{CluEOptions} class.
+Running CluE Oxide via Python is done through the \textit{CluEOptions} class.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=python]
 class clue_oxide.CluEOptions(config = {},filter_list =[], structure_properties_list = [], spin_properties_list = [])
@@ -1083,8 +1105,8 @@ Note that the additional string, \textit{isotope}, is required.
 
 Below in an example where an MD frame of TEMPO solvated in water is run with
 different tunnel splittings.  
-Note that the CluE specific syntax is similar is similar to the standard CluE 
-input files. 
+Note that the pyCluE specific syntax is similar is similar to the standard 
+CluE Oxide input files. 
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=python]
 import clue_oxide as clue
@@ -1204,7 +1226,7 @@ if __name__ == "__main__":
   \label{fig:pyclue_out}
 \end{figure}
 %
-Here the input is modified before sending it to CluE, 
+Here the input is modified before sending it to CluE Oxide, 
 so settings can be overwritten in the script.
 Figure \ref{fig:pyclue_out} shows the output.  
 Note that to save on computation time, these simulation are only at the 3-CCE 
@@ -1212,9 +1234,9 @@ level, and only use one frame at a single orientation.
 %===============================================================================
 \section{Rust}
 %===============================================================================
-Finally, since CluE is written in Rust, it is fairly straight forward to 
-integrate CluE into a Rust program. 
-Here is a script to run CluE over different proton concentrations.
+Finally, since CluE Oxide is written in Rust, it is fairly straight forward to 
+integrate CluE Oxide into a Rust program. 
+Here is a script to run CluE Oxide over different proton concentrations.
 The output is shown in figure \ref{fig:rust_out}.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
@@ -1344,11 +1366,11 @@ fn main() {
   \label{fig:rust_out}
 \end{figure}
 %
-The primary way to use CluE with Rust is to create an instance of 
+The primary way to use CluE Oxide with Rust is to create an instance of 
 \textit{Config} and feed it to the run function.
 The easiest way to initialize an instance of \textit{Config} is to use 
-\textit{Config::from(input: \&str)}; this uses the same syntax as the CluE
-input files. 
+\textit{Config::from(input: \&str)}; this uses the same syntax as the 
+CluE Oxide input files. 
 Note that because the each new \textit{frac\_config} is modified after it
 has been constructed, the safety check to ensure values are not set multiple 
 times is passed and properties can be modified directly.
@@ -1356,7 +1378,7 @@ Every field of \textit{Config} has a data type that is either an
 \textit{Option<T>} or a \textit{Vec::<T>}, for generic type \textit{T}; 
 values of \textit{None} or an empty vector are considered unset.
 Which entries are required depends on the details of the simulation.
-CluE will return an error explaining what is missing if it needs an option that
+CluE Oxide will return an error explaining what is missing if it needs an option that
 is unset.  Several fields have default values, which can be set with the
 set\_defaults method.  
 Note that set\_defaults will not overwrite user set values.  

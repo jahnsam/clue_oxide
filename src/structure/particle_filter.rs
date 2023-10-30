@@ -44,11 +44,8 @@ pub struct ParticleFilter{
   pub bonded_indices: Vec::<usize>,
   pub not_bonded_indices: Vec::<usize>,
 
-  //within_distance_of: Vec::<usize>,
-  //not_within_distance_of: Vec::<usize>,
-
-  //distance_away_from: Vec::<usize>,
-  //not_distance_away_from: Vec::<usize>,
+  pub within_distance: Option<f64>,
+  pub not_within_distance: Option<f64>,
 
   pub bonded_elements: Vec::<Element>, 
   pub not_bonded_elements: Vec::<Element>, 
@@ -195,6 +192,21 @@ impl ParticleFilter{
         } 
       }
 
+      // Within Distance
+      if let Some(r_max) = self.within_distance{
+        let r = particle.coordinates.norm();
+        if r > r_max{
+          return None;
+        }
+      }
+
+      // Not Within Distance
+      if let Some(r_min) = self.not_within_distance{
+        let r = particle.coordinates.norm();
+        if r < r_min{
+          return None;
+        }
+      }
       
 
       Some(idx)
@@ -605,5 +617,14 @@ mod tests{
     assert_eq!(indices.len(),23);
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26,
     30,31,35,39,40]);
+
+
+    let mut filter = ParticleFilter::new();
+    filter.elements = vec![Element::Hydrogen,Element::Nitrogen];
+    filter.within_distance = Some(4e-10); 
+    filter.not_within_distance = Some(1e-10); 
+    let indices = filter.filter(&structure);
+    assert_eq!(indices.len(),16);
+    assert_eq!(indices,vec![2,3,4,6,7,8,10,11,14,16,20,21,22,24,25,26]);
   }
 }

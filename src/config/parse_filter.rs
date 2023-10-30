@@ -5,6 +5,7 @@ use crate::config::token_stream;
 use crate::config::particle_config::ParticleConfig;
 use crate::config::token_expressions::*;
 use crate::config::to_i32_token;
+use crate::physical_constants::ANGSTROM;
 use crate::structure::particle_filter::ParticleFilter;
 
 impl Config{
@@ -45,8 +46,10 @@ impl Config{
 
     // Get relational symbol.
     let include: bool = match expression.relationship{
-      Some(Token::In) | Some(Token::Equals) => true,
-      Some(Token::NotIn) | Some(Token::NotEqual) => false,
+      Some(Token::In) | Some(Token::Equals) 
+        | Some(Token::LessThanEqualTo) => true,
+      Some(Token::NotIn) | Some(Token::NotEqual) 
+        | Some(Token::GreaterThanEqualTo) => false,
       _ => return Err(CluEError::NoRelationalOperators(expression.line_number)),
     };
    
@@ -103,6 +106,20 @@ impl Config{
           }
         }else{
           return Err(CluEError::NoRHS(expression.line_number));
+        }
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::Distance => {
+        if include{
+          set_to_some_f64(&mut filter.within_distance, &expression)?;
+          if let Some(r) = &mut filter.within_distance{
+            *r *= ANGSTROM;
+          }else{ return Err(CluEError::FilterNoMaxDistance(label.to_string()));}
+        }else{
+          set_to_some_f64(&mut filter.not_within_distance, &expression)?;
+          if let Some(r) = &mut filter.not_within_distance{
+            *r *= ANGSTROM;
+          }else{ return Err(CluEError::FilterNoMinDistance(label.to_string()));}
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -215,7 +232,9 @@ mod tests{
         residue_sequence_numbers in [1501]; residue_sequence_numbers != [9];
         elements in [H,O]; elements not in [N];
         bonded_elements != [C]; bonded_elements in [N];
-        residues in SOL; residues not in TEM")
+        residues in SOL; residues not in TEM;
+        distance <= 4;
+        distance >= 1;")
       .unwrap();
 
     let mut config = Config::new();
@@ -241,6 +260,8 @@ mod tests{
     assert_eq!(filter.not_bonded_elements,vec![Element::Carbon]);
     assert_eq!(filter.residues,vec!["SOL".to_string()]);
     assert_eq!(filter.not_residues,vec!["TEM".to_string()]);
+    assert_eq!(filter.within_distance,Some(4e-10));
+    assert_eq!(filter.not_within_distance,Some(1e-10));
 
 
   }

@@ -59,6 +59,8 @@ pub enum CluEError{
   ExpectedNonNegativeIntRHS(usize),
   ExpectedVecOfNFloatsRHS(usize,usize),
   ExpectedNumber(usize),
+  FilterNoMaxDistance(String),
+  FilterNoMinDistance(String),
   IncorrectFormattingIsotopeAbundances(usize),
   IncorrectNumberOfAxes(usize,usize),
   InorrectNumberOfCellOffsets(usize,usize),
@@ -341,6 +343,14 @@ followed by a column for the weights", filename),
       CluEError::ExpectedVecOfNFloatsRHS(line_number,n) => write!(f,
           "line {}, expected a vector of {} floats on the right hand side",
           line_number,n),
+
+      CluEError::FilterNoMaxDistance(label) => write!(f,
+          "\"#[filter(label = {})]\", has no max distance.",
+          label),
+
+      CluEError::FilterNoMinDistance(label) => write!(f,
+          "\"#[filter(label = {})]\", has no min distance.",
+          label),
 
       CluEError::IncorrectFormattingIsotopeAbundances(line_number) 
         => write!(f,"line {}, isotope distributions are expected as

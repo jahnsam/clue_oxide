@@ -35,6 +35,7 @@ pub enum Token{
  DetectedSpinMultiplicity,
  DetectedSpinTransition,
  Diff,
+ Distance,
  DoubleQuote,
  ElectricQuadrupoleCoupling,
  ElectricQuadrupoleX,
@@ -165,6 +166,7 @@ impl fmt::Display for Token{
       Token::DetectedSpinPosition => write!(f,"detected_spin_position"),
       Token::DetectedSpinTransition => write!(f,"detected_spin_transition"),
       Token::Diff => write!(f,"diff"),
+      Token::Distance => write!(f,"distance"),
       Token::DoubleQuote => write!(f,"\""),
       Token::ElectricQuadrupoleCoupling  
         => write!(f,"electric_quadrupole_coupling"),
@@ -306,6 +308,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "detected_spin_position" => Some(Token::DetectedSpinPosition),
     "detected_spin_transition" => Some(Token::DetectedSpinTransition),
     "diff" => Some(Token::Diff),
+    "distance" => Some(Token::Distance),
     "\"" => Some(Token::DoubleQuote),
     "electric_quadrupole_coupling" => Some(Token::ElectricQuadrupoleCoupling),
     "electric_quadrupole_x" => Some(Token::ElectricQuadrupoleX),
@@ -996,6 +999,7 @@ mod tests{
     assert_eq!(identify_token("detected_spin_transition"),
         Some(Token::DetectedSpinTransition));
     assert_eq!(identify_token("diff"),Some( Token::Diff));
+    assert_eq!(identify_token("distance"),Some( Token::Distance));
     assert_eq!(identify_token("\""),Some( Token::DoubleQuote));
     assert_eq!(identify_token("electric_quadrupole_coupling"),
         Some(Token::ElectricQuadrupoleCoupling));
