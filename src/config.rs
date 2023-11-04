@@ -330,6 +330,7 @@ impl Config{
 
 #[derive(Debug,Clone,PartialEq)]
 pub enum DensityMatrixMethod{
+  ApproxThermal,
   Identity,
   Thermal,
 }

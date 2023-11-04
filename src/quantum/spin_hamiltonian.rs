@@ -109,11 +109,7 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
   let mut density_matrix: CxMat;
 
   match density_matrix_method{
-    DensityMatrixMethod::Identity => {
-      let dim = hamiltonian.beta.dim().0;
-      density_matrix = CxMat::eye(dim);
-    },
-    DensityMatrixMethod::Thermal => {
+    DensityMatrixMethod::ApproxThermal => {
       let Some(temperature) = config.temperature else{
         return Err(CluEError::NoTemperature);
       };
@@ -126,9 +122,27 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
 
       density_matrix = rhos.remove(0);
     },
+    DensityMatrixMethod::Identity => {
+      let dim = hamiltonian.beta.dim().0;
+      density_matrix = CxMat::eye(dim);
+    },
+    DensityMatrixMethod::Thermal => {
+      let Some(temperature) = config.temperature else{
+        return Err(CluEError::NoTemperature);
+      };
+      let beta = I/(temperature*BOLTZMANN/HBAR);
+      
+      let rho_alpha = get_propagators_complex_time(&hamiltonian.alpha,
+          &vec![-beta])?;
+
+      let rho_beta = get_propagators_complex_time(&hamiltonian.beta,
+          &vec![-beta])?;
+
+      density_matrix = &rho_alpha[0] - &rho_beta[0];
+    },
   }
 
-  let Ok(z) = density_matrix.trace()else{
+  let Ok(z) = density_matrix.trace() else{
     return Err(CluEError::CannotTakeTrace(format!("{}",density_matrix)));
   };
   if z.norm() < 1e-12{
@@ -793,7 +807,7 @@ mod tests {
 
     assert!(approx_eq(&density_matrix, &expected, 1e-12));
 
-    config.density_matrix = Some(DensityMatrixMethod::Thermal);
+    config.density_matrix = Some(DensityMatrixMethod::ApproxThermal);
     config.temperature = Some(20.0);
     
     let density_matrix = get_density_matrix(&spin_hamiltonian,&config).unwrap();

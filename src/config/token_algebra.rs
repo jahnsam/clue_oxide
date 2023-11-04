@@ -714,6 +714,15 @@ mod tests{
       panic!("Expected a float.");
     };
     assert!( (result-80e-10).abs()<1e-12 );    
+
+    let tokens = vec![Token::UserInputValue("80e".to_string()), Token::Minus, 
+        Token::UserInputValue("02".to_string())  ];
+
+    let Token::Float(result) = to_f64_token(tokens,0).unwrap() else{
+      panic!("Expected a float.");
+    };
+    assert!( (result-80e-2).abs()<1e-12 );    
+
   }
   //----------------------------------------------------------------------------
   #[test]
