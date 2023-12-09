@@ -2,7 +2,8 @@
 use crate::clue_errors::CluEError;
 use crate::config::Config;
 use crate::config::particle_config::TensorSpecifier;
-use crate::physical_constants::{HBAR, JOULES_TO_HERTZ,MU0,PI};
+use crate::physical_constants::{HBAR, Isotope, JOULES_TO_HERTZ,
+  MU0,MUB,MUN,PI};
 use crate::space_3d::{SymmetricTensor3D,UnitSpherePoint,Vector3D};
 use crate::structure::{DetectedSpin,Structure};
 use crate::structure::particle::Particle;
@@ -123,9 +124,6 @@ impl HamiltonianTensors{
     spin1_tensors.set(0, det_zeeman);
 
     let eye = SymmetricTensor3D::eye();
-    let zz = SymmetricTensor3D::from([0.0,0.0,0.0,
-                                          0.0,0.0,
-                                              1.0]);
 
     let mut tensor_indices = Vec::<Option<usize>>::with_capacity(
         structure.bath_particles.len());
@@ -147,7 +145,10 @@ impl HamiltonianTensors{
 
 
       // nuclear Zeeman
-      let bath_zeeman = construct_zeeman_tensor(&(gamma0*&zz),magnetic_field);
+      let bath_zeeman = construct_bath_zeeman_tensor(particle_idx0,
+          magnetic_field, structure, config)?;
+      //let bath_zeeman = construct_zeeman_tensor(&(gamma0*&zz),magnetic_field);
+
       if bath_zeeman.any_nan(){
         return Err(CluEError::NANTensorBathZeeman(
               particle_idx0,particle0.isotope.to_string()));
@@ -517,6 +518,39 @@ pub fn construct_zeeman_tensor(
   (-0.5/PI)*&(magnetic_field * gyromagnetic_ratio)
 }
 //------------------------------------------------------------------------------
+fn construct_bath_zeeman_tensor(particle_index: usize, magnetic_field: &Vector3D,
+    structure: &Structure, config: &Config)
+  -> Result<Vector3D, CluEError>
+{
+  let particle = &structure.bath_particles[particle_index];
+
+  let gamma_matrix = if let Some(tensor_specifier) = structure
+    .extract_g_matrix_specifier(particle_index,config)
+  {
+    let g_matrix = construct_symmetric_tensor_from_tensor_specifier(
+        tensor_specifier, Some(particle_index),structure, config)?;
+     
+    let mu: f64 = if particle.isotope == Isotope::Electron{
+      -MUB
+    }else{
+      MUN
+    };
+
+    g_matrix.scale(mu/HBAR)
+
+  }else{
+    let gamma0 = particle.isotope.gyromagnetic_ratio();
+
+    let zz = SymmetricTensor3D::from([0.0,0.0,0.0,
+                                          0.0,0.0,
+                                              1.0]);
+    
+    gamma0*&zz
+  };
+
+  Ok(construct_zeeman_tensor(&gamma_matrix,magnetic_field))
+}
+//------------------------------------------------------------------------------
 fn construct_electric_quadrupole_tensor(
     particle0: &Particle,particle_index: usize,
     structure: &Structure, config: &Config)
@@ -774,6 +808,12 @@ mod tests{
           hyperfine_x = vector([-1.15e-10, -4.70e-11,  7.10e-11]);
           hyperfine_y = vector([-1.09,  2.23, -0.49]*1e-10);
 
+          // unrealistic, but useful for testing
+          g_matrix = [1, 1, 1];
+          g_x = vector([-1.15e-10, -4.70e-11,  7.10e-11]);
+          g_y = vector([-1.09,  2.23, -0.49]*1e-10);
+
+
         ").unwrap();
 
     let mut config = Config::new();
@@ -793,6 +833,16 @@ mod tests{
     assert_eq!(tensors.spin_multiplicities.len(),20);
 
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Test nitrogen Zeeman
+
+    let tensor = tensors.spin1_tensors.get(19).unwrap().clone();
+
+    let ref_value = -3693247.037734574/0.403761;
+    println!("DB: {:?}",tensor);
+    assert!( (tensor.z() - ref_value ).abs() < 1e-12);
+    assert!( (tensor.x()/ref_value).abs() < 1e-12);
+    assert!( (tensor.y()/ref_value).abs() < 1e-12);
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Test nitrogen electric quadrupole coupling.
     let tensor = tensors.spin2_tensors.get(19,19).unwrap().clone();
@@ -989,7 +1039,7 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_construct_zeeman_tensor() {
-    let gmr = ELECTRON_G*MUB/HBAR;
+    let gmr = -ELECTRON_G*MUB/HBAR;
     assert!((gmr+1.76085963023e11).abs() < 0.00000000053e11);
     let gyromagnetic_ratio = SymmetricTensor3D::from([gmr,0.0, 0.0,
                                                           gmr, 0.0,

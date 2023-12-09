@@ -463,7 +463,7 @@ The available fields are explained below.
  %
  \hline 
  neighbor\_cutoff\_dipole\_dipole & float & 
- minimum $|-b_{xx}-b_{yy}|$ in Hz 
+ minimum $|b_{zz}-2J|$ in Hz 
  for an edge to be placed between two spins\\
  %
  \hline 
@@ -500,7 +500,7 @@ The available fields are explained below.
  %
  \hline 
  time\_increments  & [float] & 
- list of $\Delta t$s in s used for propagation\\ 
+ list of $\Delta \tau$s in s used for propagation\\ 
  %
  \hline 
  write\_auxiliary\_signals & string & 
@@ -882,15 +882,27 @@ The following table shows the available properties.
  %
  \hline 
  electric\_quadrupole\_x & 
- vector & $x$-direction of the electric\_quadrupole tensor\\
+ vector & $x$-direction of the electric quadrupole tensor\\
  %
  \hline 
  electric\_quadrupole\_y & 
- vector & $y$-direction of the electric\_quadrupole tensor\\
+ vector & $y$-direction of the electric quadrupole tensor\\
  %
  \hline 
  electric\_quadrupole\_z & 
- vector & $z$-direction of the electric\_quadrupole tensor\\
+ vector & $z$-direction of the electric quadrupole tensor\\
+ %
+ \hline 
+ g\_matrix & [float; 3] & eigenvalues in of the g-matrix\\
+ %
+ \hline 
+ g\_x & vector & $x$-direction of the g-matrix\\
+ %
+ \hline 
+ g\_y & vector & $y$-direction of the g-matrix\\
+ %
+ \hline 
+ g\_z & vector & $z$-direction of the g-matrix\\
  %
  \hline 
  hyperfine\_coupling & [float; 3] & eigenvalues in Hz of the hyperfine tensor\\

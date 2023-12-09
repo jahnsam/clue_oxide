@@ -331,6 +331,19 @@ impl Structure{
     isotope_properties.electric_quadrupole_coupling.as_ref()
   }
   //----------------------------------------------------------------------------
+  pub fn extract_g_matrix_specifier<'a>(&self, particle_index: usize,
+      config: &'a Config)
+    -> Option<&'a TensorSpecifier>
+  {
+    let Some(isotope_properties) = self.extract_isotope_properties(
+        particle_index,config) 
+    else{
+      return None;
+    };
+
+    isotope_properties.g_matrix.as_ref()
+  }
+  //----------------------------------------------------------------------------
   pub fn extract_hyperfine_specifier<'a>(&self, particle_index: usize,
       config: &'a Config)
     -> Option<&'a TensorSpecifier>

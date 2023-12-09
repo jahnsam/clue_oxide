@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  29 OCT 2023 15:32
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  8 DEC 2023 13:58
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1101,15 +1101,11 @@ Overfull \hbox (9.69336pt too wide) in paragraph at lines 826--844
  []
 
 [10]
-Overfull \hbox (9.69336pt too wide) in paragraph at lines 871--913
+Overfull \hbox (9.69336pt too wide) in paragraph at lines 871--925
  [] 
  []
 
-
-Underfull \vbox (badness 2285) has occurred while \output is active []
-
- [11]
-[12] (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
+[11] [12] (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2023/02/27 1.9 listings language file
 )
 [13]
@@ -1132,9 +1128,6 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 [18] [19] [20
 
 ] [21] (./CluE.aux)
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
 Package logreq Info: Writing requests to 'CluE.run.xml'.
 \openout1 = `CluE.run.xml'.
 

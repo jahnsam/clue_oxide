@@ -1,6 +1,3 @@
-//use strum_macros::EnumIter;
-//extern crate matrix_oxide;
-//use matrix_oxide as mox;
 use num_complex::Complex;
 use crate::clue_errors::CluEError;
 
@@ -8,11 +5,6 @@ use crate::clue_errors::CluEError;
 pub const I: Complex<f64> = Complex::<f64>{re: 0.0, im: 1.0};
 pub const ONE: Complex<f64> = Complex::<f64>{re: 1.0, im: 0.0};
 pub const ZERO: Complex<f64> = Complex::<f64>{re: 0.0, im: 0.0};
-//pub const I: mox::Z64 = mox::I;
-//pub const ONE: mox::Z64 = mox::Z64{re: 1.0, im: 0.0};
-
-// 2021: https://introcs.cs.princeton.edu/java/data/pi-10million.txt 
-//pub const PI: f64 = 3.141592653589793;
 pub const PI: f64 = std::f64::consts::PI;
 
 // Units
@@ -42,17 +34,17 @@ pub const MUB:f64 = 9.2740100783e-24 * JOULE/TESLA;
 // 2022 https://www.physics.nist.gov/cgi-bin/cuu/Value?mun
 pub const MUN: f64 = 5.0507837461e-27 * JOULE/TESLA;
 
-//2022 https://www.physics.nist.gov/cgi-bin/cuu/Value?mu0
+// 2022 https://www.physics.nist.gov/cgi-bin/cuu/Value?mu0
 pub const MU0: f64 = 1.25663706212e-6 * NEWTON/AMPERE/AMPERE;
 
-//2022 https://physics.nist.gov/cgi-bin/cuu/Value?k
+// 2022 https://physics.nist.gov/cgi-bin/cuu/Value?k
 pub const BOLTZMANN: f64 = 1.380649e-23 * JOULE/KELVIN;
 
 // 2022 https://physics.nist.gov/cgi-bin/cuu/Value?na
 pub const AVOGADRO: f64 = 6.02214076e23;
 
 // 2022 https://www.physics.nist.gov/cgi-bin/cuu/Value?gem 
-pub const ELECTRON_G: f64 = -2.00231930436256;
+pub const ELECTRON_G: f64 = 2.00231930436256;
 
 // 2022 https://physics.nist.gov/cgi-bin/cuu/Value?e
 pub const ELEMENTARY_CHARGE: f64 = 1.602176634e-19 * COULOMB;
@@ -684,8 +676,7 @@ impl Isotope{
   pub fn g_value(&self) -> f64{
 
     match self{
-      // https://www.physics.nist.gov/cgi-bin/cuu/Value?gem
-      Isotope::Electron => -2.00231930436256, 
+      Isotope::Electron => ELECTRON_G, 
       //Isotope::Hydrogen1 => 5.5869,
       // https://physics.nist.gov/cgi-bin/cuu/Value?gp
       Isotope::Hydrogen1 => 5.5856946893,
@@ -854,7 +845,7 @@ impl Isotope{
   pub fn gyromagnetic_ratio(&self) -> f64{
 
     let mu: f64 = if *self == Isotope::Electron{
-      MUB
+      -MUB
     }else{
       MUN
     };

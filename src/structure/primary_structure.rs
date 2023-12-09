@@ -98,7 +98,7 @@ impl Structure{
         g_matrix_specifier, None, self,config)?;
     
     let mu: f64 = if isotope == Isotope::Electron{
-      MUB
+      -MUB
     } else {
       MUN
     };

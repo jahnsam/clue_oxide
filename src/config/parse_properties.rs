@@ -94,6 +94,58 @@ fn parse_isotope_properties(properties: &mut ParticleProperties,
       set_to_some_bool(&mut isotope_properties.active,expression)?;
     },
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Token::GMatrix | Token::GX | Token::GY | Token::GZ => {
+      if isotope_properties.g_matrix.is_none() {
+        isotope_properties.g_matrix = Some(TensorSpecifier::new());
+      }
+      let Some(g_matrix) = &mut isotope_properties.g_matrix else{
+        return Err(CluEError::NoBathGMatrixSpecifier(label.to_string(),
+              isotope.to_string() ));
+      }; 
+      match expression.lhs[0]{
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        Token::GMatrix => {
+      
+          let mut g_values = Vec::<f64>::new();
+      
+          set_to_vec_f64(&mut g_values,expression)?;
+          
+          if g_matrix.values.is_some(){
+            return Err(already_set());
+          }
+
+          if g_values.len() == 1{
+            g_matrix.values = Some([g_values[0],g_values[0],g_values[0]]);
+          }else if g_values.len() == 3{
+            g_matrix.values = Some([g_values[0],g_values[1],g_values[2]]);
+          }else{
+            return Err(CluEError::CannotInferEigenvalues(
+                  expression.line_number));
+          }
+        },
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        Token::GX => {
+          set_to_some_vector_specifier(&mut g_matrix.x_axis, expression,
+              label)?;
+        },
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        Token::GY => {
+          set_to_some_vector_specifier(&mut g_matrix.y_axis, expression,
+              label)?;
+        },
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        Token::GZ => {
+
+          set_to_some_vector_specifier(&mut g_matrix.z_axis, expression,
+              label)?;
+
+        },
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        _ => return Err(CluEError::InvalidToken(expression.line_number,
+          expression.lhs[0].to_string())),
+      }
+    },
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Token::HyperfineCoupling | Token::HyperfineX | 
       Token::HyperfineY | Token::HyperfineZ =>{
 
@@ -393,6 +445,10 @@ mod tests{
           bonded(test_label2));\
         electric_quadrupole_z = diff(same_molecule(test_label1),\
           particle);\
+        g_matrix = [-1,2,5];\
+        g_x = vector([-1,0,1]);\
+        g_y = diff(particle, bonded(test_label1));\
+        g_z = diff(particle, same_molecule(test_label1));\
         ").unwrap();
 
     let isotope = Isotope::Hydrogen2;
@@ -407,6 +463,7 @@ mod tests{
     let hyperfine_coupling = d_properties.hyperfine_coupling.as_ref().unwrap();
     let quadrupole_coupling 
       = d_properties.electric_quadrupole_coupling.as_ref().unwrap();
+    let g_matrix = d_properties.g_matrix.as_ref().unwrap();
     
 
     assert_eq!(d_properties.active, Some(false) );
@@ -439,6 +496,20 @@ mod tests{
           VectorSpecifier::Diff(
             SecondaryParticleFilter::SameMolecule, "test_label1".to_string(),
             SecondaryParticleFilter::Particle, "test_label0".to_string(),
+            ) ) );
+
+    assert_eq!(g_matrix.values , Some([-1.0, 2.0, 5.0]));
+    assert_eq!(g_matrix.x_axis , Some(
+          VectorSpecifier::Vector(Vector3D::from([-1.0, 0.0, 1.0]))));
+    assert_eq!(g_matrix.y_axis , Some(
+          VectorSpecifier::Diff(
+            SecondaryParticleFilter::Particle, "test_label0".to_string(),
+            SecondaryParticleFilter::Bonded, "test_label1".to_string(),
+            ) ) );
+    assert_eq!(g_matrix.z_axis , Some(
+          VectorSpecifier::Diff(
+            SecondaryParticleFilter::Particle, "test_label0".to_string(),
+            SecondaryParticleFilter::SameMolecule, "test_label1".to_string(),
             ) ) );
     }
   //----------------------------------------------------------------------------

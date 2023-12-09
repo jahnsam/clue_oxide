@@ -97,6 +97,77 @@ pub fn propagate_pulse_sequence(
 
   Ok(Signal{data: signal})
 }
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// This function is still under construction.
+/// Please be patient.
+pub fn propagate_pulse_sequence_gcce(
+    density_matrix: &CxMat, hamiltonian: &CxMat, config: &Config)
+  -> Result<Signal,CluEError>
+{  
+  let Some(pulse_sequence) = &config.pulse_sequence else{
+    return Err(CluEError::NoPulseSequence);
+  };
+
+  let time_increments = &config.time_increments;
+  if time_increments.is_empty(){
+    return Err(CluEError::NoTimeIncrements);
+  }
+
+  let number_timepoints = &config.number_timepoints;
+  if number_timepoints.is_empty(){
+    return Err(CluEError::NoTimepoints);
+  }
+  let n_tot = number_timepoints.iter().sum::<usize>();
+
+  let mut signal = Vec::<Complex<f64>>::with_capacity(n_tot);
+
+  let dus = get_propagators(&hamiltonian,time_increments)?;
+  let mut u_of_tau = CxMat::eye(dus[0].dim().0);
+
+  let Some(spin_multiplicity) = config.detected_spin_multiplicity else{
+    return Err(CluEError::NoDetectedSpinMultiplicity);
+  };
+
+  let Some(transition) = &config.detected_spin_transition else{
+    return Err(CluEError::NoDetectedSpinTransition);
+  };
+
+  let u_pi = ideal_pulse(&SpinOp::Sx, PI, 
+    spin_multiplicity, transition)?;
+
+  let detection_op0 = CxMat::eye(dus[0].dim().0);
+
+  for (idt,_dt) in time_increments.iter().enumerate(){
+    let n_timepoints = number_timepoints[idt];
+    for _inumt in 0..n_timepoints{
+    
+      let mut u_sequence = CxMat::eye(dus[0].dim().0);
+
+      match pulse_sequence{
+        PulseSequence::CarrPurcell(n_pi) => { // CP-n
+          let u_seg = u_of_tau.dot(&u_pi.dot(&u_of_tau));
+          for _ii in 0..*n_pi{
+            u_sequence = u_sequence.dot(&u_seg);
+          }
+        }
+      }
+
+      let u_sequence_dag = u_sequence.t().map(|u_ij| u_ij.conj() );
+      
+      let detection_op = u_sequence_dag.dot(&detection_op0.dot(&u_sequence));
+
+      let it = std::iter::zip(density_matrix,&detection_op);
+      let v = it.map(|(rho_ij,u_ij)| rho_ij*u_ij).sum::<Complex<f64>>();
+      signal.push(v);
+
+
+      u_of_tau = dus[idt].dot(&u_of_tau);
+    }
+  }
+
+  panic!("CluE gCCE is still under construction.");
+  //Ok(Signal{data: signal})
+}
 //------------------------------------------------------------------------------
 pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
   -> Result<CxMat,CluEError>
@@ -218,6 +289,39 @@ pub fn get_propagators_complex_time(hamiltonian: &CxMat,
 
   Ok(propagators)
 }
+//------------------------------------------------------------------------------
+fn ideal_two_state_pulse(spin_op: &SpinOp, angle: f64)
+  -> CxMat
+{
+
+
+  let e = CxMat::eye(2);
+  let i_sigma = get_sop(2,spin_op)*(I*2.0);
+
+  e*( (angle/2.0).cos() ) + i_sigma*((angle/2.0).sin() )
+
+
+}
+//------------------------------------------------------------------------------
+fn ideal_pulse(spin_op: &SpinOp, angle: f64, 
+    spin_multipliciy: usize, transition: &[usize;2])
+  -> Result<CxMat,CluEError>
+{
+  let u2 = ideal_two_state_pulse(spin_op, angle);
+
+  let mut u = CxMat::eye(spin_multipliciy);
+
+  for (ii,m) in transition.iter().enumerate(){
+    let idx0 = spin_multipliciy - m - 1;
+    for (jj,n) in transition.iter().enumerate(){
+      let idx1 = spin_multipliciy - n - 1;
+
+      u[[idx0,idx1]] = u2[[ii,jj]];
+    }
+  }
+
+  Ok(u)
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -226,6 +330,8 @@ pub struct SpinHamiltonian{
   beta: CxMat,
   alpha: CxMat,
 }
+/// This function builds the cluster spin Hamiltonian assuming
+/// < mS | H | mS' > = 0, for mS != mS',
 pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
     spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors, 
     config: &Config)
@@ -251,7 +357,7 @@ pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
 
 
   let spin_multiplicities: Vec::<usize> = 
-  spin_indices.iter().map(|idx| tensors.spin_multiplicities[*idx]).collect();
+    spin_indices.iter().map(|idx| tensors.spin_multiplicities[*idx]).collect();
 
   let mut dim: usize = 1;
   spin_multiplicities.iter().for_each(|spin_mul| dim *= spin_mul);
@@ -316,6 +422,66 @@ pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
   let alpha = ham0 + ham_ms*ms_alpha;
   
 Ok(SpinHamiltonian{beta,alpha})
+}
+//------------------------------------------------------------------------------
+// This function builds the cluster spin Hamiltonian without assuming
+// < mS | H | mS' > = 0, for mS != mS',
+pub fn build_spin_hamiltonian(spin_indices: &Vec::<usize>,
+    spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors)
+  -> Result<CxMat,CluEError>
+{
+
+  // Get list of spin multiplicities.
+  let spin_multiplicities: Vec::<usize> = 
+    spin_indices.iter().map(|idx| tensors.spin_multiplicities[*idx]).collect();
+
+  // Find Hilbert space dimensionality.
+  let mut dim: usize = 1;
+  spin_multiplicities.iter().for_each(|spin_mul| dim *= spin_mul);
+
+  // Initialize Hamiltonian.
+  let mut ham = CxMat::zeros((dim,dim));
+
+  let cluster_size = spin_indices.len();
+
+  // Loop through spins and build up Hamiltonian,
+  for (sop_idx0, &ten_idx0) in spin_indices.iter().enumerate(){
+
+    let spin_mult0 = tensors.spin_multiplicities[ten_idx0];
+    let sx0 = spin_ops.get(&SpinOp::Sx,spin_mult0,cluster_size,sop_idx0)?;
+    let sy0 = spin_ops.get(&SpinOp::Sy,spin_mult0,cluster_size,sop_idx0)?;
+    let sz0 = spin_ops.get(&SpinOp::Sz,spin_mult0,cluster_size,sop_idx0)?;
+
+    // Zeeman
+    if let Some(vec) = tensors.spin1_tensors.get(ten_idx0){
+      ham = ham + sx0*vec.x();
+      ham = ham + sy0*vec.y();
+      ham = ham + sz0*vec.z();
+    }
+
+    for (sop_idx1, &ten_idx1) in spin_indices.iter().enumerate().skip(sop_idx0){
+
+      let spin_mult1 = tensors.spin_multiplicities[ten_idx1];
+      let sx1 = spin_ops.get(&SpinOp::Sx,spin_mult1,cluster_size,sop_idx1)?;
+      let sy1 = spin_ops.get(&SpinOp::Sy,spin_mult1,cluster_size,sop_idx1)?;
+      let sz1 = spin_ops.get(&SpinOp::Sz,spin_mult1,cluster_size,sop_idx1)?;
+      
+      // hyperfine, dipole-dipole, and electric quadrupole
+      if let Some(ten) = tensors.spin2_tensors.get(ten_idx0,ten_idx1){
+        ham = ham + sx0.dot(sx1)*ten.xx();
+        ham = ham + sx0.dot(sy1)*ten.xy();
+        ham = ham + sx0.dot(sz1)*ten.xz();
+        ham = ham + sy0.dot(sx1)*ten.yx();
+        ham = ham + sy0.dot(sy1)*ten.yy();
+        ham = ham + sy0.dot(sz1)*ten.yz();
+        ham = ham + sz0.dot(sx1)*ten.zx();
+        ham = ham + sz0.dot(sy1)*ten.zy();
+        ham = ham + sz0.dot(sz1)*ten.zz();
+      }
+    }
+  }
+
+  Ok(ham)
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -707,6 +873,21 @@ mod tests {
   }
   //----------------------------------------------------------------------------
   #[test]
+  fn test_propagate_pulse_sequence_gcce(){
+    assert!(false);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_ideal_two_state_pulse(){
+    assert!(false);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_ideal_pulse(){
+    assert!(false);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
   fn test_build_hamiltonian(){
 
     let z0 = 1000.0;
@@ -749,6 +930,44 @@ mod tests {
 
     assert!(approx_eq(&hamiltonian.beta, &beta, 1e-12));
     assert!(approx_eq(&hamiltonian.alpha, &alpha, 1e-12));
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_build_spin_hamiltonian(){
+
+    let z0 = 1000.0;
+    let z1 = 100.0;
+    let a1 = 2.0;
+    let a2 = -1.0;
+    let b = 0.1;
+
+    let tensors = build_restricted_three_spin_tensors(z0, z1, a1, a2, b);
+  
+
+    let spin_indices = vec![0,1,2];
+    let spin_ops = ClusterSpinOperators::new(&vec![2],3).unwrap();
+
+    let hamiltonian = build_spin_hamiltonian(&spin_indices,&spin_ops, &tensors,
+        ).unwrap();
+
+    let mut config = Config::new();
+    config.set_defaults().unwrap();
+
+    let spin_indices = vec![1,2];
+
+    let block_hamiltonian = build_hamiltonian(&spin_indices,&spin_ops, &tensors,
+        &config).unwrap();
+
+
+    assert_eq!(hamiltonian.len(), 4*block_hamiltonian.beta.len());
+
+    let beta = hamiltonian.slice(ndarray::s![4..,4..]).to_owned();
+    assert!(approx_eq(&block_hamiltonian.beta, &beta, 1e-12));
+
+    let alpha = hamiltonian.slice(ndarray::s![0..4,0..4]).to_owned();
+    assert!(approx_eq(&block_hamiltonian.alpha, &alpha, 1e-12));
+
+
   }
   //----------------------------------------------------------------------------
   fn build_restricted_three_spin_tensors(z0: f64, z1: f64, a1: f64, a2: f64, 

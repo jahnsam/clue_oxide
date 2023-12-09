@@ -91,6 +91,7 @@ pub struct IsotopeProperties{
   pub active: Option<bool>,
   pub electric_quadrupole_coupling: Option<TensorSpecifier>,
   pub exchange_coupling: Option<f64>,
+  pub g_matrix: Option<TensorSpecifier>,
   pub hyperfine_coupling: Option<TensorSpecifier>,
 }
 

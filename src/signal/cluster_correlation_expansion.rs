@@ -95,11 +95,19 @@ fn calculate_auxiliary_signals(
       }
 
       // Calculate cluster signals for batch.
+      // if !do_gCCE{
       clusters[cluster_size-1].par_iter_mut().skip(idx).take(batch_size)
         .for_each(|cluster| 
             cluster.signal = calculate_cluster_signal(cluster.vertices(),
               spin_ops,tensors,config)
       );
+      // } else{
+      //clusters[cluster_size-1].par_iter_mut().skip(idx).take(batch_size)
+      //  .for_each(|cluster| 
+      //      cluster.signal = calculate_general_cluster_signal(cluster.vertices(),
+      //        spin_ops,tensors,config)
+      //);
+      //
 
 
       // Loop over cluster in this batch and calculate the auxiliary signals
@@ -185,6 +193,22 @@ fn calculate_cluster_signal(tensor_indices: &Vec::<usize>,
   let signal = propagate_pulse_sequence(&density_matrix, &hamiltonian, config)?;
   Ok(Some(signal))
 }
+//------------------------------------------------------------------------------
+// This function calculate the cluster signal for the cluster specified by
+// tensor_indices.
+/*
+fn calculate_general_cluster_signal(tensor_indices: &Vec::<usize>, 
+    spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors, 
+    config: &Config) 
+  -> Result<Option<Signal>,CluEError>
+{
+
+  let hamiltonian = build_general_hamiltonian(tensor_indices,spin_ops, tensors,config)?;
+  let density_matrix = get_general_density_matrix(&hamiltonian, config)?;
+  let signal = propagate_pulse_sequence_gCCE(&density_matrix, &hamiltonian, config)?;
+  Ok(Some(signal))
+}
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

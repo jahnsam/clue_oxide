@@ -38,32 +38,6 @@ impl Particle{
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/*
-#[derive(Debug,Clone)]
-pub struct IsotopeDistribution{
-  pub isotope_abundances: Vec::<IsotopeAbundance>,
-  pub force_no_pbc: bool,
-  pub extracell_void_probability: f64,
-}
-
-impl Default for IsotopeDistribution{
-  fn default() -> Self{
-    IsotopeDistribution{
-      isotope_abundances: Vec::<IsotopeAbundance>::new(),
-      force_no_pbc: false,
-      extracell_void_probability: 0.0,
-    }
-  }
-}
-
-#[derive(Debug,Clone)]
-pub struct IsotopeAbundance{
-  pub isotope: Isotope,
-  pub abundance: f64,
-}
-*/
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 

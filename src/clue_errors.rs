@@ -60,6 +60,7 @@ pub enum CluEError{
   ExpectedVecOfNFloatsRHS(usize,usize),
   ExpectedNumber(usize),
   FilterNoMaxDistance(String),
+  FilterNeedsALabel,
   FilterNoMinDistance(String),
   IncorrectFormattingIsotopeAbundances(usize),
   IncorrectNumberOfAxes(usize,usize),
@@ -92,6 +93,7 @@ pub enum CluEError{
   NANTensorHyperfine(usize,String),
   NANTensorQuadrupole(usize,String),
   NoArgument(usize),
+  NoBathGMatrixSpecifier(String,String),
   NoCentralSpin,
   NoCentralSpinCoor,
   NoCentralSpinIdentity,
@@ -103,6 +105,7 @@ pub enum CluEError{
   NoDensityMatrixMethod,
   NoDetectedSpinIdentity,
   NoDetectedSpinMultiplicity,
+  NoDetectedSpinTransition,
   NoExtracellIsotopicDistribution(String),
   NoGMatrixSpecifier,
   NoGMatrixValues,
@@ -344,6 +347,9 @@ followed by a column for the weights", filename),
           "line {}, expected a vector of {} floats on the right hand side",
           line_number,n),
 
+      CluEError::FilterNeedsALabel => write!(f,
+          "filter requires a label to be set: #[filter(label = LABEL)]"),
+
       CluEError::FilterNoMaxDistance(label) => write!(f,
           "\"#[filter(label = {})]\", has no max distance.",
           label),
@@ -456,6 +462,9 @@ and p0,p1 > 0 are abundances",line_number),
       CluEError::NoArgument(line_number) => write!(f,
           "line {}, expected a function argument",line_number),
 
+      CluEError::NoBathGMatrixSpecifier(label,isotope) => write!(f,
+          "no g-matrix specifier found for {} {}",label,isotope),
+      
       CluEError::NoCentralSpin => write!(f,
           "no detected spin defined"),
       
@@ -488,6 +497,9 @@ and p0,p1 > 0 are abundances",line_number),
 
       CluEError::NoDetectedSpinMultiplicity => write!(f,
           "detected_spin_identity is not set"),
+
+      CluEError::NoDetectedSpinTransition => write!(f,
+          "detected_transition is not set"),
 
       CluEError::NoExtracellIsotopicDistribution(label) => write!(f,
           "extracel_isotopic_distribution is not set for {}",label),

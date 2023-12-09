@@ -218,11 +218,14 @@ impl Config{
     }
 
     // Set g-matrix
+    if self.detected_spin_g_matrix.is_some(){
+    /*
     if let Some(g_matrix) = &mut self.detected_spin_g_matrix{
       let Some(values) = &mut g_matrix.values else{
         return Err(CluEError::NoGMatrixValues);
       };
 
+      // For consistancy g free > 0, but gamma free < 0.
       // The electron g free is conventionally positive and are entered as such,
       // but CluE uses a negative electron g free.
       // This line applies the sign change.
@@ -231,6 +234,7 @@ impl Config{
           *v *= -1.0;
         }
       }
+      */
      
     }else{
       self.detected_spin_g_matrix = Some(TensorSpecifier{
@@ -359,6 +363,7 @@ pub enum NeighborCutoff{
 pub enum ClusterMethod{
   AnalyticRestricted2CCE,
   CCE,
+  GCCE,
 }
 #[derive(Debug,Clone,PartialEq)]
 pub enum PulseSequence{
@@ -419,7 +424,12 @@ impl Config{
       match mode.mode{
         ConfigMode::Clusters => (),
         ConfigMode::Config =>  self.parse_config_line(expression)?,
-        ConfigMode::Filter => self.parse_filter_line(expression,&mode.label)?,
+        ConfigMode::Filter => {
+          let Some(_label) = &mode.label else{
+            return Err(CluEError::FilterNeedsALabel);
+          };
+          self.parse_filter_line(expression,&mode.label)?;
+        },
         ConfigMode::SpinProperties => {
           let Some(label) = &mode.label else{
             return Err(CluEError::SpinPropertiesNeedsALabel);
@@ -488,6 +498,7 @@ impl Config{
         }
         match rhs[0]{
           Token::CCE => self.cluster_method = Some(ClusterMethod::CCE),
+          Token::GCCE => self.cluster_method = Some(ClusterMethod::GCCE),
           Token::R2CCE => self.cluster_method 
             = Some(ClusterMethod::AnalyticRestricted2CCE),
           _  => return Err(CluEError::InvalidArgument(expression.line_number,
@@ -930,7 +941,7 @@ mod tests{
 
     let g_matrix = config.detected_spin_g_matrix.unwrap();
     assert_eq!(g_matrix.values, 
-        Some([-2.0097, -2.0064, -2.0025] ) );
+        Some([2.0097, 2.0064, 2.0025] ) );
     assert_eq!(g_matrix.z_axis, None);
     assert_eq!(g_matrix.y_axis, 
         Some(VectorSpecifier::Vector(

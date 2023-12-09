@@ -50,8 +50,13 @@ pub enum Token{
  False,
  Filter,
  Float(f64),
+ GCCE,
+ GMatrix,
  GreaterThan,
  GreaterThanEqualTo,
+ GX,
+ GY,
+ GZ,
  Hat,
  Hahn,
  HyperfineCoupling,
@@ -184,8 +189,13 @@ impl fmt::Display for Token{
       Token::False => writeln!(f,"false"),
       Token::Filter => write!(f,"filter"),
       Token::Float(x) => write!(f,"{}",x),
+      Token::GCCE => write!(f,"gcce"),
+      Token::GMatrix => write!(f,"g_matrix"),
       Token::GreaterThan => write!(f,">"),
       Token::GreaterThanEqualTo => write!(f,">="),
+      Token::GX => write!(f,"g_x"),
+      Token::GY => write!(f,"g_y"),
+      Token::GZ => write!(f,"g_z"),
       Token::Hahn => write!(f,"hahn"),
       Token::Hat => write!(f,"^"),
       Token::HyperfineCoupling => write!(f,"hyperfine_coupling"),
@@ -322,8 +332,13 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "extracell_void_probability" => Some(Token::ExtracellVoidProbability),
     "false" => Some(Token::False),
     "filter" => Some(Token::Filter),
+    "gcce" => Some(Token::GCCE),
+    "g_matrix" => Some(Token::GMatrix),
     ">" => Some(Token::GreaterThan),
     ">=" => Some(Token::GreaterThanEqualTo),
+    "g_x" => Some(Token::GX),
+    "g_y" => Some(Token::GY),
+    "g_z" => Some(Token::GZ),
     "in" => Some(Token::In),
     "input_structure_file" => Some(Token::InputStructureFile),
     "indices" => Some(Token::Indices), 
@@ -1018,8 +1033,13 @@ mod tests{
         Some( Token::ExtracellVoidProbability));
     assert_eq!(identify_token("false"),Some( Token::False));
     assert_eq!(identify_token("filter"),Some( Token::Filter));
+    assert_eq!(identify_token("gcce"),Some( Token::GCCE));
+    assert_eq!(identify_token("g_matrix"),Some( Token::GMatrix));
     assert_eq!(identify_token(">"),Some( Token::GreaterThan));
     assert_eq!(identify_token(">="),Some( Token::GreaterThanEqualTo));
+    assert_eq!(identify_token("g_x"),Some( Token::GX));
+    assert_eq!(identify_token("g_y"),Some( Token::GY));
+    assert_eq!(identify_token("g_z"),Some( Token::GZ));
     assert_eq!(identify_token("hahn"),Some( Token::Hahn));
     assert_eq!(identify_token("^"),Some( Token::Hat));
     assert_eq!(identify_token("hyperfine_coupling"),

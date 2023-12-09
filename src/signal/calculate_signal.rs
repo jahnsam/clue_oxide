@@ -260,7 +260,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
     Some(ClusterMethod::AnalyticRestricted2CCE) => 
       calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
           config,&save_dir_opt)?,
-    Some(ClusterMethod::CCE) => {
+    Some(_cce) => {
       let spin_multiplicity_set =
         math::unique(tensors.spin_multiplicities.clone());
       let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
