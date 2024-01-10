@@ -26,7 +26,7 @@ impl Structure{
     // does not take a spin out of range.
     self.reconnect_bonds()?;
     
-    self.set_spins(config);
+    self.set_spins(config)?;
 
     // Set methyl and primary amonium groups..
     self.set_exchange_groups();
@@ -120,7 +120,8 @@ impl Structure{
   //----------------------------------------------------------------------------
   // This method sets self.bath_spins_indices so that each element corresponds
   // to an element of self_bath_particles that has the potential to have a spin.
-  fn set_spins(&mut self,config: &Config){
+  fn set_spins(&mut self,config: &Config) -> Result<(),CluEError>
+  {
     
 
     let n_particles = self.bath_particles.len();
@@ -132,7 +133,9 @@ impl Structure{
       self.cell_indices.push(vec![Some(idx)]);
     }
 
-    self.pair_particle_configs(config);
+    self.particle_config_ids = self.pair_particle_configs(&config.particles)?;
+    self.extracell_particle_config_ids 
+      = self.pair_particle_configs(&config.extracell_particles)?;
 
     // Find spins.
     let n_spins = self.count_spins(config);
@@ -155,7 +158,7 @@ impl Structure{
 
     }
 
-   
+    Ok(()) 
   }
   //----------------------------------------------------------------------------
   // This method counts the to an elements of self_bath_particles that have
@@ -477,7 +480,8 @@ mod tests{
 
     config.particles = particle_configs;
 
-    structure.pair_particle_configs(&config);
+    structure.particle_config_ids 
+      = structure.pair_particle_configs(&config.particles).unwrap();
 
     structure.find_cosubstitution_groups(&config).unwrap();
     let expected = vec![

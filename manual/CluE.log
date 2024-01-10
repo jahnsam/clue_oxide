@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  8 DEC 2023 13:58
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  6 JAN 2024 11:59
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1057,22 +1057,22 @@ File: figs/fig_CluE-sims_n-CCE.png Graphic file (type bmp)
 <figs/fig_CluE-sims_n-CCE.png>
 
 [4] [5]
-Overfull \hbox (1.30087pt too wide) in paragraph at lines 432--433
+Overfull \hbox (1.30087pt too wide) in paragraph at lines 436--437
 []|\TU/lmr/m/n/10 spin_coor| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 439--439
+Underfull \hbox (badness 10000) in paragraph at lines 443--443
 []|\TU/lmr/m/n/10 cube,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 486--486
+Underfull \hbox (badness 10000) in paragraph at lines 495--495
 []|\TU/lmr/m/n/10 cp-$\OML/cmm/m/it/10 n[]$\TU/lmr/m/n/10 ,
  []
 
 
-Overfull \hbox (9.69336pt too wide) in paragraph at lines 404--531
+Overfull \hbox (9.69336pt too wide) in paragraph at lines 404--536
  [] 
  []
 
@@ -1084,28 +1084,58 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [7]
 [8] [9]
-Overfull \hbox (9.69336pt too wide) in paragraph at lines 764--811
+Overfull \hbox (9.69336pt too wide) in paragraph at lines 768--816
  [] 
  []
 
 
-Overfull \hbox (22.15836pt too wide) in paragraph at lines 815--825
-\TU/lmr/m/it/10 my_label \TU/lmr/m/n/10 should match to a \TU/lmr/m/it/10 #[fil
-ter(label = my_label)]\TU/lmr/m/n/10 . The properties specified under \TU/lmr/m
-/it/10 #[sructure_properties(label
- []
-
-
-Overfull \hbox (9.69336pt too wide) in paragraph at lines 826--844
+Overfull \hbox (9.69336pt too wide) in paragraph at lines 831--844
  [] 
  []
 
 [10]
+Overfull \hbox (3.49501pt too wide) in paragraph at lines 850--870
+\TU/lmr/m/it/10 my_label \TU/lmr/m/n/10 should match to a \TU/lmr/m/it/10 #[gro
+up(my_label)]\TU/lmr/m/n/10 . The properties specified under #[spin_properties(
+my_label,
+ []
+
+
+Overfull \hbox (30.505pt too wide) in paragraph at lines 850--870
+\TU/lmr/m/n/10 my_isotope)] will be applied to all spins of isotope \TU/lmr/m/i
+t/10 my_isotope \TU/lmr/m/n/10 that fall under the corresponding \TU/lmr/m/it/1
+0 #[group(my_label)]\TU/lmr/m/n/10 .
+ []
+
+
+Overfull \hbox (42.41235pt too wide) in paragraph at lines 850--870
+\TU/lmr/m/n/10 The reason to differentiate between \TU/lmr/m/it/10 #[spin_prope
+rties(my_label,  my_isotope)] \TU/lmr/m/n/10 and \TU/lmr/m/it/10 #[structure_pr
+operties(my_label)]
+ []
+
+
 Overfull \hbox (9.69336pt too wide) in paragraph at lines 871--925
  [] 
  []
 
-[11] [12] (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
+
+Overfull \hbox (30.41502pt too wide) in paragraph at lines 945--949
+[]\TU/lmr/m/n/10 The arguments \TU/lmr/m/it/10 diff() \TU/lmr/m/n/10 can take a
+re tabulated below. The table assumes that the user defined \TU/lmr/m/it/10 #[g
+roup(my_group)]\TU/lmr/m/n/10 . 
+ []
+
+
+Underfull \hbox (badness 1983) in paragraph at lines 956--958
+[]|\TU/lmr/m/n/10 particles that are are in my_group and
+ []
+
+
+Underfull \vbox (badness 3590) has occurred while \output is active []
+
+ [11]
+[12] (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2023/02/27 1.9 listings language file
 )
 [13]
@@ -1133,10 +1163,10 @@ Package logreq Info: Writing requests to 'CluE.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 22021 strings out of 476701
- 446155 string characters out of 5804296
- 2483416 words of memory out of 5000000
- 41870 multiletter control sequences out of 15000+600000
+ 22038 strings out of 476701
+ 446354 string characters out of 5804296
+ 2463416 words of memory out of 5000000
+ 41887 multiletter control sequences out of 15000+600000
  519139 words of font info for 73 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  140i,14n,134p,1453b,4844s stack positions out of 10000i,1000n,20000p,200000b,200000s

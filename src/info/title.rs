@@ -26,7 +26,7 @@ println!("\
 #                              |___| /\\ | |_| \\-                             #\n\
 #                                                                            #\n\
 ##############################################################################\n");
-  println!("CLuE Copyright (C) 2022 Samuel M. Jahn");
+  println!("CLuE Copyright (C) 2022--2024 Samuel M. Jahn");
   version::print_version();
   println!("\nThis program comes with ABSOLUTELY NO WARRANTY; for details run \n\
 \"clue_oxide --warrenty\".");

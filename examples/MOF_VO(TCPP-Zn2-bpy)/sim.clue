@@ -16,7 +16,7 @@ max_cluster_size = 2;
 magnetic_field = 0.35; // tesla.
 pulse_sequence = hahn;
 
-temperature = 5; // kelvin.
+cluster_density_matrix = thermal(5);
 
 orientation_grid = lebedev(302);
 
@@ -25,21 +25,22 @@ neighbor_cutoff_3_spin_hahn_taylor_4 = 1e14; // (rad/4)^4.
 
 clash_distance_pbc = 0.1; // angstroms.
 
-#[filter(label = mof_v)]
+#[group(mof_v)]
+  primary_cell;
   elements in [V];
   serials in [38];
-  cell_ids in [0];
 
-#[spin_properties(label = mof_v, isotope = 51V)]
+#[spin_properties(mof_v, 51V)]
   hyperfine_coupling = [168,168,477]*1e6; // HZ
   hyperfine_x = [1,0,0];
   hyperfine_y = [0,1,0];
 
 
-#[filter(label = mof_v2)]
+#[group(mof_v2)]
   elements in [V];
   serials in [39];
 
 // Remove the duplicate V.  
-#[spin_properties(label = mof_v2, isotope = 51V)]
+#[spin_properties(mof_v2, 51V)]
   active = false;
+  

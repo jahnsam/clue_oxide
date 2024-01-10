@@ -125,34 +125,41 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
      let Ok(line) = line_result else{
        return Err(CluEError::CannotOpenFile(filename.to_string()));
      };
-     if model_idx==target_model 
-       && (line.contains("ATOM") || line.contains("HETATM")) {
-       let particle: Particle = match parse_atom_line(&line){
-         Ok(p) => p,
-         Err((CluEError::CannotParseElement(unk_el),serial)) => {
-           serial_to_index.insert(serial,None);
-           if let Some(value) = unknown_elements.get_mut(&unk_el){
-             *value += 1;
-           }else{
-             unknown_elements.insert(unk_el,1);
-           }
-           continue;
-         }
-         Err((err,_)) => return Err(err),
-       };
-
-       //if model_idx == 0{
-         if let Some(serial) = particle.serial{
-           serial_to_index.entry(serial)
-             .or_insert_with(|| Some(bath_particles.len()));
-         }
-       //}
-
-       //bath_particles[model_idx].push(particle);
-       bath_particles.push(particle);
-     }else if line.contains("ENDMDL"){
+     if line.contains("ENDMDL"){
        model_idx += 1;
+       if model_idx > target_model{
+         break;
+       }
+       continue;
      }
+     if model_idx != target_model
+       || !(line.contains("ATOM") || line.contains("HETATM")) {
+       continue;
+     }
+
+     let particle: Particle = match parse_atom_line(&line){
+       Ok(p) => p,
+       Err((CluEError::CannotParseElement(unk_el),serial)) => {
+         serial_to_index.insert(serial,None);
+         if let Some(value) = unknown_elements.get_mut(&unk_el){
+           *value += 1;
+         }else{
+           unknown_elements.insert(unk_el,1);
+         }
+         continue;
+       }
+       Err((err,_)) => return Err(err),
+     };
+
+     //if model_idx == 0{
+       if let Some(serial) = particle.serial{
+         serial_to_index.entry(serial)
+           .or_insert_with(|| Some(bath_particles.len()));
+       }
+     //}
+
+     //bath_particles[model_idx].push(particle);
+     bath_particles.push(particle);
    }
 
    for (unk_el, unk_count) in unknown_elements.iter(){
@@ -201,7 +208,7 @@ fn parse_crystal_line(line: &str)
     let b_vec = Vector3D::from([b*f64::cos(gamma), b*f64::sin(gamma), 0.0]);
     let cx = c * f64::cos(beta);
     let cy = c*(f64::cos(alpha) - f64::cos(beta)*f64::cos(gamma))/f64::sin(gamma);
-    let cz = c * f64::sqrt( 1.0 -cx*cx - cy*cy);
+    let cz = f64::sqrt( c*c -cx*cx - cy*cy);
     let c_vec = Vector3D::from([cx, cy, cz]);
   
 

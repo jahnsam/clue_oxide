@@ -15,7 +15,7 @@ use clue_oxide as clue;
 #[pyclass]
 struct CluEOptions{
   config: HashMap<String,String>,
-  filters: HashMap::<String,Filter>,
+  groups: HashMap::<String,Group>,
   structure_properties: HashMap<String,StructureProperties>,
   spin_properties: HashMap<(String,String),SpinProperties>,
 }
@@ -29,8 +29,8 @@ impl ToString for CluEOptions{
     } 
     out = format!("{}\n",out);
     
-    for (_key, filter) in self.filters.iter(){
-      out = format!("{}{}\n", out, filter.to_string());
+    for (_key, group) in self.groups.iter(){
+      out = format!("{}{}\n", out, group.to_string());
     }
 
     for (_key, properties) in self.structure_properties.iter(){
@@ -50,21 +50,21 @@ impl CluEOptions {
 
   #[new]
   #[args(config = "HashMap::<String,String>::new()",
-     filter_list = "Vec::<Filter>::new()",
+     group_list = "Vec::<Group>::new()",
      structure_properties_list = "Vec::<StructureProperties>::new()",
      spin_properties_list = "Vec::<SpinProperties>::new()",
      )]
   fn new(config: HashMap::<String,String>,
-    filter_list: Vec::<Filter>,
+    group_list: Vec::<Group>,
     structure_properties_list: Vec::<StructureProperties>,
     spin_properties_list: Vec::<SpinProperties>,
     ) -> Self 
   {
 
-    let mut filters = HashMap::<String,Filter>::with_capacity(
-        filter_list.len());
-    for filter in filter_list{
-      filters.insert(filter.label.clone(),filter);
+    let mut groups = HashMap::<String,Group>::with_capacity(
+        group_list.len());
+    for group in group_list{
+      groups.insert(group.label.clone(),group);
     }
 
     let mut structure_properties = HashMap::<String,StructureProperties>::
@@ -84,34 +84,13 @@ impl CluEOptions {
 
     CluEOptions{
       config,
-      filters,
+      groups,
       structure_properties,
       spin_properties,
     }
   }
   //----------------------------------------------------------------------------
   pub fn run(&self) -> PyResult<(Vec::<f64>, Vec::<Complex::<f64>>)>{
-    /*
-    let expressions 
-      = match clue::config::lexer::get_tokens_from_line(&self.to_string()){
-        Ok(exps) => exps,
-        Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
-      };
-
-    let mut config = clue_oxide::config::Config::new();
-
-    match  config.parse_token_stream(expressions){
-      Ok(_) => (),
-      Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
-    }
-    
-    config.set_defaults();
-
-    match config.construct_time_axis(){
-      Ok(_) => (),
-      Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
-    }
-    */
     let config = match clue::config::Config::from(&self.to_string()){
       Ok(cfg) => cfg,
       Err(err) => return Err(PyErr::new::<PyTypeError, _>(err.to_string())),
@@ -135,25 +114,25 @@ impl CluEOptions {
     Ok(())
   }
   //----------------------------------------------------------------------------
-  pub fn add_filter(&mut self, filter: Filter) -> PyResult<()>{
+  pub fn add_group(&mut self, group: Group) -> PyResult<()>{
 
-    self.filters.insert(filter.label.clone(), filter);
+    self.groups.insert(group.label.clone(), group);
     Ok(())
   }
   //----------------------------------------------------------------------------
-  pub fn set_filter(&mut self, label: String, key: String, value: String)
+  pub fn set_group(&mut self, label: String, key: String, value: String)
     -> PyResult<()>
   {
-    if !self.filters.contains_key(&key){
-      self.filters.insert(label.clone(), 
-          Filter::new(label.clone(), HashMap::<String,String>::new() ));
+    if !self.groups.contains_key(&key){
+      self.groups.insert(label.clone(), 
+          Group::new(label.clone(), HashMap::<String,String>::new() ));
     }
 
-    let Some(filter) = self.filters.get_mut(&label) else{
-      return Err(PyErr::new::<PyTypeError, _>("cannot find filter"));
+    let Some(group) = self.groups.get_mut(&label) else{
+      return Err(PyErr::new::<PyTypeError, _>("cannot find group"));
     };
 
-    filter.criteria.insert(key,value);
+    group.criteria.insert(key,value);
 
     Ok(())
   }
@@ -227,14 +206,14 @@ impl CluEOptions {
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[pyclass]
 #[derive(Clone)]
-struct Filter{
+struct Group{
   pub label: String,
   criteria: HashMap::<String,String>
 }
 //------------------------------------------------------------------------------
-impl ToString for Filter{
+impl ToString for Group{
   fn to_string(&self) -> String {
-    let mut out = format!("#[filter(label = {})]\n",self.label);
+    let mut out = format!("#[group(label = {})]\n",self.label);
 
     for (key,val) in &self.criteria{
       out = format!("{}  {} {};\n",out,key,val);
@@ -244,11 +223,11 @@ impl ToString for Filter{
 }
 //------------------------------------------------------------------------------
 #[pymethods] 
-impl Filter{
+impl Group{
   #[new]
   #[args(criteria = "HashMap::<String,String>::new()")]
   pub fn new(label: String, criteria: HashMap::<String,String>) -> Self{
-    Filter{
+    Group{
       label,
       criteria,
     }
@@ -335,7 +314,7 @@ impl SpinProperties{
 fn clue_oxide(_py: Python, m: &PyModule) -> PyResult<()> {
     //m.add_function(wrap_pyfunction!(run, m)?)?;
     m.add_class::<CluEOptions>()?;
-    m.add_class::<Filter>()?;
+    m.add_class::<Group>()?;
     m.add_class::<StructureProperties>()?;
     m.add_class::<SpinProperties>()?;
     Ok(())

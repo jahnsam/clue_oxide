@@ -50,6 +50,7 @@ pub enum CluEError{
   CIFNoTypeSymbol,
   ClusterHasNoSignal(String),
   ConfigModeNotRecognized(String),
+  DeprecatedKeywordReplaced(usize,String,String),
   EmptyVector(usize),
   ExpectedClusterSetWithNSizes(usize,usize),
   ExpectedEquality(usize),
@@ -62,6 +63,7 @@ pub enum CluEError{
   FilterNoMaxDistance(String),
   FilterNeedsALabel,
   FilterNoMinDistance(String),
+  FiltersOverlap(String,String),
   IncorrectFormattingIsotopeAbundances(usize),
   IncorrectNumberOfAxes(usize,usize),
   InorrectNumberOfCellOffsets(usize,usize),
@@ -72,6 +74,7 @@ pub enum CluEError{
   InvalidConfigFile(String),
   InvalidGeometry(usize,String),
   InvalidPulseSequence(usize),
+  InvalidSecondaryFilter(usize,String),
   InvalidToken(usize,String),
   IsotopeAbundancesCannotBeNormalized(usize),
   IsotopeAbundancesMustBeNonnegative(usize),
@@ -187,7 +190,7 @@ impl fmt::Display for CluEError{
           "cannot add tokens meaningfully"),
 
       CluEError::CannontAugmentFilter(index,secondary_filter) => write!(f,
-          "cannot use secondary filter \"{}\" with particle {}",
+          "cannot use secondary group \"{}\" with particle {}",
          secondary_filter,index),
 
       CluEError::CannotCombineTokens(line_number) => write!(f,
@@ -241,8 +244,8 @@ impl fmt::Display for CluEError{
       CluEError::CannotParseRHS(line_number) => write!(f,
           "line {}, cannot parse line right hand side", line_number),
 
-      CluEError::CannotParseSecondaryParticleFilter(filter) => write!(f,
-          "cannot parse secondary particle filter \"{}\"", filter),
+      CluEError::CannotParseSecondaryParticleFilter(group) => write!(f,
+          "cannot parse secondary particle group \"{}\"", group),
 
       CluEError::CannotSampleBinomialDistribution(n,p) => write!(f,
           "cannot sample from the binomial distribution B(n={},p={})",
@@ -317,6 +320,11 @@ followed by a column for the weights", filename),
       CluEError::ConfigModeNotRecognized(mode) => write!(f,
           "#[{}] is not recognized",mode),
 
+      CluEError::DeprecatedKeywordReplaced(line_number, 
+          deprecated, replaced) => write!(f,
+          "line {}, \"{}\" is deprecated and is replaced by \"{}\"", 
+          line_number,deprecated, replaced),
+
       CluEError::EmptyVector(line_number) => write!(f,
           "line {}, supplied vector is emptry", line_number),
 
@@ -348,15 +356,19 @@ followed by a column for the weights", filename),
           line_number,n),
 
       CluEError::FilterNeedsALabel => write!(f,
-          "filter requires a label to be set: #[filter(label = LABEL)]"),
+          "group requires a label to be set: #[group(label = LABEL)]"),
 
       CluEError::FilterNoMaxDistance(label) => write!(f,
-          "\"#[filter(label = {})]\", has no max distance.",
+          "\"#[group(label = {})]\", has no max distance.",
           label),
 
       CluEError::FilterNoMinDistance(label) => write!(f,
-          "\"#[filter(label = {})]\", has no min distance.",
+          "\"#[group(label = {})]\", has no min distance.",
           label),
+
+      CluEError::FiltersOverlap(label0,label1) => write!(f,
+          "groups \"{}\" and \"{}\" overlap: \
+particles must not reside in more than one group",label0,label1),
 
       CluEError::IncorrectFormattingIsotopeAbundances(line_number) 
         => write!(f,"line {}, isotope distributions are expected as
@@ -392,6 +404,9 @@ and p0,p1 > 0 are abundances",line_number),
       CluEError::InvalidPulseSequence(line_number) => write!(f,
           "line {}, invalid pulse sequence",line_number),
 
+      CluEError::InvalidSecondaryFilter(line_number, arg) => write!(f,
+          "line {}, invalid secondary filter \"{}\"",line_number, arg),
+
       CluEError::InvalidToken(line_number,err_token) => write!(f,
           "line {}, invalid token \"{}\"",line_number, err_token),
 
@@ -406,13 +421,13 @@ and p0,p1 > 0 are abundances",line_number),
           n_dts,dts),
 
       CluEError::MissingFilter(label) => write!(f,
-          "no filter with label \"{}\"",label),
+          "no group with label \"{}\"",label),
 
       CluEError::MissingFilterArgument(line_number,fn_name) => write!(f,
-          "line {}, missing filter argument in \"{}()\"",line_number,fn_name),
+          "line {}, missing group argument in \"{}()\"",line_number,fn_name),
 
       CluEError::MissingFilterLabel(line_number) => write!(f,
-          "line {}, missing label in filter",line_number),
+          "line {}, missing label in group",line_number),
 
       CluEError::MissingHeader(filename) => write!(f,
           "in \"{}\", every entry must have a header",filename),
@@ -617,9 +632,9 @@ clash distance of {} Å",idx0,elmt0,idx1,elmt1,r,r_clash),
       CluEError::SaveNameNotSet => write!(f,
           "save name not set"),
 
-      CluEError::SecondaryFilterRequiresAnIndex(filter) => write!(f,
-          "secondary particle filter, \"{}\", requires a particle index",
-          filter),
+      CluEError::SecondaryFilterRequiresAnIndex(group) => write!(f,
+          "secondary particle group, \"{}\", requires a particle index",
+          group),
 
       CluEError::SpinPropertiesNeedsALabel => write!(f,
           "spin_properties requires a label to be set: 

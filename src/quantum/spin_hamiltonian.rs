@@ -180,10 +180,8 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
   let mut density_matrix: CxMat;
 
   match density_matrix_method{
-    DensityMatrixMethod::ApproxThermal => {
-      let Some(temperature) = config.temperature else{
-        return Err(CluEError::NoTemperature);
-      };
+    DensityMatrixMethod::ApproxThermal(temperature) => {
+
       let beta = I/(temperature*BOLTZMANN/HBAR);
       
       let mean_hamiltonian = (&hamiltonian.beta + &hamiltonian.alpha)/2.0;
@@ -197,10 +195,8 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
       let dim = hamiltonian.beta.dim().0;
       density_matrix = CxMat::eye(dim);
     },
-    DensityMatrixMethod::Thermal => {
-      let Some(temperature) = config.temperature else{
-        return Err(CluEError::NoTemperature);
-      };
+    DensityMatrixMethod::Thermal(temperature) => {
+
       let beta = I/(temperature*BOLTZMANN/HBAR);
       
       let rho_alpha = get_propagators_complex_time(&hamiltonian.alpha,
@@ -1026,8 +1022,7 @@ mod tests {
 
     assert!(approx_eq(&density_matrix, &expected, 1e-12));
 
-    config.density_matrix = Some(DensityMatrixMethod::ApproxThermal);
-    config.temperature = Some(20.0);
+    config.density_matrix = Some(DensityMatrixMethod::ApproxThermal(20.0));
     
     let density_matrix = get_density_matrix(&spin_hamiltonian,&config).unwrap();
 

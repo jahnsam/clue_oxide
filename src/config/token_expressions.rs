@@ -41,7 +41,7 @@ impl TokenExpression{
     }
 
     let mut lhs = Vec::<Token>::with_capacity(idx);
-    let mut rhs = Vec::<Token>::with_capacity(tokens.len() - idx - 1);
+    let mut rhs = Vec::<Token>::with_capacity(tokens.len() - idx );
 
     for (ii,token) in tokens.iter().enumerate(){
 

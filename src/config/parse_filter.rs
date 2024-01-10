@@ -2,7 +2,7 @@ use crate::clue_errors::CluEError;
 use crate::Config;
 use crate::config::Token;
 use crate::config::token_stream;
-use crate::config::particle_config::ParticleConfig;
+use crate::config::particle_config::{CellType,ParticleConfig};
 use crate::config::token_expressions::*;
 use crate::config::to_i32_token;
 use crate::physical_constants::ANGSTROM;
@@ -43,51 +43,27 @@ impl Config{
     };
 
 
-
-    // Get relational symbol.
-    let include: bool = match expression.relationship{
-      Some(Token::In) | Some(Token::Equals) 
-        | Some(Token::LessThanEqualTo) => true,
-      Some(Token::NotIn) | Some(Token::NotEqual) 
-        | Some(Token::GreaterThanEqualTo) => false,
-      _ => return Err(CluEError::NoRelationalOperators(expression.line_number)),
-    };
-   
-
-
-    let tokens = token_stream::extract_rhs(expression)?;
-
     let already_set = ||{
       CluEError::OptionAlreadySet(
           expression.line_number, expression.lhs[0].to_string()) };
     match expression.lhs[0]{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Indices => {
+        let tokens = token_stream::extract_rhs(expression)?;
         let value_token = to_i32_token(tokens, expression.line_number)?;
         if let Token::VectorI32(vec) = value_token{
           let vec = vec.iter().map(|&x| x as usize).collect();
-          if include{
-            if !filter.indices.is_empty(){return Err(already_set());}
-            filter.indices = vec;
-          }else{
-            if !filter.not_indices.is_empty(){return Err(already_set());}
-            filter.not_indices = vec;
-          }
-        }else{
-          return Err(CluEError::NoRHS(expression.line_number));
-        }
-      },
-      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::CellIDs => {
-        let value_token = to_i32_token(tokens, expression.line_number)?;
-        if let Token::VectorI32(vec) = value_token{
-          let vec = vec.iter().map(|&x| x as usize).collect();
-          if include{
-            if !filter.cell_ids.is_empty(){return Err(already_set());}
-            filter.cell_ids = vec;
-          }else{
-            if !filter.not_cell_ids.is_empty(){return Err(already_set());}
-            filter.not_cell_ids = vec;
+          match expression.relationship{
+            Some(Token::In) => {
+              if !filter.indices.is_empty(){return Err(already_set());}
+              filter.indices = vec;
+            },
+            Some(Token::NotIn) => {
+              if !filter.not_indices.is_empty(){return Err(already_set());}
+              filter.not_indices = vec;
+            },
+            _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
           }
         }else{
           return Err(CluEError::NoRHS(expression.line_number));
@@ -95,44 +71,77 @@ impl Config{
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Elements => {
+        let tokens = token_stream::extract_rhs(expression)?;
         let value_token = vec_tokens_to_vec_elements(tokens);
         if let Ok(vec) = value_token{
-          if include{
-            if !filter.elements.is_empty(){return Err(already_set());}
-            filter.elements = vec;
-          }else{
-            if !filter.not_elements.is_empty(){return Err(already_set());}
-            filter.not_elements = vec;
+          match expression.relationship{
+            Some(Token::In) => {
+              if !filter.elements.is_empty(){return Err(already_set());}
+              filter.elements = vec;
+            },
+            Some(Token::NotIn) => {
+              if !filter.not_elements.is_empty(){return Err(already_set());}
+              filter.not_elements = vec;
+            },
+            _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
           }
         }else{
           return Err(CluEError::NoRHS(expression.line_number));
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::Extracells => {
+        if particle_config.cell_type != CellType::AllCells{
+          return Err(already_set());
+        }
+        particle_config.cell_type = CellType::Extracells;
+      }
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Distance => {
-        if include{
-          set_to_some_f64(&mut filter.within_distance, &expression)?;
-          if let Some(r) = &mut filter.within_distance{
-            *r *= ANGSTROM;
-          }else{ return Err(CluEError::FilterNoMaxDistance(label.to_string()));}
-        }else{
-          set_to_some_f64(&mut filter.not_within_distance, &expression)?;
-          if let Some(r) = &mut filter.not_within_distance{
-            *r *= ANGSTROM;
-          }else{ return Err(CluEError::FilterNoMinDistance(label.to_string()));}
+        match expression.relationship { 
+          Some(Token::LessThanEqualTo) => {
+            set_to_some_f64(&mut filter.within_distance, &expression)?;
+            if let Some(r) = &mut filter.within_distance{
+              *r *= ANGSTROM;
+            }else{ 
+              return Err(CluEError::FilterNoMaxDistance(label.to_string()));
+            }
+          },
+          Some(Token::GreaterThanEqualTo) => {
+            set_to_some_f64(&mut filter.not_within_distance, &expression)?;
+            if let Some(r) = &mut filter.not_within_distance{
+              *r *= ANGSTROM;
+            }else{ return Err(CluEError::FilterNoMinDistance(label.to_string()));}
+          },
+          _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::PrimaryCell => {
+        if particle_config.cell_type != CellType::AllCells{
+          return Err(already_set());
+        }
+        particle_config.cell_type = CellType::PrimaryCell;
+      }
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Serials => {
+        let tokens = token_stream::extract_rhs(expression)?;
         let value_token = to_i32_token(tokens, expression.line_number)?;
         if let Token::VectorI32(vec) = value_token{
           let vec = vec.iter().map(|&x| x as u32).collect();
-          if include{
-            if !filter.serials.is_empty(){return Err(already_set());}
-            filter.serials = vec;
-          }else{
-            if !filter.not_serials.is_empty(){return Err(already_set());}
-            filter.not_serials = vec;
+          match expression.relationship{
+            Some(Token::In) => {
+              if !filter.serials.is_empty(){return Err(already_set());}
+              filter.serials = vec;
+            },
+            Some(Token::NotIn) => {
+              if !filter.not_serials.is_empty(){return Err(already_set());}
+              filter.not_serials = vec;
+            },
+            _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
           }
         }else{
           return Err(CluEError::NoRHS(expression.line_number));
@@ -140,14 +149,20 @@ impl Config{
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Residues => {
+        let tokens = token_stream::extract_rhs(expression)?;
         let value_token = vec_tokens_to_vec_strings(tokens);
         if let Ok(vec) = value_token{
-          if include{
-            if !filter.residues.is_empty(){return Err(already_set());}
-            filter.residues = vec;
-          }else{
-            if !filter.not_residues.is_empty(){return Err(already_set());}
-            filter.not_residues = vec;
+          match expression.relationship{
+            Some(Token::In) => {
+              if !filter.residues.is_empty(){return Err(already_set());}
+              filter.residues = vec;
+            },
+            Some(Token::NotIn) => {
+              if !filter.not_residues.is_empty(){return Err(already_set());}
+              filter.not_residues = vec;
+            },
+            _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
           }
         }else{
           return Err(CluEError::NoRHS(expression.line_number));
@@ -156,19 +171,25 @@ impl Config{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       
       Token::ResSeqNums => {
+        let tokens = token_stream::extract_rhs(expression)?;
         let value_token = to_i32_token(tokens, expression.line_number)?;
         if let Token::VectorI32(vec) = value_token{
           let vec = vec.iter().map(|&x| x as u32).collect();
-          if include{
-            if !filter.residue_sequence_numbers.is_empty(){
-              return Err(already_set());
-            }
-            filter.residue_sequence_numbers = vec;
-          }else{
-            if !filter.not_residue_sequence_numbers.is_empty(){
-              return Err(already_set());
-            }
-            filter.not_residue_sequence_numbers = vec;
+          match expression.relationship{
+            Some(Token::In) => {
+              if !filter.residue_sequence_numbers.is_empty(){
+                return Err(already_set());
+              }
+              filter.residue_sequence_numbers = vec;
+            },
+            Some(Token::NotIn) => {
+              if !filter.not_residue_sequence_numbers.is_empty(){
+                return Err(already_set());
+              }
+              filter.not_residue_sequence_numbers = vec;
+            },
+            _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
           }
         }else{
           return Err(CluEError::NoRHS(expression.line_number));
@@ -177,15 +198,21 @@ impl Config{
       
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::BondedIndices => {
+        let tokens = token_stream::extract_rhs(expression)?;
         let value_token = to_i32_token(tokens, expression.line_number)?;
         if let Token::VectorI32(vec) = value_token{
           let vec = vec.iter().map(|&x| x as usize).collect();
-          if include{
-            if !filter.bonded_indices.is_empty(){return Err(already_set());}
-            filter.bonded_indices = vec;
-          }else{
-            if !filter.not_bonded_indices.is_empty(){return Err(already_set());}
-            filter.not_bonded_indices = vec;
+          match expression.relationship{
+            Some(Token::In) => {
+              if !filter.bonded_indices.is_empty(){return Err(already_set());}
+              filter.bonded_indices = vec;
+            },
+            Some(Token::NotIn) => {
+              if !filter.not_bonded_indices.is_empty(){return Err(already_set());}
+              filter.not_bonded_indices = vec;
+            },
+            _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
           }
         }else{
           return Err(CluEError::NoRHS(expression.line_number));
@@ -193,14 +220,20 @@ impl Config{
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::BondedElements => {
+        let tokens = token_stream::extract_rhs(expression)?;
         let value_token = vec_tokens_to_vec_elements(tokens);
         if let Ok(vec) = value_token{
-          if include{
-            if !filter.bonded_elements.is_empty(){return Err(already_set());}
-            filter.bonded_elements = vec;
-          }else{
-            if !filter.not_bonded_elements.is_empty(){return Err(already_set());}
-            filter.not_bonded_elements = vec;
+          match expression.relationship{
+            Some(Token::In) => {
+              if !filter.bonded_elements.is_empty(){return Err(already_set());}
+              filter.bonded_elements = vec;
+            },
+            Some(Token::NotIn) => {
+              if !filter.not_bonded_elements.is_empty(){return Err(already_set());}
+              filter.not_bonded_elements = vec;
+            },
+            _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
           }
         }else{
           return Err(CluEError::NoRHS(expression.line_number));
@@ -226,12 +259,14 @@ mod tests{
   #[test]
   fn test_parse_filter_line(){
     let expressions = get_tokens_from_line(
-        "serials in [17,18]; serials not in [28,29];
-        indices = [1,2,3]; indices not in [6];
+        "extracells;
+        serials in [17,18]; serials not in [28,29];
+        indices in [1,2,3]; indices not in [6];
         bonded_indices in [5,4]; bonded_indices not in [42];
-        residue_sequence_numbers in [1501]; residue_sequence_numbers != [9];
+        residue_sequence_numbers in [1501]; 
+        residue_sequence_numbers not in [9];
         elements in [H,O]; elements not in [N];
-        bonded_elements != [C]; bonded_elements in [N];
+        bonded_elements not in [C]; bonded_elements in [N];
         residues in SOL; residues not in TEM;
         distance <= 4;
         distance >= 1;")
@@ -243,6 +278,8 @@ mod tests{
       config.parse_filter_line(expression,&Some("filter_label".to_string()))
         .unwrap();
     }
+
+    assert_eq!(config.particles[0].cell_type,CellType::Extracells);
 
     let filter = config.particles[0].filter.as_ref().unwrap();
     

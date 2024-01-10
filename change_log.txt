@@ -1,0 +1,57 @@
+--------------------------------------------------------------------------------
+2024-01-09
+
+CHANGED:
+
+The "filter" keyword has been deprecated and is replaced by "group".
+
+If a particle falls under multiple groups (previously called filters),
+CluE now errs rather than making an order dependent assignment.
+
+Config arguments starting with "write_" now take bools rather than strings.
+
+The config argument 
+  temperature = T;
+has been removed.  Use 
+  cluster_density_matrix = thermal(T);
+instead.
+
+The config argument "neighbor_cutoff_dipole_dipole" has been renamed
+"neighbor_cutoff_coupling".
+
+
+ADDED:
+
+The input modes "#[group()]", "#[structure_properties()]", and
+"#[spin_properties()]" can now take either positional arguments or keyword
+arguments.
+
+Groups can be made specific to the primary unit cell by adding
+  primary_cell;
+within a #[group()] section, or to all cells other than the primary cell via
+  extracells;
+If neither is supplied, than the group applies to all cells.
+
+Within a #[structure_properties(my_label)] section, the option
+  cosubstitute = same_molecule;
+is now available to enforce that atoms in the group my_label that are on the
+same molecule are the same isotope.  Note that atoms not in the my_label group
+are not affected regardless of which molecule they are on.
+
+The option "void_probability" has been added.
+
+The option "write_methyl_partitions" was added.
+
+The option "write_sans_spin_signals" was added.
+
+REMOVED:
+
+The option "extracell_isotope_abundances" has been removed.
+
+The option "extracell_void_probability" has been removed.
+
+The option "cell_ids" has been removed.
+
+--------------------------------------------------------------------------------
+
+

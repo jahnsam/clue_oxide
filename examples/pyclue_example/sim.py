@@ -10,8 +10,8 @@ def main():
         "radius": "25", # Å
         "detected_spin_position": "centroid_over_serials([28,29])",
         "detected_spin_g_matrix": "[2.0097, 2.0064, 2.0025]",
-        "detected_spin_g_y": "diff(filter(tempo_n) , filter(tempo_o) )",
-        "detected_spin_g_x": "diff(filter(tempo_c1) , filter(tempo_c19) )",
+        "detected_spin_g_y": "diff(group(tempo_n) , group(tempo_o) )",
+        "detected_spin_g_x": "diff(group(tempo_c1) , group(tempo_c19) )",
         "number_timepoints": "[101]",
         "time_increments": "[5e-8]", # s
         "cluster_method": "cce",
@@ -21,32 +21,32 @@ def main():
         "neighbor_cutoff_3_spin_hahn_mod_depth": "3.23e-5",
         "neighbor_cutoff_3_spin_hahn_taylor_4": "1e17", # (rad/s)^4
       },
-      filter_list = [
-        clue.Filter(label = "tempo_h", criteria = {
+      group_list = [
+        clue.Group("tempo_h", criteria = {
           "residues in": "[TEM]",
           "elements in": "[H]",
         }),
-        clue.Filter(label = "tempo_n", criteria = {
+        clue.Group("tempo_n", criteria = {
           "residues in": "[TEM]",
           "elements in": "[N]",
         }),
-        clue.Filter(label = "tempo_o", criteria = {
+        clue.Group("tempo_o", criteria = {
           "residues in": "[TEM]",
           "elements in": "[O]",
         }),
-        clue.Filter(label = "tempo_c1", criteria = {
+        clue.Group("tempo_c1", criteria = {
           "residues in": "[TEM]",
           "elements in": "[C]",
           "serials in": "[1]"
         }),
-        clue.Filter(label = "tempo_c19", criteria = {
+        clue.Group("tempo_c19", criteria = {
           "residues in": "[TEM]",
           "elements in": "[C]",
           "serials in": "[19]"
         }),
       ],
       spin_properties_list = [
-        clue.SpinProperties(label = "tempo_n", isotope = "14N", properties = {
+        clue.SpinProperties("tempo_n", "14N", properties = {
           "hyperfine_coupling": "[20,20,100]*1e6", # Hz
           "hyperfine_x": "diff(bonded(tempo_c1),bonded(tempo_c19))",
           "hyperfine_y": "diff(particle,bonded(tempo_o))",
@@ -66,7 +66,7 @@ def main():
 
   tunnel_splittings = np.array([0,20,40,80,100])*1e3;
   for nut in tunnel_splittings:
-    options.set_spin_properties(label = "tempo_h", isotope = "1H",
+    options.set_spin_properties("tempo_h", "1H",
         key = "tunnel_splitting", value = f"{nut}")
     options.print()
     time , signal = options.run()

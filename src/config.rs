@@ -5,7 +5,7 @@ use crate::config::lexer::*;
 use crate::config::token::*;
 use crate::config::token_algebra::*;
 use crate::config::token_expressions::*;
-use crate::config::particle_config::{ParticleConfig,TensorSpecifier};
+use crate::config::particle_config::{CellType, ParticleConfig,TensorSpecifier};
 
 use crate::physical_constants::{ANGSTROM,ELECTRON_G, Isotope};
 use crate::space_3d::Vector3D;
@@ -32,60 +32,50 @@ pub mod parse_properties;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
-  pub clash_distance: Option<f64>, // default: Some(1e-12)
+  pub clash_distance: Option<f64>, 
   pub clash_distance_pbc: Option<f64>,
-  pub cluster_batch_size: Option<usize>, // default: Some(10000)
+  pub cluster_batch_size: Option<usize>, 
   pub cluster_method: Option<ClusterMethod>,
   pub density_matrix: Option<DensityMatrixMethod>,
-    // default(temperature = None):  DensityMatrixMethod::Identity
-    // default(temperature = Some(T)):  DensityMatrixMethod::Thermal
   pub detected_spin_g_matrix: Option<TensorSpecifier>,
   pub detected_spin_identity: Option<Isotope>,
   pub detected_spin_multiplicity: Option<usize>,
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
+  pub extracell_particles: Vec::<ParticleConfig>,
   pub input_structure_file: Option<String>,
-  pub load_geometry: Option<LoadGeometry>, 
-    // default: Some(LoadGeometry::Sphere)
+  pub load_geometry: Option<LoadGeometry>,
   pub magnetic_field: Option<Vector3D>,
   pub max_cluster_size: Option<usize>,
+  pub neighbor_cutoff_coupling: Option<f64>,
   pub neighbor_cutoff_delta_hyperfine: Option<f64>,
-  pub neighbor_cutoff_dipole_dipole: Option<f64>,
   pub neighbor_cutoff_dipole_perpendicular: Option<f64>,
   pub neighbor_cutoff_distance: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_mod_depth: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_taylor_4: Option<f64>,
-  pub number_system_instances: Option<usize>, // Some(1)
+  pub number_system_instances: Option<usize>, 
   pub number_timepoints: Vec::<usize>,
   pub orientation_grid: Option<OrientationAveraging>,
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
-    // default: Some(0)
   pub pulse_sequence: Option<PulseSequence>,
   pub remove_partial_methyls: Option<bool>,
-    // default(no tunnel splitting): Some(false)
-    // default(with tunnel splitting): Some(true)
-  pub root_dir: Option<String>, // default: Some("./".to_string())
+  pub root_dir: Option<String>, 
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
   pub save_name: Option<String>,
-  pub temperature: Option<f64>,
+  pub system_name: Option<String>,
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
   pub write_auxiliary_signals: Option<String>, 
-    // default: Some("auxiliary_signals".to_string())
   pub write_bath: Option<String>,
-    // default: Some("bath".to_string())
   pub write_clusters: Option<String>,
-    // default: Some("clusters".to_string())
   pub write_info: Option<String>,
-    // default: Some("info".to_string())
   pub write_exchange_groups: Option<String>,
-    // default: Some("exchange_groups".to_string())
+  pub write_methyl_partitions: Option<String>,
   pub write_orientation_signals: Option<String>,
-    // default: Some("orientations".to_string())
+  pub write_sans_spin_signals: Option<String>,
   pub write_structure_pdb: Option<String>,
-    // default: Some("spin_system".to_string())
   pub write_tensors: Option<String>,
 }
 
@@ -110,6 +100,8 @@ impl Config{
       Ok(_) => (),
       Err(err) => return Err(err),
     }
+
+    config.set_extracell_particles();
 
     config.set_defaults()?;
 
@@ -144,10 +136,7 @@ impl Config{
       self.pdb_model_index = Some(0);
     }
     if self.density_matrix.is_none(){
-      match self.temperature{
-        Some(_) => self.density_matrix = Some(DensityMatrixMethod::Thermal),
-        None => self.density_matrix = Some(DensityMatrixMethod::Identity),
-      }
+      self.density_matrix = Some(DensityMatrixMethod::Identity);
     }
 
     if self.number_system_instances.is_none(){
@@ -172,41 +161,48 @@ impl Config{
     }
 
 
-    let set_default_write_path = |write_opt: &mut Option<String>, default: &str|
+    let set_default_write_path = 
+      |write_opt: &mut Option<String>,default: Option<String>|
     {
       match write_opt{
-        None => *write_opt = Some(default.to_string()),
+        None => *write_opt = default,
         Some(path) => if path.is_empty(){ *write_opt = None;},
       }
 
     };
 
     set_default_write_path(&mut self.write_auxiliary_signals,
-        "auxiliary_signals");
+        None );
 
     set_default_write_path(&mut self.write_bath,
-        "bath");
+        Some("bath".to_string()) );
 
     set_default_write_path(&mut self.write_clusters,
-        "clusters");
+        None );
 
     set_default_write_path(&mut self.write_info,
-        "info");
+        Some("info".to_string()) );
 
     set_default_write_path(&mut self.write_exchange_groups,
-        "exchange_groups");
+        Some("exchange_groups".to_string()) );
+
+    set_default_write_path(&mut self.write_methyl_partitions,
+        None );
 
     set_default_write_path(&mut self.write_orientation_signals,
-        "orientations");
+        Some("orientations".to_string()) );
+
+    set_default_write_path(&mut self.write_sans_spin_signals,
+        None );
 
     set_default_write_path(&mut self.write_structure_pdb,
-        "spin_system");
+        Some("structure_pdb".to_string()) );
 
     // The tensors file is large, so do not write it by default.
-    /*
+    
     set_default_write_path(&mut self.write_tensors,
-        "tensors");
-    */
+        None);
+    
 
     self.set_detected_spin()
   }
@@ -260,9 +256,26 @@ impl Config{
     -> Option<usize>
   {
 
-   if id >= self.particles.len() {return None;}
 
-   self.particles[id].max_possible_spin_multiplicity()
+   let mult0 = if id < self.particles.len() {
+     self.particles[id].max_possible_spin_multiplicity()
+   } else{
+     None
+   };
+
+   let mult1 = if id < self.extracell_particles.len() {
+     self.extracell_particles[id].max_possible_spin_multiplicity()
+   } else{
+     None
+   };
+
+   match (mult0,mult1){
+     (Some(m0),Some(m1)) => { if m0 >= m1 {Some(m0)}else{Some(m1)}  },
+     (Some(m0),None) => Some(m0),
+     (None,Some(m1)) => Some(m1),
+     (None,None) => None,
+   }
+
   }
   //----------------------------------------------------------------------------
   pub fn get_time_axis(&self) -> Result<&Vec::<f64>,CluEError>
@@ -334,9 +347,9 @@ impl Config{
 
 #[derive(Debug,Clone,PartialEq)]
 pub enum DensityMatrixMethod{
-  ApproxThermal,
+  ApproxThermal(f64),
   Identity,
-  Thermal,
+  Thermal(f64),
 }
 
 #[derive(Debug,Clone,PartialEq)]
@@ -404,7 +417,43 @@ impl Config{
 
     config.parse_token_stream(token_stream)?;
 
+    config.set_extracell_particles();
+
     Ok(config)
+  }
+  //----------------------------------------------------------------------------
+  fn set_extracell_particles(&mut self){
+    
+    let mut n_extra = 0; 
+    let mut n_primary = 0; 
+    for particle_config in self.particles.iter(){
+      match particle_config.cell_type{
+      CellType::AllCells => {
+        n_extra += 1;
+        n_primary += 1;
+      },
+      CellType::PrimaryCell => n_primary += 1,
+      CellType::Extracells => n_extra += 1,
+      }
+    }
+
+    let mut particles = Vec::<ParticleConfig>::with_capacity(n_primary);
+    self.extracell_particles = Vec::<ParticleConfig>::with_capacity(n_extra);
+
+    for particle_config in self.particles.iter(){
+      match particle_config.cell_type{
+      CellType::AllCells => {
+        self.extracell_particles.push(particle_config.clone());
+        particles.push(particle_config.clone());
+      },
+      CellType::PrimaryCell => particles.push(particle_config.clone()),
+      CellType::Extracells 
+        => self.extracell_particles.push(particle_config.clone()),
+      }
+    }
+
+    self.particles = particles;
+
   }
   //----------------------------------------------------------------------------
   /// This function updates config from a Vec<TokenExpression>.
@@ -485,6 +534,60 @@ impl Config{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::ClusterBatchSize 
         => set_to_some_usize(&mut self.cluster_batch_size, expression)?, 
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::ClusterDensityMatrix => {
+        if let Some(_value) = &self.density_matrix{
+          return Err(already_set());
+        }
+        let Some(rhs) = &expression.rhs else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }; 
+        if rhs.is_empty(){
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+
+        match rhs[0]{
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          Token::ApproxThermal | Token::Thermal => {
+            let args = get_function_arguments(rhs,expression.line_number)?;
+
+            if args.is_empty(){
+              return Err(CluEError::TooFewRHSArguments(expression.line_number));
+            }else if args.len() > 1{
+              return Err(CluEError::TooManyRHSArguments(expression.line_number));
+            }
+
+            let new_expression = TokenExpression{
+              lhs: expression.lhs.clone(),
+              rhs: Some(args),
+              relationship: Some(Token::Equals),
+              line_number: expression.line_number
+            };
+
+            let mut temperature_opt: Option<f64> = None;
+            set_to_some_f64(&mut temperature_opt,&new_expression)?;
+            if let Some(temperature) = temperature_opt{
+              match rhs[0]{
+                Token::ApproxThermal => self.density_matrix 
+                  = Some(DensityMatrixMethod::ApproxThermal(temperature)),
+                Token::Thermal => self.density_matrix 
+                  = Some(DensityMatrixMethod::Thermal(temperature)),
+                _ => return Err(CluEError::InvalidToken(expression.line_number,
+                  expression.lhs[0].to_string())),
+              }
+            }else{
+              return Err(CluEError::NoDensityMatrixMethod);
+            }
+          },
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          Token::Identity => self.density_matrix 
+            = Some(DensityMatrixMethod::Identity),
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          _ => return Err(CluEError::InvalidToken(expression.line_number,
+                rhs[0].to_string())),
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        }
+      },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::ClusterMethod => { 
         if let Some(_value) = &self.cluster_method{
@@ -668,12 +771,12 @@ impl Config{
 
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::NeighborCutoffDeltaHyperfine 
-        => set_to_some_f64(&mut self.neighbor_cutoff_delta_hyperfine,
+      Token::NeighborCutoffCoupling 
+        => set_to_some_f64(&mut self.neighbor_cutoff_coupling,
             expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::NeighborCutoffDipoleDipole 
-        => set_to_some_f64(&mut self.neighbor_cutoff_dipole_dipole,
+      Token::NeighborCutoffDeltaHyperfine 
+        => set_to_some_f64(&mut self.neighbor_cutoff_delta_hyperfine,
             expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::NeighborCutoffDipolePerpendicular
@@ -835,6 +938,9 @@ impl Config{
       Token::SaveDir 
         => set_to_some_string(&mut self.save_name, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::SystemName 
+        => set_to_some_string(&mut self.system_name, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::RNGSeed => {
         if let Some(_value) = &self.rng_seed{
           return Err(already_set());
@@ -851,34 +957,191 @@ impl Config{
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Temperature
-        => set_to_some_f64(&mut self.temperature, expression)?,
+        => {
+          //set_to_some_f64(&mut self.temperature, expression)?
+          return Err(CluEError::DeprecatedKeywordReplaced(
+                expression.line_number,
+                "temperature = T;".to_string(),
+                "cluster_density_matrix = thermal(T);".to_string(),
+                ))
+        },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::TimeIncrements 
         => set_to_vec_f64(&mut self.time_increments, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteAuxiliarySignals
-        => set_to_some_string(&mut self.write_auxiliary_signals, expression)?,
+        //=> set_to_some_string(&mut self.write_auxiliary_signals, expression)?,
+        =>{
+          if let Some(_value) = &self.write_auxiliary_signals{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_auxiliary_signals = match do_write_opt{
+            Some(true) => Some("auxiliary_signals".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+
+        },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteBath
-        => set_to_some_string(&mut self.write_bath, expression)?,
+        //=> set_to_some_string(&mut self.write_bath, expression)?,
+        =>{
+          if let Some(_value) = &self.write_bath{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_bath = match do_write_opt{
+            Some(true) => Some("bath".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+
+        },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteClusters
-        => set_to_some_string(&mut self.write_clusters, expression)?,
+        //=> set_to_some_string(&mut self.write_clusters, expression)?,
+        =>{
+          if let Some(_value) = &self.write_clusters{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_clusters = match do_write_opt{
+            Some(true) => Some("clusters".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+
+        },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteExchangeGroups
-        => set_to_some_string(&mut self.write_exchange_groups, expression)?,
+        //=> set_to_some_string(&mut self.write_exchange_groups, expression)?,
+        =>{
+          if let Some(_value) = &self.write_exchange_groups{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_exchange_groups = match do_write_opt{
+            Some(true) => Some("exchange_groups".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+
+        },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteInfo
-        => set_to_some_string(&mut self.write_info, expression)?,
+        //=> set_to_some_string(&mut self.write_info, expression)?,
+        =>{
+          if let Some(_value) = &self.write_info{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_info = match do_write_opt{
+            Some(true) => Some("info".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+
+        },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteMethylPartitions => { 
+          if let Some(_value) = &self.write_methyl_partitions{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_methyl_partitions = match do_write_opt{
+            Some(true) => Some("methyl_partitions".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+      },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteOrientationSignals
-        => set_to_some_string(&mut self.write_orientation_signals, expression)?,
+        //=> set_to_some_string(&mut self.write_orientation_signals, expression)?,
+        =>{
+          if let Some(_value) = &self.write_orientation_signals{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_orientation_signals = match do_write_opt{
+            Some(true) => Some("orientations".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+
+        },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::WriteSansSpinSignals => { 
+          if let Some(_value) = &self.write_sans_spin_signals{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_sans_spin_signals = match do_write_opt{
+            Some(true) => Some("sans_spin_signals".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+      },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteStructurePDB 
-        => set_to_some_string(&mut self.write_structure_pdb, expression)?,
+        //=> set_to_some_string(&mut self.write_structure_pdb, expression)?,
+        =>{
+          if let Some(_value) = &self.write_structure_pdb{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_structure_pdb = match do_write_opt{
+            Some(true) => Some("structure_pdb".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+
+        },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteTensors 
-        => set_to_some_string(&mut self.write_tensors, expression)?,
+        //=> set_to_some_string(&mut self.write_tensors, expression)?,
+        =>{
+          if let Some(_value) = &self.write_tensors{
+            return Err(already_set());
+          }
+
+          let mut do_write_opt: Option<bool> = None;
+          set_to_some_bool(&mut do_write_opt ,expression)?;
+          self.write_tensors = match do_write_opt{
+            Some(true) => Some("tensors".to_string()),
+            Some(false) => Some("".to_string()),
+            None => return Err(
+                CluEError::ExpectedBoolRHS(expression.line_number)),
+          };
+
+        },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       _ => return Err(CluEError::InvalidToken(expression.line_number,
             expression.lhs[0].to_string())),
@@ -900,17 +1163,18 @@ mod tests{
         #[config]\n
         clash_distance_pbc = 0.1;
         cluster_batch_size = 20000;
+        cluster_density_matrix = thermal(20);
         cluster_method = cce;
         detected_spin_g_matrix = [2.0097, 2.0064, 2.0025];
         detected_spin_g_y = [-1.1500, -0.4700, 0.7100];
-        detected_spin_g_x = diff(filter(tempo_c1) , filter(tempo_c19) );
+        detected_spin_g_x = diff(group(tempo_c1) , filter(tempo_c19) );
         detected_spin_position = centroid_over_serials([28,29]);
         input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
         load_geometry = cube;
         max_cluster_size = 4;
         number_timepoints = [40,60];
         neighbor_cutoff_delta_hyperfine = 1e4;
-        neighbor_cutoff_dipole_dipole = 1e3;
+        neighbor_cutoff_coupling = 1e3;
         neighbor_cutoff_dipole_perpendicular = 100;
         neighbor_cutoff_3_spin_hahn_mod_depth = 1e-10;
         neighbor_cutoff_3_spin_hahn_taylor_4 = 1e-9;
@@ -918,16 +1182,17 @@ mod tests{
         pulse_sequence = cp-1;
         radius = 80;
         save_dir = \"save_directory\";
-        temperature = 20;
         time_increments = [1e-9, 5e-7];
-        write_auxiliary_signals = out_aux;
-        write_bath = out_bath;
-        write_clusters = out_clu;
-        write_exchange_groups = out_ex;
-        write_info = out_info;
-        write_orientation_signals = out_ori;
-        write_structure_pdb = out_pdb;
-        write_tensors = \"tensors\";
+        write_auxiliary_signals = true;
+        write_bath = true;
+        write_clusters = true;
+        write_exchange_groups = true;
+        write_info = true;
+        write_methyl_partitions = true;
+        write_orientation_signals = true;
+        write_sans_spin_signals = true;
+        write_structure_pdb = true;
+        write_tensors = false;
         ").unwrap();
 
     let mut config = Config::new();
@@ -937,6 +1202,7 @@ mod tests{
     let clash_distance_pbc = config.clash_distance_pbc.unwrap();
     assert!( (clash_distance_pbc - 0.1e-10).abs()/(0.1e-10) < 1e-12 );
     assert_eq!(config.cluster_batch_size,Some(20000));
+    assert_eq!(config.density_matrix, Some(DensityMatrixMethod::Thermal(20.0)));
     assert_eq!(config.cluster_method,Some(ClusterMethod::CCE));
 
     let g_matrix = config.detected_spin_g_matrix.unwrap();
@@ -962,7 +1228,7 @@ mod tests{
     assert_eq!(config.load_geometry, Some(LoadGeometry::Cube));
     assert_eq!(config.max_cluster_size, Some(4));
     assert_eq!(config.neighbor_cutoff_delta_hyperfine, Some(1e4));
-    assert_eq!(config.neighbor_cutoff_dipole_dipole, Some(1e3));
+    assert_eq!(config.neighbor_cutoff_coupling, Some(1e3));
     assert_eq!(config.neighbor_cutoff_dipole_perpendicular, Some(1e2));
     assert_eq!(config.neighbor_cutoff_3_spin_hahn_mod_depth, Some(1e-10));
     assert_eq!(config.neighbor_cutoff_3_spin_hahn_taylor_4, Some(1e-9));
@@ -970,16 +1236,22 @@ mod tests{
     assert_eq!(config.pulse_sequence, Some(PulseSequence::CarrPurcell(1)));
     assert_eq!(config.radius, Some(80.0e-10));
     assert_eq!(config.save_name, Some(String::from("save_directory")));
-    assert_eq!(config.temperature, Some(20.0));
     assert_eq!(config.time_increments, vec![1e-9,5e-7]);
-    assert_eq!(config.write_auxiliary_signals, Some("out_aux".to_string()));
-    assert_eq!(config.write_bath, Some("out_bath".to_string()));
-    assert_eq!(config.write_clusters, Some("out_clu".to_string()));
-    assert_eq!(config.write_exchange_groups, Some("out_ex".to_string()));
-    assert_eq!(config.write_info, Some("out_info".to_string()));
-    assert_eq!(config.write_orientation_signals, Some("out_ori".to_string()));
-    assert_eq!(config.write_structure_pdb, Some("out_pdb".to_string()));
-    assert_eq!(config.write_tensors, Some("tensors".to_string()));
+    assert_eq!(config.write_auxiliary_signals, 
+        Some("auxiliary_signals".to_string()));
+    assert_eq!(config.write_bath, Some("bath".to_string()));
+    assert_eq!(config.write_clusters, Some("clusters".to_string()));
+    assert_eq!(config.write_exchange_groups, 
+        Some("exchange_groups".to_string()));
+    assert_eq!(config.write_info, Some("info".to_string()));
+    assert_eq!(config.write_methyl_partitions, 
+        Some("methyl_partitions".to_string()));
+    assert_eq!(config.write_orientation_signals, 
+        Some("orientations".to_string()));
+    assert_eq!(config.write_structure_pdb, Some("structure_pdb".to_string()));
+    assert_eq!(config.write_sans_spin_signals, 
+        Some("sans_spin_signals".to_string()));
+    assert_eq!(config.write_tensors, None);
   }
   //----------------------------------------------------------------------------
   #[test]

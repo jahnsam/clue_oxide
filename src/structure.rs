@@ -9,7 +9,8 @@ pub mod particle_filter;
 //use crate::config::particle_config;
 use crate::config::{
   Config, 
-  particle_config::{ParticleProperties,IsotopeProperties,TensorSpecifier},
+  particle_config::{ParticleConfig,ParticleProperties,IsotopeProperties,
+    TensorSpecifier},
 };
 use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
@@ -91,6 +92,9 @@ pub struct Structure{
   // indices for which config.particle corresponds to each particle
   particle_config_ids: Vec::<Option<usize>>,
 
+  // indices for which config.extracell_particle corresponds to each particle
+  extracell_particle_config_ids: Vec::<Option<usize>>,
+
   // origin of the pdb frame
   pdb_origin: Vector3D,
 
@@ -116,6 +120,7 @@ impl Structure{
       cell_indices: Vec::<Vec::<Option<usize>>>::new(),
       cell_offsets,
       connections,
+      extracell_particle_config_ids: Vec::<Option<usize>>::new(),
       molecules: Vec::<Vec::<usize>>::new(),
       molecule_ids: Vec::<usize>::new(),
       cosubstitution_groups: Vec::<Vec::<usize>>::new(),
@@ -379,19 +384,17 @@ impl Structure{
   //----------------------------------------------------------------------------
   // This function searches the user specified particle configuration (if any),
   // and determines which one each particle goes with.
-  // Since multiple filters may cover the same particle, 
-  // the last filter defined that covers the particle is the one paired with
-  // said particle.
-  fn pair_particle_configs(&mut self, config: &Config){
+  // This function returns a error if multiple filter cover by the same 
+  // particle. 
+  fn pair_particle_configs(&self, particle_configs: &[ParticleConfig]) 
+    -> Result< Vec::<Option<usize>>,CluEError>
+  {
   
     // Initialize pairings.
     let n_particles = self.bath_particles.len();
 
-    self.particle_config_ids = (0..n_particles).map(|_| None).
+    let mut particle_config_ids = (0..n_particles).map(|_| None).
       collect::<Vec::<Option<usize>>>();
-
-    // Get particle configs.
-    let particle_configs = &config.particles;
 
     // Pair particles with configs.
     for (id,particle_config) in particle_configs.iter().enumerate(){
@@ -399,15 +402,23 @@ impl Structure{
         let indices = filter.filter(self);
 
         for idx in indices{
-          self.particle_config_ids[idx] = Some(id);
+          if let Some(prev_id) = particle_config_ids[idx]{
+            return Err(CluEError::FiltersOverlap(
+              particle_configs[prev_id].label.to_string(),
+              particle_config.label.to_string()
+            ));
+          }
+          particle_config_ids[idx] = Some(id);
         }
       
       } 
     }
     
+    Ok(particle_config_ids)
   }
   //----------------------------------------------------------------------------
-  pub fn bath_to_csv(&self, filename: &str) -> Result<(),CluEError>
+  pub fn bath_to_csv(&self, filename: &str, config: &Config) 
+    -> Result<(),CluEError>
   {
     let Ok(file) = File::create(filename) else{
       return Err(CluEError::CannotOpenFile(filename.to_string()) );
@@ -423,7 +434,7 @@ impl Structure{
 
     let mut stream = BufWriter::with_capacity(n_bytes,file);
     
-    let line = "index,particle,x,y,z,active\n";
+    let line = "index,particle,x,y,z,active,cell_id,group\n";
     if stream.write(line.as_bytes()).is_err(){
       return Err(CluEError::CannotWriteFile(filename.to_string()) );
     }    
@@ -434,9 +445,26 @@ impl Structure{
 
       let idx = self.get_reference_index_from_bath_index(ii)?;
 
-      let line = format!("{},{},{},{},{},{}\n",idx, particle.isotope.to_string(),
+      let cell_id = self.cell_id(ii)?;
+
+      let particle_index_0 = self.primary_cell_indices[ii];
+
+      let group_label = if cell_id == 0{
+        match self.particle_config_ids[particle_index_0]{
+          Some(cfg_idx) => &config.particles[cfg_idx].label,
+          None => "none",
+        }
+      }else{
+        match self.extracell_particle_config_ids[particle_index_0]{
+          Some(cfg_idx) => &config.extracell_particles[cfg_idx].label,
+          None => "none",
+        }
+      };
+
+      let line = format!("{},{},{},{},{},{},{},{}\n",
+          idx, particle.isotope.to_string(),
           r.x()/ANGSTROM, r.y()/ANGSTROM, r.z()/ANGSTROM,
-          particle.active);
+          particle.active,cell_id,group_label);
     
       if stream.write(line.as_bytes()).is_err(){
         return Err(CluEError::CannotWriteFile(filename.to_string()) );

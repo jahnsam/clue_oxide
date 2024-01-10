@@ -79,7 +79,7 @@ fn are_spins_neighbors(idx0: usize,idx1: usize,
   if let Some(cutoff) = &config.neighbor_cutoff_delta_hyperfine{
     if delta_hf < *cutoff {return Ok(false);}
   }
-  if let Some(cutoff) = &config.neighbor_cutoff_dipole_dipole{
+  if let Some(cutoff) = &config.neighbor_cutoff_coupling{
     if b < *cutoff {return Ok(false);}
   }
   if let Some(cutoff) = &config.neighbor_cutoff_dipole_perpendicular{

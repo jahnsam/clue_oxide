@@ -2,7 +2,7 @@ use crate::clue_errors::CluEError;
 use crate::config::{
   Config,
   particle_config::{
-    IsotopeAbundance,IsotopeDistribution,IsotopeProperties,
+    IsotopeAbundance,IsotopeProperties,
     ParticleConfig, ParticleProperties,
     TensorSpecifier},
   to_f64_token,
@@ -10,6 +10,7 @@ use crate::config::{
   token_expressions::*,
   token_stream::split_on_token,
 };
+use crate::structure::particle_filter::SecondaryParticleFilter;
 use crate::physical_constants::Isotope;
 
 impl Config{
@@ -281,7 +282,7 @@ fn parse_isotope_properties(properties: &mut ParticleProperties,
 }
 //------------------------------------------------------------------------------
 fn parse_structure_properties(properties: &mut ParticleProperties, 
-    expression: &TokenExpression, label: &str) 
+    expression: &TokenExpression, _label: &str) 
 -> Result<(),CluEError>
 {
 
@@ -297,33 +298,24 @@ fn parse_structure_properties(properties: &mut ParticleProperties,
         expression.line_number, expression.lhs[0].to_string()) };
   match expression.lhs[0]{
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Token::ExtracellIsotopeAbundances => {
-
-    if properties.extracell_isotopic_distribution.is_none(){
-      properties.extracell_isotopic_distribution 
-        = Some( IsotopeDistribution::default() );
-    }
-    let Some(extracell_isotopic_distribution) 
-      = &mut properties.extracell_isotopic_distribution else {
-        return Err(CluEError::NoExtracellIsotopicDistribution(
-              label.to_string()));
-    };
-
-      if !extracell_isotopic_distribution.isotope_abundances
-        .is_empty(){
+    Token::Cosubstitute => {
+      if properties.cosubstitute.is_some(){
         return Err(already_set());
       }
-      extracell_isotopic_distribution.isotope_abundances = 
-        parse_isotope_abundances(expression)?;
 
-    },
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Token::ExtracellVoidProbability => {
-      if properties.isotopic_distribution.extracell_void_probability.is_some(){
-        return Err(already_set());
+      let Some(rhs) = expression.rhs.as_ref() else{
+        return Err(CluEError::NoRHS(expression.line_number));
+      }; 
+
+      let sec_fltr = SecondaryParticleFilter::from(&rhs[0].to_string())?;
+
+      if sec_fltr != SecondaryParticleFilter::SameMolecule{
+        return Err(CluEError::InvalidSecondaryFilter(expression.line_number,
+              sec_fltr.to_string()));
       }
-      set_to_some_f64(&mut properties.isotopic_distribution
-          .extracell_void_probability, expression)?;
+
+      properties.cosubstitute = Some(sec_fltr);
+
     },
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Token::IsotopeAbundances => {
@@ -333,6 +325,14 @@ fn parse_structure_properties(properties: &mut ParticleProperties,
       properties.isotopic_distribution.isotope_abundances = 
         parse_isotope_abundances(expression)?;
 
+    },
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Token::VoidProbability => {
+      if properties.isotopic_distribution.void_probability.is_some(){
+        return Err(already_set());
+      }
+      set_to_some_f64(&mut properties.isotopic_distribution
+          .void_probability, expression)?;
     },
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     _ => return Err(CluEError::InvalidToken(expression.line_number,
@@ -517,8 +517,7 @@ mod tests{
   fn test_parse_structure_properties(){
     let expressions = get_tokens_from_line("\
       isotope_abundances = {1H: 8, 2H: 2};
-      extracell_isotope_abundances = {1H: 0.7, 2H: 0.3};
-      extracell_void_probability = 0.5;
+      void_probability = 0.5;
     ").unwrap();
 
     let mut properties = ParticleProperties::new();
@@ -533,15 +532,7 @@ mod tests{
       IsotopeAbundance{isotope: Isotope::Hydrogen2, abundance: 0.2},
       ]);
 
-    let extracell_isotopic_distribution 
-      = properties.extracell_isotopic_distribution.unwrap();
-    assert_eq!(extracell_isotopic_distribution.isotope_abundances, 
-     vec![
-      IsotopeAbundance{isotope: Isotope::Hydrogen1, abundance: 0.7},
-      IsotopeAbundance{isotope: Isotope::Hydrogen2, abundance: 0.3},
-      ]);
-
-    assert_eq!(properties.isotopic_distribution.extracell_void_probability,
+    assert_eq!(properties.isotopic_distribution.void_probability,
         Some(0.5));
       
       

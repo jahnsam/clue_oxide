@@ -31,7 +31,7 @@ the spin system.  This includes applying periodic boundary conditions, and
 dropping non-magnetic nuclei as well as those beyond the system radius 
 specified in the options.  Isotope substitutions can also be applied at this
 step, if specified in the input options.  In addition to isotope substitution,
-atoms in periodic boundary copies can be replaced with voids.  
+atoms can be replaced with voids at a chosen rate.  
 This can be helpful in hydrogen rich media,
 where the proton may be diluted, but including all the deuterons in the
 simulation would be too expensive.  The main time cost advantage of dropping 
@@ -50,9 +50,9 @@ Nuclear electric quadrupole coupling tensors can also be set, but default to
 zero.  Tensor specification requires the eigenvalues, two eigenvectors,
 and which atoms to apply the tensor.
 
-CluE Oxide has a filter algorithm that allows atoms to be specified by a combination 
+CluE Oxide has a grouping algorithm that allows atoms to be specified by a combination 
 of properties found in the PDB file, such as element, serial number, or residue,
-among others.  The filters can either require or forbid qualifiers.
+among others.  The groups can either require or forbid qualifiers.
   
 If unspecified CluE Oxide will assume that the applied magnetic field points
 along the $z$-direction of the PDB frame, different orientations can be
@@ -272,8 +272,8 @@ input_structure_file = "MD_300K_25ns-30ns_center_0001.pdb";
 
 detected_spin_position = centroid_over_serials([28,29]);
 detected_spin_g_matrix = [2.0097, 2.0064, 2.0025];
-detected_spin_g_y = diff(filter(tempo_n) , filter(tempo_o) );
-detected_spin_g_x = diff(filter(tempo_c1) , filter(tempo_c19) );
+detected_spin_g_y = diff(group(tempo_n) , group(tempo_o) );
+detected_spin_g_x = diff(group(tempo_c1) , group(tempo_c19) );
 
 radius = 25; // angstroms.
 
@@ -291,28 +291,28 @@ neighbor_cutoff_3_spin_hahn_taylor_4 = 1e17; // (rad/s)^4.
 
 orientation_grid = lebedev(170);
 
-#[filter(label = tempo_h)]
+#[group(tempo_h)]
   residues in [TEM];
   elements in [H];
 
-#[spin_properties(label = tempo_h, isotope = 1H)]
+#[spin_properties(tempo_h, 1H)]
   tunnel_splitting = 80e3; // Hz.
 
-#[filter(label = tempo_n)]
+#[group(tempo_n)]
   residues in [TEM];
   elements in [N];
 
-#[filter(label = tempo_o)]
+#[group(tempo_o)]
   residues in [TEM];
   elements in [O];
 
-#[filter(label = tempo_c1)]
+#[group(tempo_c1)]
   serials in [1];
 
-#[filter(label = tempo_c19)]
+#[group(tempo_c19)]
   serials in [19];
   
-#[spin_properties(label = tempo_n, isotope = 14N)]
+#[spin_properties(tempo_n, 14N)]
   hyperfine_coupling = [20,20,100]*1e6;
   hyperfine_x = diff(bonded(tempo_c1),bonded(tempo_c19));
   hyperfine_y = diff(particle,bonded(tempo_o));
@@ -350,7 +350,7 @@ Line 20 determines which cluster approximation to use,
 and line 21 specifies the maximum cluster size to be used.
 Lines 23 and 24 specify neighbor cutoffs for determining clusters.
 Line 27 selects a 170 point Lebedev grid\cite{1999_Lebedev}.
-Lines 29--31 declare a filter selecting the TEMPO hydrogens.
+Lines 29--31 declare a group selecting the TEMPO hydrogens.
 %
 \begin{figure} [H]
 	\centering
@@ -361,23 +361,23 @@ Lines 29--31 declare a filter selecting the TEMPO hydrogens.
 \end{figure}
 %
 %
-Each filter is required to starts with a 
-\textit{\#[filter(label = my\_label)]}, 
+Each group is required to starts with a 
+\textit{\#[group(my\_label)]}, 
 followed by various conditions; 
 in this case the residue (as indicated in the PDB file),
 and the element.
 Line 33 and 34 set the methyl tunnel splitting for the TEMPO to 80 kHz,
-by referencing the previous filter.
+by referencing the previous group.
 This is done by using 
-\textit{\#[spin\_properties(label = my\_label, isotope = my\_isotope)]},
-where \textit{my\_label} matches the filter selecting the TEMPO
+\textit{\#[spin\_properties(my\_label, my\_isotope)]},
+where \textit{my\_label} matches the group selecting the TEMPO
 hydrogens.
-Lines 36--48 declare more filters.
+Lines 36--48 declare more groups.
 Lines 50--57 sets the TEMPO nitrogen's hyperfine tensor and 
 electric quadrupole coupling tensor.
-Note that one filter is used in 
-\textit{\#[spin\_properties(label = tempo\_n, isotope = 14N)]}
-to select the TEMPO nitrogen and other filters are used to specify atoms
+Note that one group is used in 
+\textit{\#[spin\_properties(tempo\_n, 14N)]}
+to select the TEMPO nitrogen and other groups are used to specify atoms
 for orientating the coupling tensors.
 Line 59 sets the mode back to \textit{\#[config]}; there is an implied 
 \textit{\#[config]} at the start of every CluE Oxide file.
@@ -412,6 +412,10 @@ The available fields are explained below.
  %
  \hline 
  cluster\_batch\_size & int & number of clusters to evaluate between saves \\
+ %
+ \hline 
+ cluster\_density\_matrix & den\_mat & 
+ method to calculate the density matrix of each cluster\\
  %
  \hline 
  cluster\_method & r2cce, cce & method of evaluating clusters \\
@@ -457,18 +461,23 @@ The available fields are explained below.
  for an edge to be placed between two spins \\
  %
  \hline 
+ neighbor\_cutoff\_coupling & float & 
+ minimum $|b_{zz}-2J|$ in Hz 
+ for an edge to be placed between two spins\\
+ %
+ \hline 
  neighbor\_cutoff\_delta\_hyperfine & float & 
  minimum $|\Delta A_{mn}| := |A_{zz,n} - A_{zz,m}|$ in Hz 
  for an edge to be placed between two spins\\
  %
  \hline 
- neighbor\_cutoff\_dipole\_dipole & float & 
- minimum $|b_{zz}-2J|$ in Hz 
+ neighbor\_cutoff\_dipole\_perpendicular & float & 
+ minimum $|b_{\perp}|$ in Hz 
  for an edge to be placed between two spins\\
  %
  \hline 
- neighbor\_cutoff\_dipole\_perpendicular & float & 
- minimum $|b_{\perp}|$ in Hz 
+ neighbor\_cutoff\_distance & float & 
+ maximum distance in \AA~ 
  for an edge to be placed between two spins\\
  %
  \hline 
@@ -493,10 +502,6 @@ The available fields are explained below.
  \hline 
  save\_dir & string & 
  directory where data will be saved\\
- %
- \hline 
- temperature & float & 
- temperature in K used to calculate each clusters density matrix\\
  %
  \hline 
  time\_increments  & [float] & 
@@ -529,6 +534,17 @@ The available fields are explained below.
  \hline 
 \end{tabular}
 \end{center} 
+\subsubsection{ClusterDensityMatrix} % -----------------------------------------
+If no \textit{cluster\_density\_matrix} is specified, the infinite temperature
+limit is assumed for the bath spin, so that the density matrix is proportional
+to the identity matrix.  To specify a particular temperature, $T$, in kelvin, 
+use
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\begin{lstlisting}[frame=single,numbers=left,language=c]
+cluster_density_matrix = thermal(T);
+\end{lstlisting}
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 \subsubsection{ClusterMethod} % ---------------------------------------------
 There are two cluster evolutions schemes available in CluE Oxide, 
 \textit{cce}, and \textit{r2cce}.
@@ -539,18 +555,6 @@ The \textit{r2cce} method is a restricted version of CCE,
 using the analytic solution to the simplified three spin model from
 \cite{2006_Witzel_DasSarma}, and is therefore limited to a cluster size of two.
 
-\subsubsection{DensityMatrixMethod} % -----------------------------------------
-There are options for setting the density matrix of a cluster.  
-The first to assume the high nuclear temperature limit, in which case the 
-density matrix is the identity matrix.  
-The other option is to use 
-$\op{\rho} 
-= \frac{1}{Z}\exp(-\frac{1}{\kB T}\frac{\op{H}_{+} + \op{H}_{-}}{2} )$,
-where $\op{H}_{\pm}$ are the cluster Hamiltonians for each of the detected spin
-manifolds.  $Z$ a normalization constant to ensures $\tr(\op{\rho}) = 1$;
-$\kB$ is the Boltzmann constant and $T$ is the bath temperature.
-To set the temperature to 20 K for example, include the following in the
-CluE Oxide input file.  
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
 temperature = 20; // K.
@@ -707,29 +711,29 @@ since CluE Oxide will orthonormalize the vectors itself.
 The reason for this is allow for directions to be specified by properties of
 the system.    
 The following lines say to use the difference between the atoms in the
-\textit{filter(tempo\_c1)}, and the atoms in \textit{filter(tempo\_c19)} 
+\textit{group(tempo\_c1)}, and the atoms in \textit{group(tempo\_c19)} 
 for the $x$-direction,
 and to use difference between the atoms in the
-\textit{filter(tempo\_n)}, and the atoms in \textit{filter(tempo\_o)} 
+\textit{group(tempo\_n)}, and the atoms in \textit{group(tempo\_o)} 
 for the $y$-direction.
 Filters are explained in the next section, but the union of the atoms within
 the \textit{diff()} must contain exactly two atoms for a unique vector to
 be specified.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
-detected_g_x = diff(filter(tempo_c1) , filter(tempo_c19) );;
-detected_g_y = diff(filter(tempo_n) , filter(tempo_o) );;
+detected_g_x = diff(group(tempo_c1) , group(tempo_c19) );;
+detected_g_y = diff(group(tempo_n) , group(tempo_o) );;
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 %-------------------------------------------------------------------------------
-\subsection{\#[filter(label = my\_label)]}
+\subsection{\#[group(my\_label)]}
 %-------------------------------------------------------------------------------
 The options file can have zero, one, or multiple 
-\textit{\#[filter(label = my\_label)]} sections.  
-Each \textit{\#[filter(label = my\_label)]} section must have a unique label,
+\textit{\#[group(my\_label)]} sections.  
+Each \textit{\#[group(my\_label)]} section must have a unique label,
 by replacing \textit{my\_label} with the desired label. 
-Under the \textit{\#[filter(label = my\_label)]} header, 
-the filter conditions that can have multiple matches 
+Under the \textit{\#[group(my\_label)]} header, 
+the group conditions that can have multiple matches 
 are listed as
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
@@ -742,7 +746,7 @@ or
 property not in [forbidden_value_1, forbidden_value_n, ...];
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The distance filter only takes maximum and minimum values and is specified 
+The distance group only takes maximum and minimum values and is specified 
 as  
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
@@ -752,13 +756,13 @@ distance >= r_min; // angstroms
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 where \textit{r\_max} and \textit{r\_min} are floating point numbers
 specifing the maximum and minimum distances in \AA~from the detected spin
-that the particles in the filter can be.
+that the particles in the group can be.
 CluE Oxide will find all the spins that fit all specified criteria.
 Note that depending upon how the criteria are defined it is possible that
-some spins will fall under multiple filters.  
-To resolve this ambiguity, each spin is placed under the
-last applicable filter defined.  
-The following table shows the possible filter criteria.
+some spins will fall under multiple groups. 
+CluE Oxide treats this case as an error and will indicate as such. 
+To resolve this error, the group criteria should be refined.
+The following table shows the possible group criteria.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{center}
 \begin{tabular}{| m{20em} | m{1.5cm}| m{7cm} |}
@@ -782,17 +786,18 @@ The following table shows the possible filter criteria.
  of bonded atoms to match (in) or avoid (not in)\\
  %
  \hline 
- cell\_ids & [int] & periodic boundary duplicate id where the particle resides,
- with the detected spin residing in cell 0 
- \\
- %
- \hline 
  distance & float & maximum (<=) or minimum (>=) allowed distance in 
  \AA~from the detected spin
  \\
  %
  \hline 
  elements & [H,He,...] & elements to match (in) or avoid (not in)\\
+ %
+ \hline 
+ extracells & none & restrict to unit cells other than the primary cell\\
+ %
+ \hline 
+ primary\_cell & none & restrict to the primary unit cell\\
  %
  \hline 
  residues & [GLY,...] & residues as specified in the PDB file
@@ -810,16 +815,16 @@ The following table shows the possible filter criteria.
 \end{tabular}
 \end{center}  
 %-------------------------------------------------------------------------------
-\subsection{\#[sructure\_properties(label = my\_label)]}
+\subsection{\#[structure\_properties(my\_label)]}
 %-------------------------------------------------------------------------------
 The options file can have zero, one, or multiple 
-\textit{\#[sructure\_properties(label = my\_label)]} sections,
+\textit{\#[structure\_properties(my\_label)]} sections,
 where \textit{my\_label} should match to a 
-\textit{\#[filter(label = my\_label)]}.
+\textit{\#[group(my\_label)]}.
 The properties specified under  
-\textit{\#[sructure\_properties(label = my\_label)]} will be applied
+\textit{\#[structure\_properties(my\_label)]} will be applied
 to all spins that fall under the corresponding
-\textit{\#[filter(label = my\_label)]}.
+\textit{\#[group(my\_label)]}.
 The following table shows the available properties.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{center}
@@ -828,16 +833,11 @@ The following table shows the available properties.
  \textbf{field} & \textbf{values} & \textbf{description} \\ 
  %
  \hline 
- extracell\_isotope\_abundances & \{1H: 0.9, 2H: 0.1\} & 
- possible isotopes and probabilities for periodic copies of the primary cell\\
- %
- \hline 
- extracell\_void\_probability & float & chance that each particle will be removed
- if it is not in the primary cell\\
- %
- \hline 
  isotope\_abundances & \{1H: 0.9, 2H: 0.1\} & possible isotopes and
  probabilities\\
+ %
+ \hline 
+ void\_probability & float & chance that each particle will be removed\\
  %
  \hline 
 \end{tabular}
@@ -845,26 +845,26 @@ The following table shows the available properties.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 %-------------------------------------------------------------------------------
-\subsection{\#[spin\_properties(label = my\_label, isotope = my\_isotope)]}
+\subsection{\#[spin\_properties(my\_label, my\_isotope)]}
 %-------------------------------------------------------------------------------
 The options file can have zero, one, or multiple 
-\textit{\#[spin\_properties(label = my\_label, isotope = my\_isotope)]} 
+\textit{\#[spin\_properties(my\_label, my\_isotope)]} 
 sections, where \textit{my\_label} should match to a 
-\textit{\#[filter(label = my\_label)]}.
+\textit{\#[group(my\_label)]}.
 The properties specified under  
-{\#[spin\_properties(label = my\_label, isotope = my\_isotope)]} will be applied
+{\#[spin\_properties(my\_label, my\_isotope)]} will be applied
 to all spins of isotope \textit{my\_isotope} that fall under the corresponding
-\textit{\#[filter(label = my\_label)]}.
+\textit{\#[group(my\_label)]}.
 The reason to differentiate between 
-\textit{\#[spin\_properties(label = my\_label, }
-\textit{isotope = my\_isotope)]}
-and \textit{\#[sructure\_properties(label = my\_label)]}
+\textit{\#[spin\_properties(my\_label, }
+\textit{my\_isotope)]}
+and \textit{\#[structure\_properties(my\_label)]}
 is isotope specificity:
-\textit{\#[sructure\_properties(label = my\_label)]} applies to all
-particles in the corresponding filter, while 
-\textit{\#[spin\_properties(label = my\_label, }
-\textit{isotope = my\_isotope)]}
-only applies to the specified isotope in the corresponding filter.
+\textit{\#[structure\_properties(my\_label)]} applies to all
+particles in the corresponding group, while 
+\textit{\#[spin\_properties(my\_label, }
+\textit{my\_isotope)]}
+only applies to the specified isotope in the corresponding group.
 The following table shows the available properties.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{center}
@@ -935,7 +935,7 @@ between the particle, the nitrogen in this case, and the oxygen that is bonded
 to the particle.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
-#[spin_properties(label = tempo_n, isotope = 14N)]
+#[spin_properties(tempo_n, 14N)]
 hyperfine_coupling = [20,20,100]*1e6; // Hz.
 hyperfine_x = diff(bonded(tempo_c),bonded(tempo_c));
 hyperfine_y = diff(particle,bonded(tempo_o));;
@@ -944,7 +944,7 @@ hyperfine_y = diff(particle,bonded(tempo_o));;
 
 The arguments \textit{diff()} can take are tabulated below.
 The table assumes that the user defined 
-\textit{\#[filter(label = my\_filter)]}.
+\textit{\#[group(my\_group)]}.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{center}
 \begin{tabular}{| m{20em} |  m{7cm} |}
@@ -952,20 +952,20 @@ The table assumes that the user defined
  \textbf{argument} & \textbf{description} \\ 
  %
  \hline 
- bonded(my\_filter) & 
- particles that are are in my\_filter and bonded to reference particle\\ 
+ bonded(my\_group) & 
+ particles that are are in my\_group and bonded to reference particle\\ 
  %
  \hline 
- filter(my\_filter) & 
- particles that are are in my\_filter\\ 
+ group(my\_group) & 
+ particles that are are in my\_group\\ 
  %
  \hline 
  particle & 
  the reference particle itself\\ 
  %
  \hline 
- same\_molecule(my\_filter) & 
- particles that are are in my\_filter and in the same molecule as 
+ same\_molecule(my\_group) & 
+ particles that are are in my\_group and in the same molecule as 
  the reference particle\\ 
  %
  \hline 
@@ -1007,7 +1007,7 @@ the command line options must be be compatible with the options file.
 This means that the option should not already be set in the options file,
 and that the options file leaves off in the correct mode.
 For example if ``\#[config]'' options are to be set, the options file should
-not end in another mode like ``\#[filter(label=my\_label)]''.
+not end in another mode like ``\#[group(label=my\_label)]''.
 
 %===============================================================================
 \section{pyCluE}
@@ -1062,7 +1062,7 @@ pip install <pyclue.whl>
 Running CluE Oxide via Python is done through the \textit{CluEOptions} class.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=python]
-class clue_oxide.CluEOptions(config = {},filter_list =[], structure_properties_list = [], spin_properties_list = [])
+class clue_oxide.CluEOptions(config = {},group_list =[], structure_properties_list = [], spin_properties_list = [])
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1076,7 +1076,7 @@ class clue_oxide.CluEOptions(config = {},filter_list =[], structure_properties_l
  config & dictionary of strings & general config input\\
  %
  \hline
- filter\_list & [Filter] & filter input\\ 
+ group\_list & [Group] & group input\\ 
  %
  \hline
  structure\_properties\_list & [StructureProperties] & 
@@ -1090,24 +1090,24 @@ class clue_oxide.CluEOptions(config = {},filter_list =[], structure_properties_l
 \end{tabular}
 \end{center}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The \textit{Filter} class signature is shown below.
+The \textit{Group} class signature is shown below.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=python]
-class clue_oxide.Filter(label, criteria = {})
+class clue_oxide.Group(label, criteria = {})
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The \textit{label} parameter should be a string and serves the same purpose as 
-the label in \textit{\#[filter(label = my\_label)]} discussed earlier.
+the label in \textit{\#[group(my\_label)]} discussed earlier.
 The \textit{criteria} parameter is a dictionary of strings.
 Similarly \textit{StructureProperties} in analogous to a 
-\textit{\#[structure\_properties(label = my\_label)]} section.
+\textit{\#[structure\_properties(my\_label)]} section.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=python]
 class clue_oxide.StructureProperties(label, properties = {})
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 And \textit{SpinProperties} in analogous to a 
-\textit{\#[spin\_properties(label = my\_label, isotope = my\_isotope)]} section.
+\textit{\#[spin\_properties(my\_label, my\_isotope)]} section.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=python]
 class clue_oxide.SpinProperties(label, isotope, properties = {})
@@ -1135,8 +1135,8 @@ def main():
         "radius": "25", # angstroms
         "detected_spin_position": "centroid_over_serials([28,29])",
         "detected_spin_g_matrix": "[2.0097, 2.0064, 2.0025]",
-        "detected_spin_g_y": "diff(filter(tempo_n) , filter(tempo_o) )",
-        "detected_spin_g_x": "diff(filter(tempo_c1) , filter(tempo_c19) )",
+        "detected_spin_g_y": "diff(group(tempo_n) , group(tempo_o) )",
+        "detected_spin_g_x": "diff(group(tempo_c1) , group(tempo_c19) )",
         "number_timepoints": "[101]",
         "time_increments": "[5e-8]", # s
         "cluster_method": "cce",
@@ -1146,32 +1146,32 @@ def main():
         "neighbor_cutoff_3_spin_hahn_mod_depth": "3.23e-5",
         "neighbor_cutoff_3_spin_hahn_taylor_4": "1e17", # (rad/s)^4
       },
-      filter_list = [
-        clue.Filter(label = "tempo_h", criteria = {
+      group_list = [
+        clue.Group("tempo_h", criteria = {
           "residues in": "[TEM]",
           "elements in": "[H]",
         }),
-        clue.Filter(label = "tempo_n", criteria = {
+        clue.Group("tempo_n", criteria = {
           "residues in": "[TEM]",
           "elements in": "[N]",
         }),
-        clue.Filter(label = "tempo_o", criteria = {
+        clue.Group("tempo_o", criteria = {
           "residues in": "[TEM]",
           "elements in": "[O]",
         }),
-        clue.Filter(label = "tempo_c1", criteria = {
+        clue.Group("tempo_c1", criteria = {
           "residues in": "[TEM]",
           "elements in": "[C]",
           "serials in": "[1]"
         }),
-        clue.Filter(label = "tempo_c19", criteria = {
+        clue.Group("tempo_c19", criteria = {
           "residues in": "[TEM]",
           "elements in": "[C]",
           "serials in": "[19]"
         }),
       ],
       spin_properties_list = [
-        clue.SpinProperties(label = "tempo_n", isotope = "14N", properties = {
+        clue.SpinProperties("tempo_n", "14N", properties = {
           "hyperfine_coupling": "[20,20,100]*1e6", # Hz
           "hyperfine_x": "diff(bonded(tempo_c1),bonded(tempo_c19))",
           "hyperfine_y": "diff(particle,bonded(tempo_o))",
@@ -1196,7 +1196,7 @@ def main():
   for nut in tunnel_splittings:
 
     # Set tunnel splitting.
-    options.set_spin_properties(label = "tempo_h", isotope = "1H",
+    options.set_spin_properties("tempo_h", "1H",
         key = "tunnel_splitting", value = f"{nut}")
 
     # Print CluE input file.
@@ -1267,8 +1267,8 @@ fn main() {
 
         detected_spin_position = centroid_over_serials([28,29]);
         detected_spin_g_matrix = [2.0097, 2.0064, 2.0025];
-        detected_spin_g_y = diff(filter(tempo_n) , filter(tempo_o) );
-        detected_spin_g_x = diff(filter(tempo_c1) , filter(tempo_c19) );
+        detected_spin_g_y = diff(group(tempo_n) , group(tempo_o) );
+        detected_spin_g_x = diff(group(tempo_c1) , group(tempo_c19) );
         number_timepoints = [101,140];
 
         time_increments = [50,500]*1e-9;
@@ -1282,21 +1282,21 @@ fn main() {
 
         neighbor_cutoff_distance = 4; // angstroms.
 
-      #[filter(label = tempo_n)]
+      #[group(tempo_n)]
         residues in [TEM];
         elements in [N];
 
-      #[filter(label = tempo_o)]
+      #[group(tempo_o)]
         residues in [TEM];
         elements in [O];
 
-      #[filter(label = tempo_c1)]
+      #[group(tempo_c1)]
         serials in [1];
 
-      #[filter(label = tempo_c19)]
+      #[group(tempo_c19)]
         serials in [19];
 
-      #[spin_properties(label = tempo_n, isotope = 14N)]
+      #[spin_properties(tempo_n, 14N)]
         hyperfine_coupling = [20,20,100]*1e6;
         hyperfine_x = diff(bonded(tempo_c1),bonded(tempo_c19));
         hyperfine_y = diff(particle,bonded(tempo_o));
@@ -1305,11 +1305,11 @@ fn main() {
         electric_quadrupole_x = diff(bonded(tempo_c1),bonded(tempo_c19));
         electric_quadrupole_y = diff(particle,bonded(tempo_o));
 
-      #[filter(label = solvent_h)]
+      #[group(solvent_h)]
         residues not in [TEM];
         elements in [H];
 
-      #[structure_properties(label = solvent_h)]
+      #[structure_properties(solvent_h)]
         isotope_abundances = {1H: 1, 2H: 0};
 
     "){
@@ -1355,7 +1355,7 @@ fn main() {
 
       properties.isotopic_distribution = IsotopeDistribution{
           isotope_abundances,
-          extracell_void_probability: None
+          void_probability: None
       };
 
       // Run CluE.
@@ -1404,61 +1404,49 @@ frame=single,
 numbers=left,
 language=c
 ]
+#[derive(Debug,Clone,Default)]
 pub struct Config{
-  pub clash_distance: Option<f64>, // default: Some(1e-12)
+  pub clash_distance: Option<f64>,
   pub clash_distance_pbc: Option<f64>,
-  pub cluster_batch_size: Option<usize>, // default: Some(1000)
+  pub cluster_batch_size: Option<usize>,
   pub cluster_method: Option<ClusterMethod>,
   pub density_matrix: Option<DensityMatrixMethod>,
-    // default(temperature = None):  DensityMatrixMethod::Identity
-    // default(temperature = Some(T)):  DensityMatrixMethod::Thermal
   pub detected_spin_g_matrix: Option<TensorSpecifier>,
   pub detected_spin_identity: Option<Isotope>,
   pub detected_spin_multiplicity: Option<usize>,
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
+  pub extracell_particles: Vec::<ParticleConfig>,
   pub input_structure_file: Option<String>,
-  pub load_geometry: Option<LoadGeometry>, 
-    // default: Some(LoadGeometry::Sphere)
+  pub load_geometry: Option<LoadGeometry>,
   pub magnetic_field: Option<Vector3D>,
   pub max_cluster_size: Option<usize>,
+  pub neighbor_cutoff_coupling: Option<f64>,
   pub neighbor_cutoff_delta_hyperfine: Option<f64>,
-  pub neighbor_cutoff_dipole_dipole: Option<f64>,
   pub neighbor_cutoff_dipole_perpendicular: Option<f64>,
   pub neighbor_cutoff_distance: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_mod_depth: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_taylor_4: Option<f64>,
-  pub number_system_instances: Option<usize>, // Some(1)
+  pub number_system_instances: Option<usize>,
   pub number_timepoints: Vec::<usize>,
   pub orientation_grid: Option<OrientationAveraging>,
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
-    // default: Some(0)
   pub pulse_sequence: Option<PulseSequence>,
   pub remove_partial_methyls: Option<bool>,
-    // default(no tunnel splitting): Some(false)
-    // default(with tunnel splitting): Some(true)
-  pub root_dir: Option<String>, // default: Some("./".to_string())
+  pub root_dir: Option<String>,
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
   pub save_name: Option<String>,
-  pub temperature: Option<f64>,
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
   pub write_auxiliary_signals: Option<String>, 
-    // default: Some("auxiliary_signals".to_string())
   pub write_bath: Option<String>,
-    // default: Some("bath".to_string())
   pub write_clusters: Option<String>,
-    // default: Some("clusters".to_string())
   pub write_info: Option<String>,
-    // default: Some("info".to_string())
   pub write_exchange_groups: Option<String>,
-    // default: Some("exchange_groups".to_string())
   pub write_orientation_signals: Option<String>,
-    // default: Some("orientations".to_string())
   pub write_structure_pdb: Option<String>,
-    // default: Some("spin_system".to_string())
   pub write_tensors: Option<String>,
 }
 \end{lstlisting}

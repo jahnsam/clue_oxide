@@ -18,28 +18,28 @@ orientation_grid = lebedev(14);
 neighbor_cutoff_3_spin_hahn_mod_depth = 3.23e-5; 
 neighbor_cutoff_3_spin_hahn_taylor_4 = 1e17; // (rad/s)^4.
 
-#[filter(label = tempo_h)]
+#[group(tempo_h)]
   residues in [TEM];
   elements in [H];
 
-#[spin_properties(label = tempo_h, isotope = 1H)]
+#[spin_properties(tempo_h, 1H)]
   tunnel_splitting = 80e3; // Hz.
 
-#[filter(label = tempo_n)]
+#[group(tempo_n)]
   residues in [TEM];
   elements in [N];
 
-#[filter(label = tempo_o)]
+#[group(tempo_o)]
   residues in [TEM];
   elements in [O];
 
-#[filter(label = tempo_c1)]
+#[group(tempo_c1)]
   serials in [1];
 
-#[filter(label = tempo_c19)]
+#[group(tempo_c19)]
   serials in [19];
   
-#[spin_properties(label = tempo_n, isotope = 14N)]
+#[spin_properties(tempo_n, 14N)]
   hyperfine_coupling = [20,20,100]*1e6;
   hyperfine_x = diff(particle,bonded(tempo_o));
   hyperfine_y = diff(bonded(tempo_c1),bonded(tempo_c19));
@@ -49,7 +49,7 @@ neighbor_cutoff_3_spin_hahn_taylor_4 = 1e17; // (rad/s)^4.
   electric_quadrupole_y = diff(bonded(tempo_c1),bonded(tempo_c19));
 
 #[config]
-write_orientation_signals = "";
-write_clusters = "";
+write_orientation_signals = false;
+write_clusters = false;
 
 

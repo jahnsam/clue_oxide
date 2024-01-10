@@ -5,14 +5,16 @@ use clue_oxide::{
 };
 
 fn main() {
+
+    // Read input from a string rather than a file.
     let config = match clue::config::Config::from("
         input_structure_file = \"TEMPO_wat_gly_70A.pdb\";
         radius = 25; // angstroms.
 
         detected_spin_position = centroid_over_serials([28,29]);
         detected_spin_g_matrix = [2.0097, 2.0064, 2.0025];
-        detected_spin_g_y = diff(filter(tempo_n) , filter(tempo_o) );
-        detected_spin_g_x = diff(filter(tempo_c1) , filter(tempo_c19) );
+        detected_spin_g_y = diff(group(tempo_n) , group(tempo_o) );
+        detected_spin_g_x = diff(group(tempo_c1) , group(tempo_c19) );
         number_timepoints = [101,140];
 
         time_increments = [50,500]*1e-9;
@@ -24,25 +26,23 @@ fn main() {
         number_system_instances = 10;
         orientation_grid = random(1);
 
-        //neighbor_cutoff_3_spin_hahn_mod_depth = 3.23e-5;
-        //neighbor_cutoff_3_spin_hahn_taylor_4 = 1e17; // (rad/s)^4.
         neighbor_cutoff_distance = 4; // angstroms.
 
-      #[filter(label = tempo_n)]
+      #[group(tempo_n)]
         residues in [TEM];
         elements in [N];
 
-      #[filter(label = tempo_o)]
+      #[group(tempo_o)]
         residues in [TEM];
         elements in [O];
 
-      #[filter(label = tempo_c1)]
+      #[group(tempo_c1)]
         serials in [1];
 
-      #[filter(label = tempo_c19)]
+      #[group(tempo_c19)]
         serials in [19];
 
-      #[spin_properties(label = tempo_n, isotope = 14N)]
+      #[spin_properties(tempo_n, 14N)]
         hyperfine_coupling = [20,20,100]*1e6;
         hyperfine_x = diff(bonded(tempo_c1),bonded(tempo_c19));
         hyperfine_y = diff(particle,bonded(tempo_o));
@@ -51,11 +51,11 @@ fn main() {
         electric_quadrupole_x = diff(bonded(tempo_c1),bonded(tempo_c19));
         electric_quadrupole_y = diff(particle,bonded(tempo_o));
 
-      #[filter(label = solvent_h)]
+      #[group(solvent_h)]
         residues not in [TEM];
         elements in [H];
 
-      #[structure_properties(label = solvent_h)]
+      #[structure_properties(solvent_h)]
         isotope_abundances = {1H: 1, 2H: 0};
 
     "){
@@ -79,11 +79,13 @@ fn main() {
     let solvent_h_idx = solvent_h_idx.expect("Could not find solvent_h_idx.");
 
 
+    // Initialize and loop over proton fractions.
     let proton_fractions = vec![1.0, 0.75, 0.5, 0.25, 0.0];
     for &frac in proton_fractions.iter(){
       
       let mut frac_config = config.clone();
 
+      // Set save directory.
       frac_config.save_name = Some(format!("CluE-proton_frac_{}",frac));
 
       let properties = frac_config.particles[solvent_h_idx]
@@ -96,7 +98,7 @@ fn main() {
 
       properties.isotopic_distribution = IsotopeDistribution{
           isotope_abundances,
-          extracell_void_probability: None
+          void_probability: None
       };
 
       match clue::run(frac_config){

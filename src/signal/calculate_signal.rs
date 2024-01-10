@@ -78,9 +78,17 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
   let save_dir_opt = match path_opt{
     Some(path) => {
       
-      let structure_hash = math::str_hash(&structure);
       
-      let save_dir = format!("{}/system-{}",path,structure_hash);
+      let save_dir = match &config.system_name{
+        Some(system_name) => {
+          format!("{}/{}",path,system_name)
+        },
+        None => {
+          let structure_hash = math::str_hash(&structure);
+          format!("{}/system-{}",path,structure_hash)
+        }
+      };
+
       match std::fs::create_dir_all(save_dir.clone()){
         Ok(_) => (),
         Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
@@ -95,7 +103,8 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
         }
 
         if let Some(filename) = &config.write_bath{
-          structure.bath_to_csv(&format!("{}/{}.csv", info_path, filename))?;
+          structure.bath_to_csv(&format!("{}/{}.csv", info_path, filename),
+              config)?;
         }
 
         if let Some(filename) = &config.write_structure_pdb{
@@ -278,16 +287,22 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
       .map(|ii| format!("signal_{}",ii))
       .collect::<Vec::<String>>();
     write_vec_signals(&order_n_signals, headers, &save_path)?;
+
+    if let Some(save_name) = &config.write_sans_spin_signals{
+      let save_path = format!("{}/{}",save_dir,save_name);
+
+      caculate_sans_spin_signals(&order_n_signals[max_cluster_size - 1],
+        &cluster_set, structure, config, &save_path)?;
+    }
+
+
+    if let Some(save_name) = &config.write_methyl_partitions{
+      let save_path = format!("{}/{}",save_dir,save_name);
+      
+      calculate_methyl_partition_cce(cluster_set, structure, config, 
+          &save_path)?;
+    }
   }
-
-  // TODO: add toggle in config
-  caculate_sans_spin_signals(&order_n_signals[max_cluster_size - 1],
-    &cluster_set, structure, config, &save_dir_opt)?;
-
-
-  // TODO: add toggle in config
-  calculate_methyl_partition_cce(cluster_set, structure, config, 
-      &save_dir_opt)?;
 
   Ok(order_n_signals)
 } 
@@ -296,16 +311,10 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
 // where the spin is dropped. 
 fn caculate_sans_spin_signals(ref_signal: &Signal,
     cluster_set: &ClusterSet, structure: &Structure, config: &Config, 
-    save_dir_opt: &Option<String>)
+    save_path: &str)
   -> Result<(),CluEError>
 {
   
-  let save_path = match save_dir_opt{
-    None => return Ok(()),
-    Some(path) 
-      => format!("{}/sans_spin_signals.csv", path),
-  };
-
   let mut spin_signals 
     = caculate_bath_spin_contributions(cluster_set, structure, config)?;
 
@@ -322,7 +331,7 @@ fn caculate_sans_spin_signals(ref_signal: &Signal,
         }
     ).collect::< Vec::<String> >();
 
-  write_vec_signals(&spin_signals,headers,&save_path)
+  write_vec_signals(&spin_signals,headers,save_path)
 }
 //------------------------------------------------------------------------------
 // For each active spin in structure, this function calculates the product of
@@ -378,14 +387,12 @@ fn caculate_bath_spin_contributions(
 //------------------------------------------------------------------------------
 fn calculate_methyl_partition_cce(
     cluster_set: ClusterSet, structure: &Structure, config: &Config, 
-    save_dir_opt: &Option<String>)
+    save_path: &str)
   -> Result<(),CluEError>
 {
   if let Some(exchange_group_manager) = &structure.exchange_groups{
     let cluster_partitions = partition_cluster_set_by_exchange_groups(
         cluster_set, exchange_group_manager, structure)?;
-
-    let part_dir = "methyl_partitions".to_string();
 
     let n_tot = config.number_timepoints.iter().sum::<usize>();
 
@@ -401,18 +408,9 @@ fn calculate_methyl_partition_cce(
         }
       }
 
-      if let Some(save_dir) = save_dir_opt{
-        let save_dir = format!("{}/{}",
-            save_dir,part_dir);
-        match std::fs::create_dir_all(save_dir.clone()){
-          Ok(()) => (),
-          Err(_) 
-            => return Err(CluEError::CannotCreateDir(save_dir)),
-        }
-        let part_save_path = format!("{}/{}.csv",
-            save_dir,key_name);
-        part_signal.write_to_csv(&part_save_path)?;
-      }
+      let part_save_path = format!("{}/{}.csv",
+          save_path,key_name);
+      part_signal.write_to_csv(&part_save_path)?;
     }
   }
 

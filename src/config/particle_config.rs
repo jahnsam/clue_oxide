@@ -33,6 +33,7 @@ pub struct ParticleConfig{
   pub label: String,
   pub filter: Option<ParticleFilter>,
   pub properties: Option<ParticleProperties>,
+  pub cell_type: CellType,
 }
 impl ParticleConfig{
   pub fn new(label: String) -> Self{
@@ -40,6 +41,7 @@ impl ParticleConfig{
       label,
       filter: None,
       properties: None,
+      cell_type: CellType::AllCells,
     }
   }
   //----------------------------------------------------------------------------
@@ -67,12 +69,19 @@ impl ParticleConfig{
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#[derive(Debug,Clone,PartialEq)]
+pub enum CellType{
+  AllCells,
+  PrimaryCell,
+  Extracells,
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone,PartialEq,Default)]
 pub struct ParticleProperties{
   pub cosubstitute: Option<SecondaryParticleFilter>,
-  pub extracell_isotopic_distribution:  Option<IsotopeDistribution>,
   pub isotopic_distribution:  IsotopeDistribution,
   pub isotope_properties: HashMap::<String,IsotopeProperties>,
 }
@@ -105,7 +114,7 @@ impl IsotopeProperties{
 #[derive(Debug,Clone,PartialEq,Default)]
 pub struct IsotopeDistribution{
   pub isotope_abundances: Vec::<IsotopeAbundance>,
-  pub extracell_void_probability: Option<f64>,
+  pub void_probability: Option<f64>,
 }
 
 #[derive(Debug,Clone,PartialEq)]

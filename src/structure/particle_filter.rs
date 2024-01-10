@@ -98,7 +98,7 @@ impl ParticleFilter{
 
       
       // Cell ID
-      if !self.cell_ids.is_empty(){
+      if !self.cell_ids.is_empty() || !self.not_cell_ids.is_empty(){
         if let Ok(cell_id) = structure.cell_id(idx){ 
           if !self.cell_ids.contains(&cell_id) 
             || self.not_cell_ids.contains(&cell_id){
@@ -289,7 +289,7 @@ impl SecondaryParticleFilter{
   {
     match secondary_filter{
       "bonded" => Ok(SecondaryParticleFilter::Bonded),
-      "filter" => Ok(SecondaryParticleFilter::Filter),
+      "filter" | "group" => Ok(SecondaryParticleFilter::Filter),
       "particle" => Ok(SecondaryParticleFilter::Particle),
       "same_molecule" => Ok(SecondaryParticleFilter::SameMolecule),
       _ => Err(CluEError::CannotParseSecondaryParticleFilter(

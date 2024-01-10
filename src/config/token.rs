@@ -1,4 +1,5 @@
 use crate::clue_errors::*;
+use crate::config::token_stream::split_on_token;
 use crate::physical_constants::Isotope;
 use std::ops::{Add,Sub,Mul,Div};
 
@@ -7,6 +8,7 @@ use std::fmt;
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token{
  Active,
+ ApproxThermal,
  Bang,
  BondedElements,                                               
  BondedIndices,                                                     
@@ -14,15 +16,16 @@ pub enum Token{
  BlockCommentStart, 
  CarrPurcell,
  CCE,
- CellIDs,
  CentroidOverSerials,
  ClashDistancePBC,
  ClusterBatchSize,
+ ClusterDensityMatrix,
  ClusterMethod,
  Clusters,
  Colon,
  Comma,
  Config,
+ Cosubstitute,
  Cube,
  CurlyBracketClose,
  CurlyBracketOpen,
@@ -45,8 +48,7 @@ pub enum Token{
  Elements,                                                    
  EOL,
  Equals,
- ExtracellIsotopeAbundances,
- ExtracellVoidProbability,
+ Extracells,
  False,
  Filter,
  Float(f64),
@@ -54,6 +56,7 @@ pub enum Token{
  GMatrix,
  GreaterThan,
  GreaterThanEqualTo,
+ Group,
  GX,
  GY,
  GZ,
@@ -63,6 +66,7 @@ pub enum Token{
  HyperfineX,
  HyperfineY,
  HyperfineZ,
+ Identity,
  In,
  Indices,                                                      
  InputStructureFile,
@@ -80,7 +84,7 @@ pub enum Token{
  Minus,
  Mode(ModeAttribute),
  NeighborCutoffDeltaHyperfine,
- NeighborCutoffDipoleDipole,
+ NeighborCutoffCoupling,
  NeighborCutoffDipolePerpendicular,
  NeighborCutoffDistance,
  NeighborCutoff3SpinHahnModDepth,
@@ -94,6 +98,7 @@ pub enum Token{
  Path,
  ParenthesisClose,
  ParenthesisOpen,
+ PrimaryCell,
  Plus,
  PulseSequence,
  R2CCE,
@@ -117,8 +122,10 @@ pub enum Token{
  SquareBracketOpen,
  StructureProperties,
  Structures,
+ SystemName,
  Temperature,
  Tensors,
+ Thermal,
  TimeIncrements,
  Times,
  True,
@@ -129,13 +136,16 @@ pub enum Token{
  VectorF64(Vec::<f64>),
  VectorI32(Vec::<i32>),
  VectorString(Vec::<String>),
+ VoidProbability,
  Whitespace,
  WriteAuxiliarySignals,
  WriteBath,
  WriteClusters,
- WriteInfo,
  WriteExchangeGroups,
+ WriteInfo,
+ WriteMethylPartitions,
  WriteOrientationSignals,
+ WriteSansSpinSignals,
  WriteStructurePDB,
  WriteTensors,
 }
@@ -143,6 +153,7 @@ impl fmt::Display for Token{
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
       Token::Active => write!(f,"active"), 
+      Token::ApproxThermal => write!(f,"approx_thermal"),
       Token::Bang => write!(f,"!"), 
       Token::BondedIndices => write!(f,"bonded_indices"),
       Token::BondedElements => write!(f,"bonded_elements"),
@@ -150,15 +161,16 @@ impl fmt::Display for Token{
       Token::BlockCommentStart => write!(f,"/*"), 
       Token::CarrPurcell => write!(f,"cp"),
       Token::CCE => write!(f,"cce"),
-      Token::CellIDs => write!(f,"cell_ids"),
       Token::CentroidOverSerials => write!(f,"centroid_over_serials"),
       Token::ClashDistancePBC => write!(f,"clash_distance_pbc"),
       Token::ClusterBatchSize => write!(f,"cluster_batch_size"),
+      Token::ClusterDensityMatrix => write!(f,"cluster_density_matrix"),
       Token::ClusterMethod => write!(f,"cluster_method"),
       Token::Clusters => write!(f,"clusters"),
       Token::Colon => write!(f,":"),
       Token::Comma => write!(f,","),
       Token::Config => write!(f,"config"),
+      Token::Cosubstitute => write!(f,"cosubstitute"),
       Token::Cube => write!(f,"cube"),
       Token::CurlyBracketClose => write!(f,"}}"),
       Token::CurlyBracketOpen => write!(f,"{{"),
@@ -182,10 +194,7 @@ impl fmt::Display for Token{
       Token::Elements => write!(f,"elements"),
       Token::EOL => writeln!(f),
       Token::Equals => write!(f,"="),
-      Token::ExtracellIsotopeAbundances 
-        => write!(f,"extracell_isotope_abundances"),
-      Token::ExtracellVoidProbability 
-        => write!(f,"extracell_void_probability"),
+      Token::Extracells => write!(f,"extracells"),
       Token::False => writeln!(f,"false"),
       Token::Filter => write!(f,"filter"),
       Token::Float(x) => write!(f,"{}",x),
@@ -193,6 +202,7 @@ impl fmt::Display for Token{
       Token::GMatrix => write!(f,"g_matrix"),
       Token::GreaterThan => write!(f,">"),
       Token::GreaterThanEqualTo => write!(f,">="),
+      Token::Group => write!(f,"group"),
       Token::GX => write!(f,"g_x"),
       Token::GY => write!(f,"g_y"),
       Token::GZ => write!(f,"g_z"),
@@ -202,6 +212,7 @@ impl fmt::Display for Token{
       Token::HyperfineX => write!(f,"hyperfine_x"),
       Token::HyperfineY => write!(f,"hyperfine_y"),
       Token::HyperfineZ => write!(f,"hyperfine_z"),
+      Token::Identity => write!(f,"identity"),
       Token::In => write!(f,"in"),
       Token::Indices => write!(f,"indices"),
       Token::InputStructureFile => write!(f,"input_structure_file"),
@@ -220,8 +231,8 @@ impl fmt::Display for Token{
       Token::Mode(mode) => write!(f,"{}",mode),
       Token::NeighborCutoffDeltaHyperfine 
         => write!(f,"neighbor_cutoff_delta_hyperfine"),
-      Token::NeighborCutoffDipoleDipole 
-        => write!(f,"neighbor_cutoff_dipole_dipole"),
+      Token::NeighborCutoffCoupling 
+        => write!(f,"neighbor_cutoff_coupling"),
       Token::NeighborCutoffDipolePerpendicular 
         => write!(f,"neighbor_cutoff_dipole_perpendicular"),
       Token::NeighborCutoffDistance 
@@ -239,6 +250,7 @@ impl fmt::Display for Token{
       Token::Path => write!(f,"path"),
       Token::ParenthesisClose => write!(f,")"),
       Token::ParenthesisOpen => write!(f,"("),
+      Token::PrimaryCell => write!(f,"primary_cell"),
       Token::Plus => write!(f,"+"),
       Token::PulseSequence => write!(f,"pulse_sequence"),
       Token::R2CCE => write!(f,"r2cce"),
@@ -262,8 +274,10 @@ impl fmt::Display for Token{
       Token::SquareBracketOpen => write!(f,"["),
       Token::StructureProperties => write!(f,"structure_properties"),
       Token::Structures => write!(f,"structures"),
+      Token::SystemName => write!(f,"system_name"),
       Token::Temperature => write!(f,"temperature"),
       Token::Tensors => write!(f,"tensors"),
+      Token::Thermal => write!(f,"thermal"),
       Token::TimeIncrements => write!(f,"time_increments"),
       Token::Times => write!(f,"*"),
       Token::True => writeln!(f,"true"),
@@ -274,13 +288,16 @@ impl fmt::Display for Token{
       Token::VectorF64(v) => write!(f,"{:?}",v), 
       Token::VectorI32(v) => write!(f,"{:?}",v), 
       Token::VectorString(v) => write!(f,"{:?}",v), 
+      Token::VoidProbability => write!(f,"void_probability"),
       Token::Whitespace => write!(f," "),
       Token::WriteAuxiliarySignals => write!(f,"write_auxiliary_signals"),
       Token::WriteBath => write!(f,"write_bath"),
       Token::WriteClusters => write!(f,"write_clusters"),
       Token::WriteExchangeGroups => write!(f,"write_exchange_groups"),
       Token::WriteInfo => write!(f,"write_info"),
+      Token::WriteMethylPartitions => write!(f,"write_methyl_partitions"),
       Token::WriteOrientationSignals => write!(f,"write_orientation_signals"),
+      Token::WriteSansSpinSignals => write!(f,"write_sans_spin_signals"),
       Token::WriteStructurePDB => write!(f,"write_structure_pdb"),
       Token::WriteTensors => write!(f,"write_tensors"),
     }
@@ -290,6 +307,7 @@ impl fmt::Display for Token{
 pub fn identify_token(word: &str) -> Option<Token>{
   match word{
     "active" => Some(Token::Active),
+    "approx_thermal" => Some(Token::ApproxThermal),
     "!" => Some(Token::Bang),
     "bonded_indices" => Some(Token::BondedIndices),
     "bonded_elements" => Some(Token::BondedElements),
@@ -297,15 +315,16 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "/*" => Some(Token::BlockCommentStart),
     "cp" => Some(Token::CarrPurcell),
     "cce" => Some(Token::CCE),
-    "cell_ids" => Some(Token::CellIDs),
     "centroid_over_serials" => Some(Token::CentroidOverSerials),
     "clash_distance_pbc" => Some(Token::ClashDistancePBC),
     "cluster_batch_size" => Some(Token::ClusterBatchSize),
+    "cluster_density_matrix" => Some(Token::ClusterDensityMatrix),
     "cluster_method" => Some(Token::ClusterMethod),
     "clusters" => Some(Token::Clusters),
     ":" => Some(Token::Colon),
     "," => Some(Token::Comma),
     "config" => Some(Token::Config),
+    "cosubstitute" => Some(Token::Cosubstitute),
     "cube" => Some(Token::Cube),
     "}" => Some(Token::CurlyBracketClose),
     "{" => Some(Token::CurlyBracketOpen),
@@ -328,17 +347,18 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "elements" => Some(Token::Elements), 
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
-    "extracell_isotope_abundances" => Some(Token::ExtracellIsotopeAbundances),
-    "extracell_void_probability" => Some(Token::ExtracellVoidProbability),
+    "extracells" => Some(Token::Extracells),
     "false" => Some(Token::False),
     "filter" => Some(Token::Filter),
     "gcce" => Some(Token::GCCE),
     "g_matrix" => Some(Token::GMatrix),
     ">" => Some(Token::GreaterThan),
     ">=" => Some(Token::GreaterThanEqualTo),
+    "group" => Some(Token::Group),
     "g_x" => Some(Token::GX),
     "g_y" => Some(Token::GY),
     "g_z" => Some(Token::GZ),
+    "identity" => Some(Token::Identity),
     "in" => Some(Token::In),
     "input_structure_file" => Some(Token::InputStructureFile),
     "indices" => Some(Token::Indices), 
@@ -361,8 +381,8 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "-" => Some(Token::Minus),
     "neighbor_cutoff_delta_hyperfine" 
       => Some(Token::NeighborCutoffDeltaHyperfine),
-    "neighbor_cutoff_dipole_dipole" 
-      => Some(Token::NeighborCutoffDipoleDipole),
+    "neighbor_cutoff_coupling" 
+      => Some(Token::NeighborCutoffCoupling),
     "neighbor_cutoff_dipole_perpendicular" 
       => Some(Token::NeighborCutoffDipolePerpendicular),
     "neighbor_cutoff_distance" 
@@ -381,6 +401,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
     "+" => Some(Token::Plus),
+    "primary_cell" => Some(Token::PrimaryCell),
     "pulse_sequence" => Some(Token::PulseSequence),
     "r2cce" => Some(Token::R2CCE),
     "radius" => Some(Token::Radius),
@@ -403,21 +424,26 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "[" => Some(Token::SquareBracketOpen),
     "structure_properties" => Some(Token::StructureProperties),
     "structures" => Some(Token::Structures),
+    "system_name" => Some(Token::SystemName),
     "temperature" => Some(Token::Temperature),
     "tensors" => Some(Token::Tensors),
+    "thermal" => Some(Token::Thermal),
     "*" => Some(Token::Times),
     "true" => Some(Token::True),
     "time_increments" => Some(Token::TimeIncrements),
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     "type" => Some(Token::Type),
     "vector" => Some(Token::Vector),
+    "void_probability" => Some(Token::VoidProbability),
     " " => Some(Token::Whitespace),
     "write_auxiliary_signals" => Some(Token::WriteAuxiliarySignals),
     "write_bath" => Some(Token::WriteBath),
     "write_clusters" => Some(Token::WriteClusters),
     "write_exchange_groups" => Some(Token::WriteExchangeGroups),
     "write_info" => Some(Token::WriteInfo),
+    "write_methyl_partitions" => Some(Token::WriteMethylPartitions),
     "write_orientation_signals" => Some(Token::WriteOrientationSignals),
+    "write_sans_spin_signals" => Some(Token::WriteSansSpinSignals),
     "write_structure_pdb" => Some(Token::WriteStructurePDB),
     "write_tensors" => Some(Token::WriteTensors),
     _ => None
@@ -835,26 +861,73 @@ impl ModeAttribute{
   pub fn from(tokens: Vec::<Token>) -> Result<Self,CluEError>
   {
 
+    // Locate "#"s within tokens.
     let sharp_indices = find_token(&Token::Sharp,&tokens);
     if sharp_indices.len() != 1 || sharp_indices[0] != 0{
       return Err(CluEError::ModeAttributeWrongSharp);
     } 
 
+    // Check formating.
     let idx = sharp_indices[0];
     if tokens[idx+1] != Token::SquareBracketOpen
     && tokens[tokens.len()-1] != Token::SquareBracketClose{
       return Err(CluEError::ModeAttributeWrongBrackets);
     }
 
+    // Determine which mode.
     let mode = ConfigMode::from(tokens[idx+2].clone())?; 
 
+    let args = if tokens.len() > 4{
+      split_on_token(tokens[idx+4..tokens.len()-2].to_vec(), 
+        Token::Comma)
+    }else{
+      Vec::<Vec::<Token>>::new()
+    };
+
+    let mut allow_positional_argument = true;
+
+    // Find label identifier.
+    let label: Option<String>;
+    let label_indices = find_token(&Token::Label,&tokens);
+    
+    if label_indices.is_empty(){
+      if args.len() >= 1{
+        label = Some(args[0][0].to_string());
+      }else{
+        label = None;
+      }
+    } else if label_indices.len() == 1 
+      && tokens[label_indices[0]+1] == Token::Equals{
+      
+      allow_positional_argument = false;
+
+      if let Token::UserInputValue(value)=&tokens[label_indices[0]+2]{
+        label = Some(value.clone());
+      }else{
+        return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+      }
+    } else {
+      return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+    }
+
+    // Find isotope identifier.
     let isotope: Option<Isotope>;
     let isotope_indices = find_token(&Token::Isotope, &tokens);
 
     if isotope_indices.is_empty(){
-      isotope = None;
+      if args.len() >= 2{
+        if !allow_positional_argument{
+          return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+        }
+        isotope = Some(Isotope::from(&args[1][0].to_string())?);
+      }else{
+        isotope = None;
+      }
     } else if isotope_indices.len() == 1 
       && tokens[isotope_indices[0]+1] == Token::Equals{
+      
+       allow_positional_argument = false;
+
        if  let Token::UserInputValue(value)=&tokens[isotope_indices[0]+2]{
         let isotope_value = Isotope::from(value)?;
         isotope = Some(isotope_value);
@@ -866,29 +939,24 @@ impl ModeAttribute{
       return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
     }
 
-    let label: Option<String>;
-    let label_indices = find_token(&Token::Label,&tokens);
-    
-    if label_indices.is_empty(){
-      label = None;
-    } else if label_indices.len() == 1 
-      && tokens[label_indices[0]+1] == Token::Equals{
-      if let Token::UserInputValue(value)=&tokens[label_indices[0]+2]{
-        label = Some(value.clone());
-      }else{
-        return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
-      }
-    } else {
-      return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
-    }
-
+    // Find path identifier.
     let path: Option<String>;
     let path_indices = find_token(&Token::Path, &tokens);
 
     if path_indices.is_empty(){
-      path = None;
+      if args.len() >= 3{
+        if !allow_positional_argument{
+          return Err(CluEError::ModeAttributeWrongOption(mode.to_string()));
+        }
+        path = Some(args[2][0].to_string());
+      }else{
+        path = None;
+      }
     } else if path_indices.len() == 1 
       && tokens[path_indices[0]+1] == Token::Equals{
+      
+       //allow_positional_argument = false;
+
        if  let Token::UserInputValue(value)=&tokens[path_indices[0]+2]{
         path = Some(value.clone());
       }else{
@@ -945,7 +1013,7 @@ impl ConfigMode{
     match token{
       Token::Clusters => Ok(ConfigMode::Clusters),
       Token::Config => Ok(ConfigMode::Config),
-      Token::Filter => Ok(ConfigMode::Filter),
+      Token::Filter | Token::Group => Ok(ConfigMode::Filter),
       Token::SpinProperties => Ok(ConfigMode::SpinProperties),
       Token::Spins => Ok(ConfigMode::Spins),
       Token::StructureProperties => Ok(ConfigMode::StructureProperties),
@@ -980,23 +1048,26 @@ mod tests{
   #[test]
   fn test_identify_token(){
     assert_eq!(identify_token("active"), Some(Token::Active));
+    assert_eq!(identify_token("approx_thermal"), Some(Token::ApproxThermal));
     assert_eq!(identify_token("!"), Some(Token::Bang));
     assert_eq!(identify_token("*/"), Some(Token::BlockCommentEnd));
     assert_eq!(identify_token("/*"),Some( Token::BlockCommentStart));
     assert_eq!(identify_token("cp"),Some( Token::CarrPurcell));
     assert_eq!(identify_token("cce"),Some( Token::CCE));
-    assert_eq!(identify_token("cell_ids"),Some( Token::CellIDs));
     assert_eq!(identify_token("centroid_over_serials"),
         Some(Token::CentroidOverSerials));
     assert_eq!(identify_token("clash_distance_pbc"),
         Some(Token::ClashDistancePBC));
     assert_eq!(identify_token("cluster_batch_size"),
         Some(Token::ClusterBatchSize));
+    assert_eq!(identify_token("cluster_density_matrix"),
+        Some(Token::ClusterDensityMatrix));
     assert_eq!(identify_token("cluster_method"),Some(Token::ClusterMethod));
     assert_eq!(identify_token("clusters"),Some( Token::Clusters));
     assert_eq!(identify_token(":"),Some( Token::Colon));
     assert_eq!(identify_token(","),Some( Token::Comma));
     assert_eq!(identify_token("config"),Some( Token::Config));
+    assert_eq!(identify_token("cosubstitute"),Some( Token::Cosubstitute));
     assert_eq!(identify_token("cube"),Some( Token::Cube));
     assert_eq!(identify_token("}"),Some( Token::CurlyBracketClose));
     assert_eq!(identify_token("{"),Some( Token::CurlyBracketOpen));
@@ -1027,16 +1098,14 @@ mod tests{
     assert_eq!(identify_token("element"),Some( Token::Element));
     assert_eq!(identify_token("\n"),Some( Token::EOL));
     assert_eq!(identify_token("="),Some( Token::Equals));
-    assert_eq!(identify_token("extracell_isotope_abundances"),
-        Some( Token::ExtracellIsotopeAbundances));
-    assert_eq!(identify_token("extracell_void_probability"),
-        Some( Token::ExtracellVoidProbability));
+    assert_eq!(identify_token("extracells"), Some( Token::Extracells));
     assert_eq!(identify_token("false"),Some( Token::False));
     assert_eq!(identify_token("filter"),Some( Token::Filter));
     assert_eq!(identify_token("gcce"),Some( Token::GCCE));
     assert_eq!(identify_token("g_matrix"),Some( Token::GMatrix));
     assert_eq!(identify_token(">"),Some( Token::GreaterThan));
     assert_eq!(identify_token(">="),Some( Token::GreaterThanEqualTo));
+    assert_eq!(identify_token("group"),Some( Token::Group));
     assert_eq!(identify_token("g_x"),Some( Token::GX));
     assert_eq!(identify_token("g_y"),Some( Token::GY));
     assert_eq!(identify_token("g_z"),Some( Token::GZ));
@@ -1047,6 +1116,7 @@ mod tests{
     assert_eq!(identify_token("hyperfine_x"),Some( Token::HyperfineX));
     assert_eq!(identify_token("hyperfine_y"),Some( Token::HyperfineY));
     assert_eq!(identify_token("hyperfine_z"),Some( Token::HyperfineZ));
+    assert_eq!(identify_token("identity"),Some( Token::Identity));
     assert_eq!(identify_token("in"),Some( Token::In));
     assert_eq!(identify_token("input_structure_file"),
         Some(Token::InputStructureFile));
@@ -1065,8 +1135,8 @@ mod tests{
     assert_eq!(identify_token("-"),Some( Token::Minus));
     assert_eq!(identify_token("neighbor_cutoff_delta_hyperfine"),
         Some(Token::NeighborCutoffDeltaHyperfine));
-    assert_eq!(identify_token("neighbor_cutoff_dipole_dipole"),
-        Some(Token::NeighborCutoffDipoleDipole));
+    assert_eq!(identify_token("neighbor_cutoff_coupling"),
+        Some(Token::NeighborCutoffCoupling));
     assert_eq!(identify_token("neighbor_cutoff_dipole_perpendicular"),
         Some(Token::NeighborCutoffDipolePerpendicular));
     assert_eq!(identify_token("neighbor_cutoff_distance"),
@@ -1087,6 +1157,7 @@ mod tests{
     assert_eq!(identify_token(")"),Some( Token::ParenthesisClose));
     assert_eq!(identify_token("("),Some( Token::ParenthesisOpen));
     assert_eq!(identify_token("+"),Some( Token::Plus));
+    assert_eq!(identify_token("primary_cell"), Some( Token::PrimaryCell));
     assert_eq!(identify_token("pulse_sequence"),Some( Token::PulseSequence));
     assert_eq!(identify_token("radius"),Some( Token::Radius));
     assert_eq!(identify_token("random"),Some( Token::Random));
@@ -1108,16 +1179,20 @@ mod tests{
     assert_eq!(identify_token("structure_properties"),
         Some(Token::StructureProperties));
     assert_eq!(identify_token("structures"),Some( Token::Structures));
+    assert_eq!(identify_token("system_name"),Some( Token::SystemName));
     assert_eq!(identify_token("temperature"),Some( Token::Temperature));
     assert_eq!(identify_token("tensors"),Some( Token::Tensors));
     assert_eq!(identify_token("time_increments"),
         Some(Token::TimeIncrements));
+    assert_eq!(identify_token("thermal"),Some( Token::Thermal));
     assert_eq!(identify_token("*"),Some( Token::Times));
     assert_eq!(identify_token("true"),Some( Token::True));
     assert_eq!(identify_token("tunnel_splitting"),
         Some(Token::TunnelSplitting));
     assert_eq!(identify_token("type"),Some( Token::Type));
     assert_eq!(identify_token("vector"),Some( Token::Vector));
+    assert_eq!(identify_token("void_probability"),
+        Some( Token::VoidProbability));
     assert_eq!(identify_token(" "),Some( Token::Whitespace));
     assert_eq!(identify_token("write_auxiliary_signals"),
         Some(Token::WriteAuxiliarySignals));
@@ -1128,8 +1203,12 @@ mod tests{
     assert_eq!(identify_token("write_exchange_groups"),
         Some(Token::WriteExchangeGroups));
     assert_eq!(identify_token("write_info"),Some(Token::WriteInfo));
+    assert_eq!(identify_token("write_methyl_partitions"),
+        Some(Token::WriteMethylPartitions));
     assert_eq!(identify_token("write_orientation_signals"),
         Some(Token::WriteOrientationSignals));
+    assert_eq!(identify_token("write_sans_spin_signals"),
+        Some(Token::WriteSansSpinSignals));
     assert_eq!(identify_token("write_structure_pdb"),
         Some(Token::WriteStructurePDB));
     assert_eq!(identify_token("write_tensors"),
