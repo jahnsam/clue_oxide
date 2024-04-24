@@ -36,6 +36,7 @@ pub struct Config{
   pub clash_distance_pbc: Option<f64>,
   pub cluster_batch_size: Option<usize>, 
   pub cluster_method: Option<ClusterMethod>,
+  pub clusters_file: Option<String>,
   pub density_matrix: Option<DensityMatrixMethod>,
   pub detected_spin_g_matrix: Option<TensorSpecifier>,
   pub detected_spin_identity: Option<Isotope>,
@@ -610,6 +611,9 @@ impl Config{
 
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::ClustersFile 
+        => set_to_some_string(&mut self.clusters_file, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::DetectedSpinGMatrix 
         | Token::DetectedSpinGX| Token::DetectedSpinGY | Token::DetectedSpinGZ
         =>{
@@ -1169,6 +1173,7 @@ mod tests{
         detected_spin_g_y = [-1.1500, -0.4700, 0.7100];
         detected_spin_g_x = diff(group(tempo_c1) , filter(tempo_c19) );
         detected_spin_position = centroid_over_serials([28,29]);
+        input_clusters_file = \"clusters_file.txt\";
         input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
         load_geometry = cube;
         max_cluster_size = 4;
@@ -1224,6 +1229,8 @@ mod tests{
         Some(DetectedSpinCoordinates::CentroidOverSerials(vec![28,29])));
     assert_eq!(config.input_structure_file, 
          Some("../../assets/TEMPO_wat_gly_70A.pdb".to_string()));
+    assert_eq!(config.clusters_file, 
+         Some("clusters_file.txt".to_string()));
     
     assert_eq!(config.load_geometry, Some(LoadGeometry::Cube));
     assert_eq!(config.max_cluster_size, Some(4));

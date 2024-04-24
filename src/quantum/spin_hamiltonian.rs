@@ -98,6 +98,7 @@ pub fn propagate_pulse_sequence(
   Ok(Signal{data: signal})
 }
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/*
 /// This function is still under construction.
 /// Please be patient.
 pub fn propagate_pulse_sequence_gcce(
@@ -168,6 +169,7 @@ pub fn propagate_pulse_sequence_gcce(
   panic!("CluE gCCE is still under construction.");
   //Ok(Signal{data: signal})
 }
+*/
 //------------------------------------------------------------------------------
 pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
   -> Result<CxMat,CluEError>
@@ -286,6 +288,7 @@ pub fn get_propagators_complex_time(hamiltonian: &CxMat,
   Ok(propagators)
 }
 //------------------------------------------------------------------------------
+/*
 fn ideal_two_state_pulse(spin_op: &SpinOp, angle: f64)
   -> CxMat
 {
@@ -298,7 +301,9 @@ fn ideal_two_state_pulse(spin_op: &SpinOp, angle: f64)
 
 
 }
+*/
 //------------------------------------------------------------------------------
+/*
 fn ideal_pulse(spin_op: &SpinOp, angle: f64, 
     spin_multipliciy: usize, transition: &[usize;2])
   -> Result<CxMat,CluEError>
@@ -318,6 +323,7 @@ fn ideal_pulse(spin_op: &SpinOp, angle: f64,
 
   Ok(u)
 }
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -868,20 +874,26 @@ mod tests {
     }
   }
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_propagate_pulse_sequence_gcce(){
     assert!(false);
   }
+  */
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_ideal_two_state_pulse(){
     assert!(false);
   }
+  */
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_ideal_pulse(){
     assert!(false);
   }
+  */
   //----------------------------------------------------------------------------
   #[test]
   fn test_build_hamiltonian(){

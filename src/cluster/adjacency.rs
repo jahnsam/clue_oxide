@@ -1,17 +1,22 @@
 use crate::math;
 
-
+/// This struct is holds the vertex adjacency lists for a graph.
 #[derive(Debug,Clone)]
 pub struct AdjacencyList{
   list: Vec::< Option<Vec::<usize>> >,
 }
+
 impl AdjacencyList{
 
   //----------------------------------------------------------------------------
+  /// This method returns the number of vertices in the list.
   pub fn len(&self) -> usize{ self.list.len() }
   //----------------------------------------------------------------------------
+  /// This function `true` iff there are no vertices in the list.
   pub fn is_empty(&self) -> bool{ self.list.is_empty() }
   //----------------------------------------------------------------------------
+  /// This function returns an `AdjacencyList` with `n` active but empty 
+  /// vertices.
   pub fn active_with_capacity(n: usize) -> Self{
     let mut list = Vec::< Option<Vec::<usize>> >::with_capacity(n);
     for _ii in 0..n{
@@ -21,6 +26,7 @@ impl AdjacencyList{
     AdjacencyList{list}
   }
   //----------------------------------------------------------------------------
+  /// This function returns an `AdjacencyList` with `n` empty vertices.
   pub fn with_capacity(n: usize) -> Self{
     let mut list = Vec::< Option<Vec::<usize>> >::with_capacity(n);
     for _ii in 0..n{
@@ -30,12 +36,15 @@ impl AdjacencyList{
     AdjacencyList{list}
   }
   //----------------------------------------------------------------------------
-
+  /// This method returns `true` iff vertices `m` and `n` have an edge between
+  /// them.
   pub fn are_connected(&self, m: usize, n: usize) -> bool{
     self.contains(m,n)
   }
 
   //----------------------------------------------------------------------------
+  // This method returns `true` iff vertices `m` and `n` have an edge between
+  // them.
   fn contains(&self,m: usize, n: usize) -> bool{
 
     if let Some(neighbors) = &self.list[m]{
@@ -49,6 +58,8 @@ impl AdjacencyList{
     false
   }
   //----------------------------------------------------------------------------
+  /// This function places an edge between vertices `m` and `n`.
+  /// Connecting a vertex to itself activates it.
   pub fn connect(&mut self, m: usize, n: usize){
     if m==n {
       self.activate(m);
@@ -60,12 +71,14 @@ impl AdjacencyList{
   }
 
   //----------------------------------------------------------------------------
+  // This method activates vertex `n`.
   fn activate(&mut self, n: usize){
     if self.list[n].is_none(){
       self.list[n] = Some(Vec::new());
     }
   }
   //----------------------------------------------------------------------------
+  // This function places `n` onto the neighbor list of `m`.
   fn insert(&mut self, m: usize, n: usize){
 
     if let Some(neighbors) = &mut self.list[m]{
@@ -77,6 +90,7 @@ impl AdjacencyList{
     }
   }
   //----------------------------------------------------------------------------
+  /// This function returns the neighbor list of vertex `n`.
   pub fn get_neighbors(& self, n: usize) -> Option<& Vec::<usize>>{
     if let Some(neighbors) = &self.list[n]{
       return Some(neighbors);
@@ -84,6 +98,7 @@ impl AdjacencyList{
     None
   }
   //----------------------------------------------------------------------------
+  /// This function returns the number of active vertices.
   pub fn n_active_vertices(&self) -> usize{
     let mut counter = 0;
     for ii in 0..self.len(){
@@ -94,6 +109,7 @@ impl AdjacencyList{
     counter
   }
   //----------------------------------------------------------------------------
+  /// This method returns a list of the active vertices.
   pub fn get_active_vertices(&self) -> Vec::<usize>{
     let counter = self.n_active_vertices();
 

@@ -4,6 +4,7 @@ use crate::cluster::{Cluster,
   get_subclusters::build_subclusters,
   find_clusters::ClusterSet};
 use crate::signal::{Signal, load_batch_signals, write_batch_signals};
+use crate::structure::Structure;
 use crate::HamiltonianTensors;
 use crate::math;
 use crate::quantum::spin_hamiltonian::*;
@@ -17,13 +18,13 @@ use std::path::Path;
 pub fn do_cluster_correlation_expansion(
     cluster_set: &mut ClusterSet, spin_ops: &ClusterSpinOperators,
     tensors: &HamiltonianTensors, config: &Config, 
-    save_path_opt: &Option<String>
+    save_path_opt: &Option<String>,structure: &Structure,
     ) -> Result<Vec::<Signal>,CluEError>
 {
 
   
   calculate_auxiliary_signals(cluster_set, spin_ops, tensors, config, 
-      save_path_opt)?; 
+      save_path_opt,structure)?; 
 
   let n_tot = config.number_timepoints.iter().sum::<usize>();
   let max_size = cluster_set.clusters.len();
@@ -51,7 +52,7 @@ pub fn do_cluster_correlation_expansion(
 fn calculate_auxiliary_signals(
     cluster_set: &mut ClusterSet, spin_ops: &ClusterSpinOperators,
     tensors: &HamiltonianTensors, config: &Config, 
-    save_path_opt: &Option<String>
+    save_path_opt: &Option<String>, structure: &Structure,
     ) 
   -> Result<(),CluEError>
 {
@@ -171,7 +172,7 @@ fn calculate_auxiliary_signals(
               save_dir, cluster_size,ibatch);
 
           write_batch_signals(&clusters[cluster_size-1], n_tot, idx, batch_size,
-              &aux_filename)?; 
+              &aux_filename, structure)?; 
         }
       }
     }
@@ -224,6 +225,7 @@ mod tests{
   use crate::physical_constants::ONE;
   use crate::quantum::tensors::*;
   use crate::signal::calculate_analytic_restricted_2cluster_signals::*;
+  use crate::structure::particle::Particle;
   use crate::space_3d::{SymmetricTensor3D,Vector3D};
 
   //----------------------------------------------------------------------------
@@ -261,10 +263,18 @@ mod tests{
 
     let mut cluster_set = find_clusters(&adjacency_list, 3).unwrap();
 
+    let bath_particles = Vec::<Particle>::with_capacity(4);
+    let connections = AdjacencyList::with_capacity(4);
+    let cell_offsets =  vec![Vector3D::zeros()];
+    
+    let structure = Structure::new( bath_particles, connections, cell_offsets);
+
     let order_n_signals = do_cluster_correlation_expansion(&mut cluster_set, 
-        &spin_ops, &tensors, &config, &None).unwrap();
+        &spin_ops, &tensors, &config, &None, &structure).unwrap();
 
     let spin_indices = vec![1,2];
+
+
     let ref_signal_opt = analytic_restricted_2cluster_signal(
         &spin_indices,&tensors,&config).unwrap();
     let Some(ref_signal) = ref_signal_opt else{

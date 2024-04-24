@@ -1,7 +1,7 @@
 use crate::CluEError;
 use crate::physical_constants::ANGSTROM;
 use crate::space_3d::Vector3D;
-//use crate::structure::Structure;
+use crate::structure::Structure;
 
 use std::fs::File;
 use std::io::BufWriter;
@@ -32,7 +32,8 @@ pub struct ExchangeGroupManager{
 }
 
 impl ExchangeGroupManager{
-  pub fn to_csv(&self, filename: &str) -> Result<(),CluEError>
+  pub fn to_csv(&self, filename: &str,structure: &Structure) 
+    -> Result<(),CluEError>
   {
     let Ok(file) = File::create(filename) else{
       return Err(CluEError::CannotOpenFile(filename.to_string()) );
@@ -52,6 +53,7 @@ exchange_coupling\n".to_string();
       return Err(CluEError::CannotWriteFile(filename.to_string()) );
     }
 
+    let pdb_origin = structure.pdb_origin.scale(1.0/ANGSTROM);
     for (ii,exchange_group) in self.exchange_groups.iter().enumerate(){
 
       let methyl_str = exchange_group.to_string();
@@ -60,7 +62,12 @@ exchange_coupling\n".to_string();
       let j = self.exchange_couplings[ii];
 
       let line = format!("{},{},{},{},{},{},{},{}\n",
-          methyl_str, r.x(), r.y(), r.z(), n.x(),n.y(), n.z(), j);
+          methyl_str, 
+          r.x() - pdb_origin.x(), 
+          r.y() - pdb_origin.y(), 
+          r.z() - pdb_origin.z(), 
+          n.x(),n.y(), n.z(), 
+          j);
     
       if stream.write(line.as_bytes()).is_err(){
         return Err(CluEError::CannotWriteFile(filename.to_string()) );
@@ -155,6 +162,7 @@ impl GetCentroid for C3Rotor{
 }
 impl C3Rotor{                                                                     
                                                                                  
+//------------------------------------------------------------------------------
 pub fn from(r_carbon: Vector3D,                                                   
     h0: Vector3D,                                                                 
     h1: Vector3D,                                                                 
@@ -180,12 +188,14 @@ pub fn from(r_carbon: Vector3D,
   C3Rotor{ center, normal, indices}
 }                                                                                
 
+//------------------------------------------------------------------------------
 
 pub fn normal(&self) -> &Vector3D {                                                
   &self.normal                                                      
 }
 }
 
+//------------------------------------------------------------------------------
 impl GetIndices for C3Rotor{
   fn indices(&self) -> Vec::<usize>{
     
@@ -197,7 +207,7 @@ impl GetIndices for C3Rotor{
     out
   }
 }
-
+//------------------------------------------------------------------------------
 impl Translate for C3Rotor{
   fn translate(&mut self, r: &Vector3D){
    self.center = &self.center + r;

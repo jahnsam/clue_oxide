@@ -18,6 +18,7 @@ pub enum CluEError{
   CannotDivTokens,
   CannotFindCellID(usize),
   CannotFindSpinOp(String),
+  CannotFindParticleForRefIndex(usize),
   CannotFindRefIndexFromBathIndex(usize),
   CannotFindRefIndexFromNthActive(usize),
   CannotInferEigenvalues(usize),
@@ -48,9 +49,12 @@ pub enum CluEError{
   CIFNoFractY,
   CIFNoFractZ,
   CIFNoTypeSymbol,
+  ClusterFileContainsNoHeader(String),
   ClusterHasNoSignal(String),
+  ClusterLineFormatError(String),
   ConfigModeNotRecognized(String),
   DeprecatedKeywordReplaced(usize,String,String),
+  DetectedSpinDoesNotHaveAnActiveIndex,
   EmptyVector(usize),
   ExpectedClusterSetWithNSizes(usize,usize),
   ExpectedEquality(usize),
@@ -141,6 +145,7 @@ pub enum CluEError{
   NoTimepoints,
   OptionAlreadySet(usize,String),
   ParticlesClash(usize,String,usize,String,f64,f64),
+  ParticleIsNotActive(usize),
   SaveNameEmpty,
   SaveNameNotSet,
   SecondaryFilterRequiresAnIndex(String),
@@ -214,6 +219,9 @@ impl fmt::Display for CluEError{
       CluEError::CannotFindSpinOp(sop) => write!(f,
           "cannot find spin operator \"{}\"",sop),
 
+      CluEError::CannotFindParticleForRefIndex(ref_index) => write!(f,
+          "cannot find bath index for reference index \"{}\"", ref_index),
+
       CluEError::CannotFindRefIndexFromBathIndex(bath_index) => write!(f,
           "cannot find reference index for bath index \"{}\"", bath_index),
 
@@ -274,8 +282,17 @@ followed by a column for the weights", filename),
       CluEError::CannotConvertToVector(line_number) => write!(f,
           "line {}, cannot find vector", line_number),
 
+      CluEError::ClusterFileContainsNoHeader(file) => write!(f,
+          "Cluster file \"{}\" does not contain the correct header: \
+\"#[clusters, number_clusters = [N1,N2,...Nn] ]\", where Ni is the number \
+of clusters of size i in the file, and the list runs from to clusters of \
+size n.", file),
+
       CluEError::ClusterHasNoSignal(cluster) => write!(f,
           "expected cluster {} to have a signal, but found none", cluster),
+
+      CluEError::ClusterLineFormatError(line) => write!(f,
+          "cluster line \"{}\" is not formatted correctly", line),
 
       CluEError::CannotWriteFile(file) => write!(f,
           "cannot write to \"{}\"", file),
@@ -327,6 +344,10 @@ followed by a column for the weights", filename),
 
       CluEError::EmptyVector(line_number) => write!(f,
           "line {}, supplied vector is emptry", line_number),
+
+      CluEError::DetectedSpinDoesNotHaveAnActiveIndex => write!(f,
+          "the detected spin is always active and so does have an index \
+fo nth active"),
 
       CluEError::ExpectedClusterSetWithNSizes(n_exp,n_act) => write!(f,
           "expected a cluster set with {} sizes, but got {} sizes",
@@ -616,6 +637,9 @@ and p0,p1 > 0 are abundances",line_number),
       CluEError::ParticlesClash(idx0,elmt0,idx1,elmt1,r,r_clash) => write!(f,
           "particle {} {} and particle {} {} are {} Å apart, closer than the
 clash distance of {} Å",idx0,elmt0,idx1,elmt1,r,r_clash),
+
+      CluEError::ParticleIsNotActive(ref_index) => write!(f,
+          "particle \"{}\" is not active", ref_index),
 
       CluEError::OptionAlreadySet(line_number,err_token) => write!(f,
           "line {}, \"{}\" has already been set",line_number, err_token),

@@ -6,6 +6,7 @@ pub mod adjacency;
 pub mod build_adjacency_list;
 pub mod connected_subgraphs;
 pub mod find_clusters;
+pub mod read_clusters;
 pub mod get_subclusters;
 pub mod methyl_clusters;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -34,7 +35,7 @@ impl ToString for Cluster{
       return "[]".to_string();
     }
 
-    let mut string = format!("[{}", cluster[0] );
+    let mut string = format!("[{}", cluster[0]);
 
     for vertex in cluster.iter().skip(1){
       string = format!("{},{}",string,vertex);
@@ -109,20 +110,32 @@ impl Cluster{
     &self.vertices
   } 
   //----------------------------------------------------------------------------
-  pub fn to_header(&self) -> String {
+  pub fn to_header(&self, structure: &Structure) -> Result<String,CluEError> {
     // "clu_1_2_3_4"
     let cluster = &self.vertices;
 
     if cluster.is_empty(){
-      return "clu".to_string();
+      return Ok("clu".to_string());
     }
 
-    let mut string = format!("clu_{}", cluster[0] );
+    /*
+    let mut string = format!("clu_{}", cluster[0]);
 
     for vertex in cluster.iter().skip(1){
       string = format!("{}_{}",string,vertex);
     } 
-    string
+    */
+    let mut string = format!("clu_{}", 
+        structure.get_reference_index_of_nth_active(cluster[0])? 
+        );
+
+    for &vertex in cluster.iter().skip(1){
+      string = format!("{}_{}",string,
+          structure.get_reference_index_of_nth_active(vertex)?
+          );
+    } 
+
+    Ok(string)
   }
 }
 

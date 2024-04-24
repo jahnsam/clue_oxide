@@ -11,6 +11,9 @@ use crate::signal::calculate_analytic_restricted_2cluster_signals::{
 };
 use crate::structure::Structure;
 
+//------------------------------------------------------------------------------
+/// This function builds the clusterization graph, where spins are vertices,
+/// and edges are crerated based on criteria defined in `config`.
 pub fn build_adjacency_list(tensors: &HamiltonianTensors, 
     structure: &Structure, config: &Config) 
   -> Result<AdjacencyList, CluEError>
@@ -34,6 +37,8 @@ pub fn build_adjacency_list(tensors: &HamiltonianTensors,
   Ok(adjacency_list)
 }
 //------------------------------------------------------------------------------
+// This function determines if an edge should be placed between the vertices
+// of spins with tensor indices `idx0` and `idx1`.
 fn are_spins_neighbors(idx0: usize,idx1: usize,
     tensors: &HamiltonianTensors, structure: &Structure, config: &Config) 
   -> Result<bool, CluEError>

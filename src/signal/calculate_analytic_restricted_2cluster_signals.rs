@@ -1,6 +1,7 @@
 use crate::Config;
 use crate::cluster::find_clusters::ClusterSet;
 use crate::signal::{Signal, load_batch_signals, write_batch_signals};
+use crate::structure::Structure;
 use crate::HamiltonianTensors;
 use crate::CluEError;
 use crate::physical_constants::{ONE,PI};
@@ -14,7 +15,8 @@ use std::path::Path;
 pub fn calculate_analytic_restricted_2cluster_signals(
     cluster_set: &mut ClusterSet, 
     tensors: &HamiltonianTensors, config: &Config, 
-    save_path_opt: &Option<String>
+    save_path_opt: &Option<String>,
+    structure: &Structure,
     ) ->Result<Vec::<Signal>, CluEError>
 {
 
@@ -89,7 +91,7 @@ pub fn calculate_analytic_restricted_2cluster_signals(
               save_dir, cluster_size,ibatch);
 
           write_batch_signals(&clusters[cluster_size-1], n_tot, idx, batch_size,
-              &aux_filename)?;
+              &aux_filename, structure)?;
         }
     }
   }

@@ -22,6 +22,7 @@ pub enum Token{
  ClusterDensityMatrix,
  ClusterMethod,
  Clusters,
+ ClustersFile,
  Colon,
  Comma,
  Config,
@@ -167,6 +168,7 @@ impl fmt::Display for Token{
       Token::ClusterDensityMatrix => write!(f,"cluster_density_matrix"),
       Token::ClusterMethod => write!(f,"cluster_method"),
       Token::Clusters => write!(f,"clusters"),
+      Token::ClustersFile => write!(f,"input_clusters_file"),
       Token::Colon => write!(f,":"),
       Token::Comma => write!(f,","),
       Token::Config => write!(f,"config"),
@@ -321,6 +323,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "cluster_density_matrix" => Some(Token::ClusterDensityMatrix),
     "cluster_method" => Some(Token::ClusterMethod),
     "clusters" => Some(Token::Clusters),
+    "input_clusters_file" => Some(Token::ClustersFile),
     ":" => Some(Token::Colon),
     "," => Some(Token::Comma),
     "config" => Some(Token::Config),
@@ -1064,6 +1067,7 @@ mod tests{
         Some(Token::ClusterDensityMatrix));
     assert_eq!(identify_token("cluster_method"),Some(Token::ClusterMethod));
     assert_eq!(identify_token("clusters"),Some( Token::Clusters));
+    assert_eq!(identify_token("input_clusters_file"),Some( Token::ClustersFile));
     assert_eq!(identify_token(":"),Some( Token::Colon));
     assert_eq!(identify_token(","),Some( Token::Comma));
     assert_eq!(identify_token("config"),Some( Token::Config));

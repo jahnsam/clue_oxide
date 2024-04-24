@@ -4,7 +4,8 @@ use crate::find_clusters;
 use crate::config::{Config,ClusterMethod,OrientationAveraging};
 use crate::CluEError;
 use crate::cluster::methyl_clusters::partition_cluster_set_by_exchange_groups;
-use crate::cluster::find_clusters::ClusterSet;
+use crate::cluster::{find_clusters::ClusterSet, 
+  read_clusters::read_cluster_file};
 use crate::HamiltonianTensors;
 use crate::integration_grid::IntegrationGrid;
 use crate::physical_constants::{ONE,PI};
@@ -114,7 +115,7 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
         if let Some(exchange_group_manager) = &structure.exchange_groups{
           if let Some(filename) = &config.write_exchange_groups{
             let csv_file = format!("{}/{}.csv",info_path,filename);
-            exchange_group_manager.to_csv(&csv_file)?;
+            exchange_group_manager.to_csv(&csv_file,&structure)?;
           }
         }
       }
@@ -233,17 +234,21 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   // Rotate the coupling tensor to the specified orientation.
   tensors.rotate_pasive(&rot_dir);
 
-  // Determine adjacencies.
-  let adjacency_list = build_adjacency_list(&tensors, structure, config)?;
 
   // Determine maximum cluster size.
   let Some(max_cluster_size) = config.max_cluster_size else{
     return Err(CluEError::NoMaxClusterSize);
   };
 
-  // Find clusters.
-  let mut cluster_set = find_clusters(&adjacency_list, max_cluster_size)?;
+  // Determine adjacencies.
+  let adjacency_list = build_adjacency_list(&tensors, structure, config)?;
 
+  // Find clusters.
+  let mut cluster_set = if let Some(clusters_file) = &config.clusters_file{
+    read_cluster_file(clusters_file, &structure)?
+  }else{
+    find_clusters(&adjacency_list, max_cluster_size)?
+  };
   // Remove partial methyls.
   let Some(do_remove_partial_methyls) = &config.remove_partial_methyls else{
     return Err(CluEError::NoRemovePartialMethyls);
@@ -268,14 +273,14 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   let order_n_signals = match &config.cluster_method{
     Some(ClusterMethod::AnalyticRestricted2CCE) => 
       calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
-          config,&save_dir_opt)?,
+          config,&save_dir_opt,structure)?,
     Some(_cce) => {
       let spin_multiplicity_set =
         math::unique(tensors.spin_multiplicities.clone());
       let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
           max_cluster_size)?;
       do_cluster_correlation_expansion(&mut cluster_set, &spin_ops, &tensors, 
-          config,&save_dir_opt)?
+          config,&save_dir_opt,structure)?
     },
     None => return Err(CluEError::NoClusterMethod)
   };

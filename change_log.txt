@@ -1,4 +1,24 @@
+
 --------------------------------------------------------------------------------
+CluE Oxide: 0.2.0-alpha.2
+2024-04-23
+
+FIXED:
+
+Bug fixed where find_exchange_groups() would give the wrong centroid value
+for methyl groups.
+
+CHANGED:
+
+Particle indices in save files are now more consistent; bath particles start 
+at 1, and increment by one for each atom regardless off whether the particle is 
+active or not, or even has a spin.
+
+The exchage_groups.csv now uses the same origin as the PDB, rather than
+setting the detected electron to the origin.
+
+--------------------------------------------------------------------------------
+CluE Oxide: 0.2.0-alpha.1
 2024-01-09
 
 CHANGED:

@@ -96,7 +96,7 @@ pub struct Structure{
   extracell_particle_config_ids: Vec::<Option<usize>>,
 
   // origin of the pdb frame
-  pdb_origin: Vector3D,
+  pub pdb_origin: Vector3D,
 
   // list indices indicating the particle that each particle is a periodic
   // boundary condition copy of  
@@ -220,6 +220,7 @@ impl Structure{
     Ok(bath_index + 1)
   }
   //----------------------------------------------------------------------------
+  /// This function retrieves the bath index of `n`th active particle.
   pub fn get_bath_index_of_nth_active(&self, n: usize) 
     -> Result<usize,CluEError>
   {
@@ -243,6 +244,8 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
+  /// This function builds `nth_active_to_reference_index`, which maps
+  /// the set of active particles to the set of all system particles.
   pub fn map_nth_active_to_reference_indices(&mut self){
 
     let mut act_to_ref = Vec::<usize>::with_capacity(self.number_active() + 1);
@@ -258,6 +261,57 @@ impl Structure{
     self.nth_active_to_reference_index = act_to_ref;
   }
   //----------------------------------------------------------------------------
+  /// This function takes a reference index and returns either `Ok(n)`,
+  /// where when counting active particles in bath_particles, particle
+  /// reference_index is the nth active particle.
+  pub fn get_nth_active_from_reference_index(&self, reference_index: usize) 
+    -> Result<usize,CluEError>
+  { 
+    // Check that the particle is a bath particle.
+    if reference_index == 0{
+      return Err(CluEError::DetectedSpinDoesNotHaveAnActiveIndex);
+    }
+    let bath_index = reference_index - 1;
+
+    if bath_index >= self.bath_particles.len(){
+      return Err(CluEError::CannotFindParticleForRefIndex(reference_index));
+    }
+
+    if !self.bath_particles[bath_index].active{
+      return Err(CluEError::ParticleIsNotActive(reference_index));
+    }
+
+    // Count active particle upto and including the bath_index particle.
+    let mut nth_active = 0;
+
+    for (ii,particle) in self.bath_particles.iter().enumerate(){
+      if particle.active{
+        nth_active += 1;
+      }
+      if ii == bath_index{
+        break;
+      }
+    }
+    /*
+    let nth_active: usize = self.bath_particle.iter().take(bath_index+1)
+      .map(|particle| 
+          if particle.active{
+            1
+          }else{
+            0
+          }
+       ).sum();
+    */
+    let ref_idx = self.get_reference_index_of_nth_active(nth_active)?;
+    if ref_idx != reference_index {
+      return Err(CluEError::CannotFindParticleForRefIndex(reference_index));
+    }
+
+    Ok(nth_active)
+  }
+  //----------------------------------------------------------------------------
+  /// This function takes a list of PDB serial numbers an returns the 
+  /// centroid position.
   pub fn centroid_over_serials(&self, serials: Vec::<u32>) 
     -> Result<Vector3D,CluEError>
   {

@@ -39,6 +39,7 @@ impl Structure{
     Ok(())
   }  
   //----------------------------------------------------------------------------
+  // This method places the detected spin into the system.
   fn set_detected_spin(&mut self, config: &Config) -> Result<(),CluEError>{
 
     let Some(detected_spin_position) = &config.detected_spin_position else{
@@ -236,24 +237,31 @@ impl Structure{
     Ok(())
  }
  //-----------------------------------------------------------------------------
+ // This function finds all the exchange groups and sets up the 
+ // data structures for including exchange couplings in the spin Hamiltonian.
+ // All the exchange couplings are initialized to zero.
  fn set_exchange_groups(&mut self){
 
    let exchange_groups = self.find_exchange_groups();
    
-   let mut exchange_group_ids 
-     = Vec::<Option<usize>>::with_capacity(self.number());
-   for _ii in 0..self.number(){
-     exchange_group_ids.push(None);
-   }
+   // Initialize `exchange_group_ids`.
+   let mut exchange_group_ids: Vec::<Option<usize>> 
+     = (0..self.number()).map(|_| None).collect();
 
-   let mut exchange_couplings 
-     = Vec::<f64>::with_capacity(exchange_groups.len());
+   // Loop through all exchange groups.
    for (ii,exchange_group) in exchange_groups.iter().enumerate(){
-     exchange_couplings.push(0.0);
+   
+     //Loop through all hydrogens in the group.
      for h in exchange_group.indices(){
+
+       // Set the group id for each hydrogen. 
        exchange_group_ids[h] = Some(ii);
      }
    }
+
+   // Set default coupling to zero.
+   let exchange_couplings: Vec::<f64> = (0..exchange_groups.len())
+     .map(|_| 0.0).collect();
 
    self.exchange_groups = Some( ExchangeGroupManager{
      exchange_groups,
@@ -262,6 +270,9 @@ impl Structure{
    });
  }  
  //-----------------------------------------------------------------------------
+ // This function searches through the structure and finds all methyl groups
+ // and primary amonium groups, and returns the info as a 
+ // `Vec::<ExchangeGroup>`.
  fn find_exchange_groups(&self) -> Vec::<ExchangeGroup> {
  
    // Five atoms are required to form a methyl group.
@@ -275,7 +286,7 @@ impl Structure{
       if let Some([h0,h1,h2]) = hydrogens {
         let r_carbon = self.bath_particles[ii].coordinates.clone();
         let r_h0 = self.bath_particles[h0].coordinates.clone();
-        let r_h1 = self.bath_particles[h2].coordinates.clone();
+        let r_h1 = self.bath_particles[h1].coordinates.clone();
         let r_h2 = self.bath_particles[h2].coordinates.clone();
 
         
@@ -293,6 +304,12 @@ impl Structure{
    exchange_groups
  }  
  //-----------------------------------------------------------------------------
+ // This method takes an index of a methyl group carbon or of a primary amonium 
+ // nitrogen and return the indices of the three bonded hyrogens.
+ // If the index is not a C or N bonded to exacly three H, the the return value
+ // is `None`; 
+ // otherwise the return value is `Some([h[0], h[1], h[2] ])`,
+ // where `h` is a list of the indices of the hydrogens in `bath_particles`.
  fn get_methyl_hydrogen_indices(&self, index: usize) ->Option<[usize;3] >{
    
    let particle = &self.bath_particles[index];

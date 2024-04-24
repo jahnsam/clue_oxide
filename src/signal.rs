@@ -4,6 +4,7 @@ pub mod cluster_correlation_expansion;
 
 use crate::CluEError;
 use crate::cluster::Cluster;
+use crate::structure::Structure;
 
 use std::ops::{Add,Sub,Mul,Div};
 use num_complex::Complex;
@@ -15,16 +16,21 @@ pub struct Signal{
 }
 impl Signal{
   //----------------------------------------------------------------------------
+  /// This function return the number of data points.
   pub fn len(&self) -> usize{
     self.data.len()
   }
   //----------------------------------------------------------------------------
+  /// This function return `true` iff there are no data.
   pub fn is_empty(&self) -> bool{
     self.data.is_empty()
   }
   //----------------------------------------------------------------------------
+  /// This function creates a new instance of `Signal` with no data.
   pub fn new() -> Self {Signal::default()}
   //----------------------------------------------------------------------------
+  /// This function creates a new instance of `Signal` with `n` data points,
+  /// all equal to one.
   pub fn ones(n: usize) -> Self {
     let mut data = Vec::<Complex<f64>>::with_capacity(n);
 
@@ -34,6 +40,8 @@ impl Signal{
     Signal{data}
   }
   //----------------------------------------------------------------------------
+  /// This function creates a new instance of `Signal` with `n` data points,
+  /// all equal to zero.
   pub fn zeros(n: usize) -> Self {
     let mut data = Vec::<Complex<f64>>::with_capacity(n);
 
@@ -43,6 +51,7 @@ impl Signal{
     Signal{data}
   }
   //----------------------------------------------------------------------------
+  /// This function scales every element by `scale_factor`.
   pub fn scale(&mut self, scale_factor: Complex<f64>){
 
     for z in self.data.iter_mut(){
@@ -51,6 +60,8 @@ impl Signal{
 
   }
   //----------------------------------------------------------------------------
+  /// This function tries to read a csv file into an `Ok(Signal)`.  
+  /// It will return an `Err(CluEError)` if it fails. 
   pub fn read_from_csv(filename: &str) -> Result<Self,CluEError>
   {
     match Self::read_single_signal_from_csv(filename){
@@ -60,6 +71,8 @@ impl Signal{
 
   }
   //----------------------------------------------------------------------------
+  // This function tries to read a csv file into an `Ok(Vec::<Complex<f64>>)`.
+  // This is the back end to `read_from_csv()`. 
   fn read_single_signal_from_csv(filename: &str)
     -> Result<Vec::<Complex<f64>>,Box<dyn Error>>
   {
@@ -83,6 +96,8 @@ impl Signal{
     Ok(signal)
   }
   //----------------------------------------------------------------------------
+  /// This function tries to write a `Signal` ro csv file.  
+  /// It will return an `Err(CluEError)` if it fails. 
   pub fn write_to_csv(&self, filename: &str) -> Result<(),CluEError>{
     match self.write_single_signal_to_csv(filename){
       Ok(()) => Ok(()),
@@ -90,6 +105,8 @@ impl Signal{
     }
   }
   //----------------------------------------------------------------------------
+  // This function tries to write a `Signal` ro csv file.  
+  // This is the back end to `write_to_csv()`.
   fn write_single_signal_to_csv(&self, filename: &str) 
     -> Result<(),Box<dyn Error>>
   {
@@ -105,12 +122,15 @@ impl Signal{
 }
 
 //------------------------------------------------------------------------------
+/// This function saves a `Vec::<Signal>` to a csv file.  
+/// Each `Signal` is saved as a coloumn with the supplied header.
+/// The function will return an error if the number of `Signal`s is different
+/// form the number of headers, if the `Signal`s are not all the same length,
+/// or if the csv file cannot be written.
 pub fn write_vec_signals(signals: &Vec::<Signal>, 
     headers: Vec::<String>, filename: &str) 
   -> Result<(),CluEError>
 {
-
-   //let headers = get_signal_headers(signals.len());
   
    if headers.len() != signals.len(){
      return Err(CluEError::MissingHeader(filename.to_string()));
@@ -128,18 +148,12 @@ pub fn write_vec_signals(signals: &Vec::<Signal>,
     }
 }
 //------------------------------------------------------------------------------
-/*
-fn get_signal_headers(n: usize) -> Vec::<String>
-{
-  let mut headers = Vec::<String>::with_capacity(n);
-  for ii in 0..n{
-    headers.push(format!("signal_{}",ii+1));
-  }
-
-  headers
-}
-*/
-//------------------------------------------------------------------------------
+// This function is the back end to `write_vec_signals()`, and saves a 
+// list of `Signal's to a csv file.  
+// Each `Signal` is saved as a coloumn with the supplied header.
+// The function will return an error if the number of `Signal`s is different
+// form the number of headers, if the `Signal`s are not all the same length,
+// or if the csv file cannot be written.
 fn write_vec_signals_to_csv(signals: &[Signal],filename: &str,
     headers: Vec::<String>) -> Result<(),Box<dyn Error>>
 {
@@ -165,6 +179,8 @@ fn write_vec_signals_to_csv(signals: &[Signal],filename: &str,
   Ok(())
 }
 //----------------------------------------------------------------------------
+// This function attempts to load a csv file into a `Vec::<Signal>`.
+// This function will return an error if it cannot find/parse the file.
 fn load_csv_to_vec_signals(filename: &str)
   -> Result<Vec::<Signal>, CluEError>
 {
@@ -207,6 +223,11 @@ fn load_csv_to_vec_signals(filename: &str)
   Ok(signals)
 }
 //------------------------------------------------------------------------------
+/// This function attempts to load a csv file, and attach each `Signal`
+/// to the corresponding cluster.
+/// The file is assummed to be saved from CluE Oxide as part of the
+/// checkpointing process.
+/// This function will return an error if it cannot find/parse the file.
 pub fn load_batch_signals(clusters: &mut [Cluster], 
     idx: usize, batch_size: usize, 
     filename: &str) -> Result<(),CluEError>
@@ -226,14 +247,22 @@ pub fn load_batch_signals(clusters: &mut [Cluster],
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function attempts to write a csv file containing the `Signal` data
+/// from a list of `Cluster`s.
+/// The file is assummed to be saved from CluE Oxide as part of the
+/// checkpointing process.
+/// This function will return an error if it cannot write the file.
 pub fn write_batch_signals(clusters: &[Cluster], 
     n_data: usize, idx: usize, batch_size: usize, 
-    filename: &str) -> Result<(),CluEError>
+    filename: &str, structure: &Structure) -> Result<(),CluEError>
 {
 
-  let headers = clusters.iter()
-    .skip(idx).take(batch_size).map(|cluster| cluster.to_header())
-    .collect::<Vec::<String>>();
+  let mut headers = Vec::<String>::with_capacity(batch_size);
+
+  for cluster in clusters.iter().skip(idx).take(batch_size){
+    let header = cluster.to_header(structure)?;
+    headers.push(header);
+  }
 
   let Ok(mut wtr) = csv::Writer::from_path(filename) else{
     return Err(CluEError::CannotWriteFile(filename.to_string()));
