@@ -18,7 +18,7 @@ opt-level = 3
 [dependencies]
 csv = "1.1"
 
-lebedev_laikov = {git = "https://github.com/Rufflewind/lebedev_laikov"}
+lebedev_laikov = {git = "https://github.com/Rufflewind/lebedev_laikov",version = "0.1.0"}
 
 ndarray = '0.15.0'
 ndarray-rand = "0.14.0"
