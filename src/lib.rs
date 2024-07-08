@@ -1,9 +1,11 @@
-//! CluE (Cluster Evolution) is a spin dynamics simulation program for
-//! electron spin decoherence.
+//! CluE Oxide (Cluster Evolution Oxide) is a spin dynamics simulation program 
+//! for electron spin decoherence.
 //!
-//! CluE implements Yang an Liu's cluster correlation expansion for an input
-//! structure, usually a PDB file.  Simulation details are specified in a config
-//! file.
+//! CluE Oxide implements Yang an Liu's cluster correlation expansion for an
+//! input structure, usually a PDB file.  
+//! 
+//! Documentation on CluE Oxide the program is provided in the 
+//![manual](https://github.com/jahnsam/clue_oxide/blob/main/manual/CluE_Oxide.pdf).
 pub mod config;
 pub mod clue_errors;
 pub mod cluster;
