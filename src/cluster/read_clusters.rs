@@ -25,7 +25,7 @@ pub fn read_cluster_file(filename: &str, structure: &Structure)
       return Err(CluEError::CannotOpenFile(filename.to_string()));
     };
 
-    if line.contains("#") || !line.contains("["){
+    if line.contains('#') || !line.contains('['){
       continue;
     }
     
@@ -54,10 +54,10 @@ fn parse_cluster_line(line: &str)
   -> Result<Vec::<usize>,CluEError>
 {
 
-  let Some(open_bracket) = line.find("[") else{
+  let Some(open_bracket) = line.find('[') else{
     return Err(CluEError::ClusterLineFormatError(line.to_string()));
   };
-  let Some(close_bracket) = line.find("]") else{
+  let Some(close_bracket) = line.find(']') else{
     return Err(CluEError::ClusterLineFormatError(line.to_string()));
   };
 
@@ -66,10 +66,10 @@ fn parse_cluster_line(line: &str)
   }
 
   let cluster_str = line.substring(open_bracket+1,close_bracket);
-  let n: usize = cluster_str.split(",").map(|_| 1).sum();
+  let n: usize = cluster_str.split(',').map(|_| 1).sum();
 
   let mut cluster = Vec::<usize>::with_capacity(n);
-  for s in cluster_str.split(","){
+  for s in cluster_str.split(','){
     let Ok(index) = s.parse::<usize>() else{
       return Err(CluEError::ClusterLineFormatError(line.to_string()));
     };
@@ -126,10 +126,10 @@ fn parse_number_clusters(line: &str, filename: &str)
 
   let new_line = new_line.substring(idx,new_line.len());
 
-  let Some(open_bracket) = new_line.find("[") else{
+  let Some(open_bracket) = new_line.find('[') else{
     return Err(CluEError::ClusterFileContainsNoHeader(filename.to_string()));
   };
-  let Some(close_bracket) = new_line.find("]") else{
+  let Some(close_bracket) = new_line.find(']') else{
     return Err(CluEError::ClusterFileContainsNoHeader(filename.to_string()));
   };
 
@@ -139,10 +139,10 @@ fn parse_number_clusters(line: &str, filename: &str)
   }
   let new_line = new_line.substring(open_bracket + 1,close_bracket) ;
 
-  let max_cluster_size: usize = new_line.split(",").map(|_| 1).sum();
+  let max_cluster_size: usize = new_line.split(',').map(|_| 1).sum();
   let mut n_clusters = Vec::<usize>::with_capacity(max_cluster_size);
 
-  for s in new_line.split(","){
+  for s in new_line.split(','){
     let Ok(n) = s.parse::<usize>() else {
       return Err(CluEError::ClusterFileContainsNoHeader(filename.to_string()));
     };

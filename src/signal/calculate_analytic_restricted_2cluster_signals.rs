@@ -109,7 +109,7 @@ pub fn calculate_analytic_restricted_2cluster_signals(
 //------------------------------------------------------------------------------
 /// This function applies Witzel Das Sarma's analytic solution to calculate
 /// the 2-CCE auxiliary signal the specified cluster.
-pub fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
+pub fn analytic_restricted_2cluster_signal(vertices: &[usize],
     tensors: &HamiltonianTensors, config: &Config) 
   -> Result<Option<Signal>,CluEError>
 {

@@ -193,7 +193,7 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
       let mean_hamiltonian = (&hamiltonian.beta + &hamiltonian.alpha)/2.0;
       
       let mut rhos = get_propagators_complex_time(&mean_hamiltonian,
-          &vec![-beta])?;
+          &[-beta])?;
 
       density_matrix = rhos.remove(0);
     },
@@ -206,10 +206,10 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
       let beta = I/(temperature*BOLTZMANN/HBAR);
       
       let rho_alpha = get_propagators_complex_time(&hamiltonian.alpha,
-          &vec![-beta])?;
+          &[-beta])?;
 
       let rho_beta = get_propagators_complex_time(&hamiltonian.beta,
-          &vec![-beta])?;
+          &[-beta])?;
 
       density_matrix = &rho_alpha[0] - &rho_beta[0];
     },
@@ -229,7 +229,7 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
 /// and calculates the propagator for each time.
 /// For each time _t_, the propagator _U_(_t_) = exp(-i2π_tH_), 
 /// where _H_ is a Hamiltonian in frequency units.
-pub fn get_propagators(hamiltonian: &CxMat, times: &Vec::<f64>  )
+pub fn get_propagators(hamiltonian: &CxMat, times: &[f64]  )
   -> Result<Vec::<CxMat>,CluEError> 
 {
   let Ok((eigvals, eigvecs)) = hamiltonian.eigh(UPLO::Lower) else{
@@ -263,7 +263,7 @@ pub fn get_propagators(hamiltonian: &CxMat, times: &Vec::<f64>  )
 /// For each time _t_, the propagator _U_(_t_) = exp(-i2π_tH_), 
 /// where _H_ is a Hamiltonian in frequency units.
 pub fn get_propagators_complex_time(hamiltonian: &CxMat, 
-    times: &Vec::<Complex<f64>>  )
+    times: &[Complex<f64>]  )
   -> Result<Vec::<CxMat>,CluEError> 
 {
   let Ok((eigvals, eigvecs)) = hamiltonian.eigh(UPLO::Lower) else{
@@ -341,7 +341,7 @@ pub struct SpinHamiltonian{
 //------------------------------------------------------------------------------
 /// This function builds the cluster spin Hamiltonian assuming
 /// < mS | H | mS' > = 0, for mS != mS',
-pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
+pub fn build_hamiltonian(spin_indices: &[usize],
     spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors, 
     config: &Config)
   -> Result<SpinHamiltonian,CluEError>
@@ -435,7 +435,7 @@ Ok(SpinHamiltonian{beta,alpha})
 //------------------------------------------------------------------------------
 /// This function builds the cluster spin Hamiltonian without assuming
 /// < mS | H | mS' > = 0, for mS != mS',
-pub fn build_spin_hamiltonian(spin_indices: &Vec::<usize>,
+pub fn build_spin_hamiltonian(spin_indices: &[usize],
     spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors)
   -> Result<CxMat,CluEError>
 {
@@ -510,7 +510,7 @@ pub struct ClusterSpinOperators {
 impl<'a> ClusterSpinOperators {
   /// This function builds 'ClusterSpinOperators' for clusters of 
   /// `spin_multiplicities` up to size `max_size`.
-  pub fn new(spin_multiplicities: &Vec<usize>, max_size: usize) 
+  pub fn new(spin_multiplicities: &[usize], max_size: usize) 
    -> Result<ClusterSpinOperators, CluEError> {
     
     let n_mults = spin_multiplicities.len();
@@ -524,7 +524,7 @@ impl<'a> ClusterSpinOperators {
 
     Ok(ClusterSpinOperators{
         max_size,
-        spin_multiplicities: spin_multiplicities.clone(),
+        spin_multiplicities: spin_multiplicities.to_owned(),
         cluster_spin_ops,
         })
   }
@@ -675,7 +675,7 @@ impl<'a> KronSpinOpList {
 //------------------------------------------------------------------------------
 /// This function generates the matrix for spin operators, `sops`,
 /// corresponding to spins with `spin_mults` spin multiplicities.
-pub fn kron_spin_op(spin_mults: &Vec<usize>, sops: &Vec<SpinOp>) ->
+pub fn kron_spin_op(spin_mults: &[usize], sops: &[SpinOp]) ->
   Result<CxMat,CluEError> 
 {
 

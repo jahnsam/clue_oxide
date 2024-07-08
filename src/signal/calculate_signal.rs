@@ -245,7 +245,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
 
   // Find clusters.
   let mut cluster_set = if let Some(clusters_file) = &config.clusters_file{
-    read_cluster_file(clusters_file, &structure)?
+    read_cluster_file(clusters_file, structure)?
   }else{
     find_clusters(&adjacency_list, max_cluster_size)?
   };

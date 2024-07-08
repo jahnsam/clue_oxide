@@ -318,7 +318,7 @@ impl Config{
   //----------------------------------------------------------------------------
   /// This function writes the simulated experiment's time axis to a file.
   pub fn write_time_axis(&self,save_path: String) -> Result<(),CluEError>{
-    io::write_data(& vec![self.time_axis.clone()], 
+    io::write_data(&[self.time_axis.clone()], 
         &format!("{}/time_axis.csv",save_path), vec!["time_axis".to_string()])
   }
   //----------------------------------------------------------------------------

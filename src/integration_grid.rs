@@ -191,7 +191,7 @@ impl IntegrationGrid{
   /// This function translates all the points in the grid by `vector`.
   /// The function will panic if the vector is of a different dimension than
   /// the grid.
-  pub fn translate(&mut self, vector: &Vec::<f64>){
+  pub fn translate(&mut self, vector: &[f64]){
     assert_eq!(vector.len(), self.dim);
 
     for (ii,x) in self.points.iter_mut().enumerate(){
@@ -232,7 +232,7 @@ impl IntegrationGrid{
       return Err(CluEError::CannotOpenFile(filename.to_string()));
     };
 
-    for (_irow, result) in rdr.records().enumerate() {
+    for result in rdr.records() {
       let Ok(record) = result else{
         return Err(CluEError::CannotOpenFile(filename.to_string()));
       };

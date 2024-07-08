@@ -102,7 +102,7 @@ impl Config{
       Token::Distance => {
         match expression.relationship { 
           Some(Token::LessThanEqualTo) => {
-            set_to_some_f64(&mut filter.within_distance, &expression)?;
+            set_to_some_f64(&mut filter.within_distance, expression)?;
             if let Some(r) = &mut filter.within_distance{
               *r *= ANGSTROM;
             }else{ 
@@ -110,7 +110,7 @@ impl Config{
             }
           },
           Some(Token::GreaterThanEqualTo) => {
-            set_to_some_f64(&mut filter.not_within_distance, &expression)?;
+            set_to_some_f64(&mut filter.not_within_distance, expression)?;
             if let Some(r) = &mut filter.not_within_distance{
               *r *= ANGSTROM;
             }else{ return Err(CluEError::FilterNoMinDistance(label.to_string()));}

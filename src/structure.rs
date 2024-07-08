@@ -355,11 +355,8 @@ impl Structure{
       config: &'a Config)
     -> Option<&'a TensorSpecifier>
   {
-    let Some(isotope_properties) = self.extract_isotope_properties(
-        particle_index,config) 
-    else{
-      return None;
-    };
+    let isotope_properties = self.extract_isotope_properties(
+        particle_index,config)?;
 
     isotope_properties.electric_quadrupole_coupling.as_ref()
   }
@@ -369,11 +366,8 @@ impl Structure{
       config: &'a Config)
     -> Option<&'a TensorSpecifier>
   {
-    let Some(isotope_properties) = self.extract_isotope_properties(
-        particle_index,config) 
-    else{
-      return None;
-    };
+    let isotope_properties = self.extract_isotope_properties(
+        particle_index,config)?;
 
     isotope_properties.g_matrix.as_ref()
   }
@@ -384,11 +378,9 @@ impl Structure{
       config: &'a Config)
     -> Option<&'a TensorSpecifier>
   {
-    let Some(isotope_properties) = self.extract_isotope_properties(
-        particle_index,config) 
-    else{
-      return None;
-    };
+
+    let isotope_properties = self.extract_isotope_properties(
+        particle_index,config)?;
 
     isotope_properties.hyperfine_coupling.as_ref()
   }
@@ -401,13 +393,9 @@ impl Structure{
   {
     let particle_index_0 = self.primary_cell_indices[particle_index];
 
-    let Some(p_cfg_id) = self.particle_config_ids[particle_index_0] else{
-      return None;
-    };
+    let p_cfg_id = self.particle_config_ids[particle_index_0]?;
 
-    let Some(properties) = &config.particles[p_cfg_id].properties else{
-      return None;
-    };
+    let properties = &config.particles[p_cfg_id].properties.as_ref()?;
 
     let key = self.bath_particles[particle_index].isotope.to_string();
     

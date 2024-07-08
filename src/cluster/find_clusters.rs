@@ -171,7 +171,7 @@ pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize)
 // This function takes a set of valid (n-1)-clusters and an `&AdjacencyList`,
 // and finds all the n-cluster that contain at least one of the (n-1)-clusters.
 fn build_n_clusters(
-    n_minus_1_clusters: &Vec::<Cluster>, 
+    n_minus_1_clusters: &[Cluster], 
     adjacency_list: &AdjacencyList)
   -> Result<ClusterSet,CluEError>
 {

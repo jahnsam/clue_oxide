@@ -913,7 +913,7 @@ impl ModeAttribute{
     let label_indices = find_token(&Token::Label,&tokens);
     
     if label_indices.is_empty(){
-      if args.len() >= 1{
+      if !args.is_empty(){
         label = Some(args[0][0].to_string());
       }else{
         label = None;

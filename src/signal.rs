@@ -128,7 +128,7 @@ impl Signal{
 /// The function will return an error if the number of `Signal`s is different
 /// form the number of headers, if the `Signal`s are not all the same length,
 /// or if the csv file cannot be written.
-pub fn write_vec_signals(signals: &Vec::<Signal>, 
+pub fn write_vec_signals(signals: &[Signal], 
     headers: Vec::<String>, filename: &str) 
   -> Result<(),CluEError>
 {

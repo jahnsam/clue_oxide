@@ -190,7 +190,7 @@ fn calculate_auxiliary_signals(
 //------------------------------------------------------------------------------
 // This function calculate the cluster signal for the cluster specified by
 // tensor_indices.
-fn calculate_cluster_signal(tensor_indices: &Vec::<usize>, 
+fn calculate_cluster_signal(tensor_indices: &[usize], 
     spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors, 
     config: &Config) 
   -> Result<Option<Signal>,CluEError>

@@ -2,7 +2,7 @@ use crate::CluEError;
 use std::error::Error;
 //------------------------------------------------------------------------------
 /// This function writes signal data to a csv.
-pub fn write_data<T>(data: &Vec::<Vec::<T>>, filename: &str,
+pub fn write_data<T>(data: &[Vec::<T>], filename: &str,
     headers: Vec::<String>) -> Result<(),CluEError> where T: std::fmt::Display
 {
    if headers.len() != data.len(){

@@ -65,7 +65,7 @@ impl Structure{
       .scale(-1.0);
 
     weighted_coordinates.translate(
-        &vec![self.pdb_origin.x(),self.pdb_origin.y(),self.pdb_origin.z() ]); 
+        &[self.pdb_origin.x(),self.pdb_origin.y(),self.pdb_origin.z() ]); 
 
     for particle in self.bath_particles.iter_mut(){
       particle.coordinates = &particle.coordinates + &self.pdb_origin;

@@ -32,7 +32,7 @@ pub fn partition_cluster_set_by_exchange_groups(cluster_set: ClusterSet,
   let mut n_cluster_partitions 
     = HashMap::<String,Vec::<usize>>::with_capacity(n_groups);
   for clu_size in 0..max_size{
-    for (_idx,cluster) in cluster_set.clusters[clu_size].iter().enumerate(){
+    for cluster in cluster_set.clusters[clu_size].iter(){
       let key = get_cluster_partition_key(cluster,
           exchange_group_manager,structure)?;
 
@@ -53,7 +53,7 @@ pub fn partition_cluster_set_by_exchange_groups(cluster_set: ClusterSet,
     = HashMap::<String,Vec::<Vec<Cluster>>>::with_capacity(n_groups);
 
     for clu_size in 0..cluster_set.clusters.len(){
-      for (_idx,cluster) in cluster_set.clusters[clu_size].iter().enumerate(){
+      for cluster in cluster_set.clusters[clu_size].iter(){
         let key = get_cluster_partition_key(cluster,
             exchange_group_manager, structure)?;
 
@@ -113,7 +113,7 @@ fn get_cluster_partition_key(cluster: &Cluster,
   }
 
   let mut key = exchange_group_manager.exchange_groups[key_ids[0]].to_string();
-  for (_ii,&id) in key_ids.iter().skip(1).enumerate(){
+  for &id in key_ids.iter().skip(1){
     key = format!("{}_{}",key,
         exchange_group_manager.exchange_groups[id].to_string());
   }

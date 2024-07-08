@@ -103,7 +103,7 @@ pub fn check_target_option<T>(target: &Option<T>, expression: &TokenExpression)
 
 //------------------------------------------------------------------------------
 /// The purpose of this function is to err if the target vector is already set.
-pub fn check_target_vector<T>(target: &Vec<T>, expression: &TokenExpression)
+pub fn check_target_vector<T>(target: &[T], expression: &TokenExpression)
   -> Result<(),CluEError>
 {
   let already_set = ||{

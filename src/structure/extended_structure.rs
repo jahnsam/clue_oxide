@@ -153,7 +153,7 @@ impl Structure{
           }
         }else{
           // random_indices contains indices to remove.
-          selected_indices = (0..n_groups).map(|n| Some(n)).collect();
+          selected_indices = (0..n_groups).map(Some).collect();
           for idx in random_indices.iter(){
             selected_indices[idx] = None;
           }
@@ -286,7 +286,7 @@ impl Structure{
         }
       }else{
         // random_indices contains indices to keep.
-        selected_indices = (0..n_groups).map(|n| Some(n)).collect();
+        selected_indices = (0..n_groups).map(Some).collect();
         for idx in random_indices.iter(){
           selected_indices[idx] = None;
         }
@@ -454,8 +454,7 @@ impl Structure{
 
     // Loop over unit cells.
     for icell in 0..self.cell_offsets.len(){ 
-      for (_ex_id, exchange_group_0) in exchange_group_manager0
-        .exchange_groups.iter().enumerate()
+      for exchange_group_0 in exchange_group_manager0.exchange_groups.iter()
       {
         let indices_0 = exchange_group_0.indices();
         let mut indices = Vec::<usize>::with_capacity(indices_0.len());

@@ -35,9 +35,7 @@ impl ParticleConfig{
   /// and returns the largest spin multiplicity, 2S+1.
   pub fn max_possible_spin_multiplicity(&self) -> Option<usize> {
     
-    let Some(properties) = &self.properties else{
-      return None;
-    };
+    let properties = &self.properties.as_ref()?;
 
     if properties.isotopic_distribution.isotope_abundances.is_empty(){
       return None;
