@@ -1,8 +1,17 @@
 [package]
 name = "clue_oxide"
-version = "0.2.0-alpha.3"
+version = "0.2.0"
 edition = "2021"
-
+authors = ["Samuel M. Jahn <jahn.samuel@gmail.com>"]
+description = "CluE Oxide (Cluster Evolution Oxide) is a spin dynamics simulation program for electron spin decoherence"
+license = "GPL v3.0"
+repository = "https://github.com/jahnsam/clue_oxide"
+documentation = "https://github.com/jahnsam/clue_oxide/blob/main/manual/CluE_Oxide.pdf"
+readme = "README.md"
+keywords = ["quantum", "spin","simulation","CCE", "cluster correlation expansion"]
+categories = ["command-line-utilities"]
+exclude =["/.github/*","examples/*","assets/*","manual/*","pyclue/*",
+         "CluE_Oxide_logo.*"]
 [profile.dev]
 opt-level = 3
 
@@ -21,8 +30,6 @@ rand_distr = "0.4"
 
 rayon = "1.6.1"
 
-#strum = "0.24"
-#strum_macros = "0.24"
 substring = "1.4"
 
 
