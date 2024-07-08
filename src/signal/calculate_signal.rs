@@ -390,6 +390,8 @@ fn caculate_bath_spin_contributions(
   Ok(spin_contributions)
 }
 //------------------------------------------------------------------------------
+// This function partition the auxiliary signals by which methyl groups
+// contribute to them and saves the partitions to csv files.
 fn calculate_methyl_partition_cce(
     cluster_set: ClusterSet, structure: &Structure, config: &Config, 
     save_path: &str)
@@ -422,83 +424,3 @@ fn calculate_methyl_partition_cce(
   //let signal = do_cluster_correlation_expansion_product(&cluster_set,config)?;
   Ok(())
 } 
-/*
-//------------------------------------------------------------------------------
-// This function converges the spin decoherence signal over different 
-// configurations of the same base structure, a Monte Carlo search over
-// different isotopologues for example.
-fn converge_structure_configuration_signal(config: &Config) 
-  -> Result<Signal,CluEError>
-{
-
-  let mut signal = Signal::ones(config.n_timepoints);
-  let mut signal0 = Signal::zeros(config.n_timepoints);
-  let mut cutoffs = config.initial_cutoff.clone();
-
-  let mut counter = 0;
-  loop{
-  
-    let structure = build_structure(config);
-
-    signal0 = signal;
-    (signal,cutoffs) = converge_orientation_averaged_signal(structure,config);
-
-    if !do_converge{ break; }
-
-    let is_converged = signal.approx_eq(signal0,config.method_of_comparison);
-
-    counter += 1;
-    if is_converged || counter >= config.converge_structure.max_loops{
-      break;
-    }
-  }
-
-  Ok(signal);
-}
-//------------------------------------------------------------------------------
-// This function converges the orientation grid for a particular structure
-// configuration.
-fn converge_orientation_averaged_signal(config: &Config) 
-  -> Result<Signal,CluEError>
-{
-  loop{
-    (Signal,cutoffs) = calculate_orientation_averaged_signal();
-  }
-  Ok(Signal,cutoffs)
-} 
-//------------------------------------------------------------------------------
-// This function averages the spin decoherence signal over all orientaions
-// of an input quadrature grid, such as a Lebedev grid.
-fn calculate_orientation_averaged_signal(config: &Config) 
-  -> Result<Signal,CluEError>
-{
-  (Signal,cutoffs) = converge_state_signal(config); 
-  Ok(Signal,cutoffs)
-} 
-//------------------------------------------------------------------------------
-// This function converges the spin decoherence signal of multiple initial
-// states.
-fn converge_state_signal(config: &Config) 
-  -> Result<Signal,CluEError>
-{
-  mean_field_tensors = get_mean_feilds();
-  (Signal,cutoffs) = converge_signal_for_clusters_cutoffs(tensors,config);
-  Ok(Signal,cutoffs)
-} 
-//------------------------------------------------------------------------------
-// This function converges the cluster cutoffs: 
-// cluster size, neighbor cutoffs, and vertex cutoffs.
-fn converge_signal_for_clusters_cutoffs(tensors, config: &Config) 
-  -> Result<Signal,CluEError>
-{
-
-  loop{
-    cutoffs.next()
-    let clusters = find_clusters(tensors,cutoffs);
-    signal = calculate_cluster_signal();
-  }
-
-  Ok(Signal,cutoffs)
-} 
-//------------------------------------------------------------------------------
-*/

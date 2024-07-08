@@ -13,7 +13,10 @@ use crate::config::{
 use crate::structure::particle_filter::SecondaryParticleFilter;
 use crate::physical_constants::Isotope;
 
+
 impl Config{
+  ///  This function parses lines found under "#[spin_properties(...)]"
+  /// or "#[structure_properties(...)]".
   pub fn parse_properties_line(&mut self, expression: &TokenExpression,
       label_opt: &Option<String>,isotope_opt: Option<Isotope>)
     -> Result<(),CluEError>
@@ -56,6 +59,7 @@ impl Config{
   }
 }
 //----------------------------------------------------------------------------
+///  This function parses lines found under "#[spin_properties(...)]".
 fn parse_isotope_properties(properties: &mut ParticleProperties, 
     expression: &TokenExpression, label: &str, isotope: &Isotope) 
 -> Result<(),CluEError>
@@ -281,6 +285,7 @@ fn parse_isotope_properties(properties: &mut ParticleProperties,
 
 }
 //------------------------------------------------------------------------------
+///  This function parses lines found under "#[structure_properties(...)]".
 fn parse_structure_properties(properties: &mut ParticleProperties, 
     expression: &TokenExpression, _label: &str) 
 -> Result<(),CluEError>
@@ -343,6 +348,8 @@ fn parse_structure_properties(properties: &mut ParticleProperties,
   Ok(())
 }      
 //------------------------------------------------------------------------------
+///  This function parses the lines found under "#[structure_properties(...)]"
+/// that determine isotope identities and abundances.
 fn parse_isotope_abundances(expression: &TokenExpression)
   -> Result< Vec::<IsotopeAbundance>, CluEError>
 {

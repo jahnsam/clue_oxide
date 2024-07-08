@@ -6,8 +6,8 @@ use substring::Substring;
 
 
 //------------------------------------------------------------------------------
-// This function reads in a file and returns a Vec::<TokenExpression>; 
-// each element contains a line of input.
+/// This function reads in a file and returns a `Vec::<TokenExpression>`; 
+/// each element contains a line of input.
 pub fn get_tokens_from_file(filename: &str) 
   -> Result<Vec::<TokenExpression>,CluEError>
 {
@@ -22,8 +22,8 @@ pub fn get_tokens_from_file(filename: &str)
     Ok(expressions)
 }
 //------------------------------------------------------------------------------
-// This function reads in a file and returns a Vec::<TokenExpression>; 
-// each element contains a line of input.
+/// This function reads in a file and returns a `Vec::<TokenExpression>`; 
+/// each element contains a line of input.
 pub fn get_tokens_from_line(input: &str) 
   -> Result<Vec::<TokenExpression>,CluEError>
 {
@@ -378,57 +378,7 @@ fn build_composit_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/*
-fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize) 
-  -> Result<Option<usize>,CluEError>{
-  let mut found_token = false;
-  let mut index: usize = 0;
-
-  for ii in 0..tokens.len(){
-    if is_relational_operator(&tokens[ii]){
-      if !found_token{
-        found_token = true;
-        index = ii;
-      }else{
-        return Err(CluEError::TooManyRelationalOperators(line_number));
-      }
-    }
-  }
-  if found_token{
-    return Ok(Some(index));
-  }else{
-    //return Err(CluEError::NoRelationalOperators(line_number));
-    return Ok(None);
-  }
-}
-*/
-
-//------------------------------------------------------------------------------
-// TODO: use or delete
-/*
-fn combine_statements(statements: Vec::<Vec::<Token>>) -> Vec::<Token>{
-
-  let mut n_tokens = 0;
-  for tokens in statements.iter(){
-    n_tokens += tokens.len();
-  }
-
-  let mut out = Vec::<Token>::with_capacity(n_tokens);
-
-
-  for tokens in statements.iter(){
-    for token in tokens{
-      out.push((*token).clone());
-    }
-  }
-
-  out
-}
-*/
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// This function separates a list of tokens into statements: `a=b;`.
 fn get_token_statements(tokens: Vec::<Token>, line_numbers: &[usize]) 
  -> Result<Vec::<TokenExpression>,CluEError>
 {
@@ -448,6 +398,8 @@ fn get_token_statements(tokens: Vec::<Token>, line_numbers: &[usize])
 
 
 //------------------------------------------------------------------------------
+/// This function converts a `Vec::<Token>` 
+/// to a `Vec::<Token::VectorString<Vec::<String>>>`.
 pub fn to_string_vector(tokens: Vec::<Token>, line_number: usize) 
  -> Result<Token, CluEError>
 {
@@ -467,9 +419,6 @@ pub fn to_string_vector(tokens: Vec::<Token>, line_number: usize)
 
   Ok(Token::VectorString(out))
 }
-
-
-
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -646,27 +595,6 @@ magnetic_field = 1.2; // T"),
       assert_eq!(tokens[ii], ref_tokens[ii]);
     }
   }
-  //----------------------------------------------------------------------------
-  /*
-  #[test]
-  fn test_find_lhs_rhs_delimiter_index(){
-  
-    let mut tokens = vec![Token::Float(1.0), Token::Plus, Token::Float(2.0),
-    Token::Comma, Token::Float(3.0)];
-
-    let result = find_lhs_rhs_delimiter_index(&tokens,0).unwrap();
-    assert_eq!(result,None);
-
-    tokens[3] = Token::Equals;
-    let result = find_lhs_rhs_delimiter_index(&tokens,0);
-    assert_eq!(result,Ok(Some(3)));
-
-    tokens[0] = Token::In;
-    let result = find_lhs_rhs_delimiter_index(&tokens,0);
-    assert_eq!(result,Err(CluEError::TooManyRelationalOperators(0)));
-  }
-  */
-  //----------------------------------------------------------------------------
   
   //----------------------------------------------------------------------------
   #[test]

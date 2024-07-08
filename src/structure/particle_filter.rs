@@ -7,13 +7,8 @@ use crate::math;
 use crate::structure::{Particle,Structure};
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-// Filters are used to specify a set of bath particles.
-// TODO: ensure filters can specify:
-//  methyl groups to change their tunnel splitting,
-//  hyperfine/quadrupole axes and values
-//  particle isotope abundances
-//  particles to co-exchange for deuteration
-//  particle pbc behavior
+/// `ParticleFilter` specify information to filter out a select subset of
+/// particles from a `Structure`.
 #[derive(Debug,Clone,Default,PartialEq)]
 pub struct ParticleFilter{
 
@@ -63,10 +58,13 @@ pub struct ParticleFilter{
 }
 
 impl ParticleFilter{
+  /// This function implements `new()` for `ParticleFilter`.
   pub fn new() -> Self{
     Default::default()
   }
   //----------------------------------------------------------------------------
+  /// This function find the indices of the particles that pass the filter
+  /// that also have indices within `indices`.
   pub fn filter_indices(&self, structure: &Structure,indices: &[usize]) 
     -> Vec::<usize>
   {
@@ -76,6 +74,7 @@ impl ParticleFilter{
     }).collect()
   }
   //----------------------------------------------------------------------------
+  /// This function find the indices of the particles that pass the filter.
   pub fn filter(&self, structure: &Structure) -> Vec::<usize>{
     
     let particles = &structure.bath_particles;
@@ -86,6 +85,7 @@ impl ParticleFilter{
     ).collect()
   }
   //----------------------------------------------------------------------------
+  // This function check if the indicated particle passes the filter.
   fn does_pass_filter(&self, structure: &Structure,
       idx: usize, particle: &Particle) -> Option<usize>
   {
@@ -212,51 +212,6 @@ impl ParticleFilter{
       Some(idx)
     }
 //------------------------------------------------------------------------------
-/*
-  /// This function augments a particle filter, making it specific to the
-  /// specified particle.  
-  /// The secondary filter specifies how the filter should be restricted.
-  pub fn augment_filter(
-    &mut self,
-    index_ref_particle: usize,
-    secondary_filter: &SecondaryParticleFilter,
-    structure: &Structure) -> Result<(),CluEError>
-  {
-
-
-    match secondary_filter{
-      SecondaryParticleFilter::Bonded 
-        => self.bonded_indices.push(index_ref_particle),
-      
-      SecondaryParticleFilter::Particle => {
-        self.indices.push(index_ref_particle);
-      }, 
-      SecondaryParticleFilter::SameMolecule 
-        => {
-        let id = structure.molecule_ids[index_ref_particle];
-        for idx in structure.molecules[id].iter(){
-          self.indices.push(*idx);
-        }
-      },
-      
-      /*
-      SecondaryParticleFilter::SameResidueSequenceNumber 
-        => {
-        if let Some(res_seq_id) = structure.bath_particles[index_ref_particle]
-          .residue_sequence_number{
-        self.residue_sequence_numbers.push(res_seq_id);
-          }else{
-            return Err(CluEError::CannontAugmentFilter(index_ref_particle,
-                secondary_filter.to_string()));
-          }
-      },
-      */
-    }
-
-
-    Ok(())
-  }
-*/
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -510,43 +465,6 @@ mod tests{
         &structure, &config ).unwrap(); 
     assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
   }
-  //----------------------------------------------------------------------------
-  /*
-  #[test]
-  fn test_augment_filter(){
-    let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
-    let mut structure = pdb::parse_pdb(&filename,0).unwrap();
-    let mut config = Config::new();
-    config.detected_spin_position = Some(
-        DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
-    config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
-
-
-    let mut filter = ParticleFilter::new();
-    filter.augment_filter(43,
-        &SecondaryParticleFilter::Bonded,&structure)
-      .unwrap();
-    let indices = filter.filter(&structure);
-    assert_eq!(indices,vec![44,45]);
-
-    let mut filter = ParticleFilter::new();
-    filter.elements = vec![Element::Hydrogen];
-    filter.augment_filter(28,
-        &SecondaryParticleFilter::SameMolecule,&structure)
-      .unwrap();
-    let indices = filter.filter(&structure);
-    assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
-
-    let mut filter = ParticleFilter::new();
-    filter.elements = vec![Element::Hydrogen];
-    filter.augment_filter(28,
-        &SecondaryParticleFilter::SameMolecule,&structure)
-      .unwrap();
-    let indices = filter.filter(&structure);
-    assert_eq!(indices,vec![2,3,4,6,7,8,10,11,13,14,16,17,20,21,22,24,25,26]);
-  }
-  */
   //----------------------------------------------------------------------------
   #[test]
   fn test_filter(){

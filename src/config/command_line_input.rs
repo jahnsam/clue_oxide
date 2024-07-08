@@ -23,6 +23,8 @@ enum NextArg{
 
 impl CommandLineInput{
 
+  /// This function creates a new instance of `CommandLineInput`, with 
+  /// field values from the input `args`.
   pub fn new(args: Vec::<String>) -> Result<Self,CluEError> {
     let mut cli = CommandLineInput{
       config_file: None,
@@ -55,6 +57,7 @@ impl CommandLineInput{
     Ok(cli)
   }
   //----------------------------------------------------------------------------
+  // This function sets the `next_arg` field.
   fn parse_next_argument(&mut self, arg: &str) -> Result<(),CluEError>{
     match self.next_arg{
       NextArg::ConfigOption => {
@@ -80,6 +83,7 @@ impl CommandLineInput{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  // This function updates `self` from a single word option.
   fn parse_long_option(&mut self, option: &str) -> Result<(),CluEError>{
   
     match option {
@@ -95,6 +99,7 @@ impl CommandLineInput{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  // This function updates `self` from a string of single character options.
   fn parse_short_options(&mut self, options: &str) ->  Result<(),CluEError>{
     
     let n_opts = options.len();
@@ -108,6 +113,7 @@ impl CommandLineInput{
   
   }
   //----------------------------------------------------------------------------
+  // This function updates `self` from single character option.
   fn parse_short_option(&mut self, option: &str) ->  Result<(),CluEError>{
 
     match option{

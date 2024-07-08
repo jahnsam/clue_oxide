@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// `CluEError` contains the possible errors.
 #[derive(PartialEq,Debug,Clone)]
 pub enum CluEError{
   AllSignalsNotSameLength(String),
@@ -173,6 +174,7 @@ pub enum CluEError{
 }
 
 impl fmt::Display for CluEError{
+  // This function defines the error messages.
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
 

@@ -11,6 +11,17 @@ use std::io::BufWriter;
 use std::io::Write;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// The `ClusterSet` is a data structure that holds clusters of various sizes
+/// as well as indices to find the cluster.
+/// The first feild is `clusters: Vec::<Vec::<Cluster>>`, where
+/// `clusters[0]` is a  vector of 1-clusters, `clusters[1]` a vector of
+/// 2-clusters, and so on. 
+/// The other field is `cluster_indices: Vec::<HashMap::<Vec::<usize>,usize>>`,
+/// where `cluster_indices[0]` is a `HashMap` that has the vertices of 
+/// 1-clusters as keys and the index where the cluster with those vertices can
+/// be found as the value.
+/// For example if (key,value) = (`vec![a,b]`,idx) in `cluster_indices[1]`,
+/// then `clusters[1][idx]` has vertices `vec![a,b]`.
 #[derive(Debug,Clone,PartialEq)]
 pub struct ClusterSet{
   pub clusters: Vec::<Vec::<Cluster>>,
@@ -19,10 +30,13 @@ pub struct ClusterSet{
 //------------------------------------------------------------------------------
 impl ClusterSet{
   //----------------------------------------------------------------------------
+  /// This function returns the number of clusters in the set.
   pub fn len(&self) -> usize{ self.clusters.len() }
   //----------------------------------------------------------------------------
+  /// This function returns true iff there are no clusters in the set.
   pub fn is_empty(&self) -> bool{ self.clusters.is_empty() }
   //----------------------------------------------------------------------------
+  /// This function converts a `Vec::<Vec::<Cluster>>` to a `ClusterSet`. 
   pub fn from(clusters:Vec::<Vec::<Cluster>>) -> Self
   {
     let mut cluster_indices 
@@ -43,6 +57,9 @@ impl ClusterSet{
     ClusterSet{clusters,cluster_indices}
   }
   //----------------------------------------------------------------------------
+  /// This function writes the `ClusterSet` to the supplied file.
+  /// The `Structure` is needed to convert the internal clusters vertices
+  /// to match the indices across output files.
   pub fn save(&self, filename: &str,structure: &Structure) 
     -> Result<(),CluEError>
   {
@@ -88,6 +105,8 @@ impl ClusterSet{
 
 }
 //------------------------------------------------------------------------------
+/// This function finds all connected graphs (clusters) with up to `max_size`
+/// vertices.
 pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize) 
   -> Result< ClusterSet, CluEError>
 {
@@ -149,6 +168,8 @@ pub fn find_clusters( adjacency_list: &AdjacencyList, max_size: usize)
 }
 
 //------------------------------------------------------------------------------
+// This function takes a set of valid (n-1)-clusters and an `&AdjacencyList`,
+// and finds all the n-cluster that contain at least one of the (n-1)-clusters.
 fn build_n_clusters(
     n_minus_1_clusters: &Vec::<Cluster>, 
     adjacency_list: &AdjacencyList)
@@ -195,38 +216,6 @@ fn build_n_clusters(
     cluster_indices: vec![new_cluster_indices],
     } )
 }
-//------------------------------------------------------------------------------
-/*
-// TODO
-fn remove_subclusters_of(
-    cluster_set: &mut ClusterSet,
-    unbreakable_cluster: &Cluster){
-
-  for clu_size in 0..cluster_set.clusters.len(){ 
-
-    let n_clusters = cluster_set.clusters[clu_size].len();
-    let mut to_keep = Vec::<usize>::with_capacity(n_clusters);
-    
-    for (idx,cluster) in cluster_set.clusters[clu_size].iter().enumerate() {
-      if !cluster.overlaps(unbreakable_cluster) 
-       || cluster.contains(unbreakable_cluster) {
-        to_keep.push(idx);
-      }
-    }
-
-    let mut kept_clusters = Vec::<Cluster>::with_capacity(to_keep.len());
-    let mut kept_cluster_indices = HashMap::with_capacity(to_keep.len());
-    for (new_idx, old_idx) in to_keep.iter().enumerate(){
-      let cluster = cluster_set.clusters[clu_size][*old_idx].clone();
-      kept_cluster_indices.insert(cluster.vertices.clone(),new_idx);
-      kept_clusters.push(cluster);
-    }
-
-    cluster_set.clusters[clu_size] = kept_clusters;
-    cluster_set.cluster_indices[clu_size] = kept_cluster_indices;
-  }
-}
-*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

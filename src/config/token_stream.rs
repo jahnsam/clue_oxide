@@ -4,7 +4,8 @@ use crate::config::token_expressions::*;
 use substring::Substring;
 
 //------------------------------------------------------------------------------
-// The function takes a Vec::<Token> and inserts a token at the specified index.
+/// The function takes a `Vec::<Token>` and inserts a token at the
+/// specified index.
 pub fn add_token_at_index(add_this_token: Token, idx: usize, 
     tokens: Vec::<Token>, line_number: usize)
   -> Result<Vec::<Token>,CluEError>
@@ -41,6 +42,10 @@ pub fn extract_rhs(expression: &TokenExpression)
   Ok(tokens)
 }
 //------------------------------------------------------------------------------
+/// This function takes `Vec::<Token>`, splits apart on commas and places
+/// each of the resulting `Vec::<Token>`s into a `Vec::<Vec::<Token>>`.
+/// This function will return an `Err` if there are unmatched/out-of-order 
+/// square brackets or multiple square bracket pairs.
 pub fn get_vector_elements(tokens: Vec::<Token>, line_number: usize)
  -> Result<Vec::<Vec::<Token>>, CluEError>
 {
@@ -59,9 +64,9 @@ pub fn get_vector_elements(tokens: Vec::<Token>, line_number: usize)
   Ok(vector_elements)
 }
 //------------------------------------------------------------------------------
-// This function counts the number of delimiter pairs.  
-// It will err if the opening and closing delimiters to not have the same
-// count, but no type checking is done.
+/// This function counts the number of delimiter pairs.  
+/// It will err if the opening and closing delimiters to not have the same
+/// count, but no type checking is done.
 pub fn count_delimiter_pairs(tokens: &[Token], 
     opening_delimiter: &Token, closing_delimiter: &Token, 
     line_number: usize)
@@ -80,6 +85,9 @@ pub fn count_delimiter_pairs(tokens: &[Token],
 }
 
 //------------------------------------------------------------------------------
+/// This function finds the outermost pair of parentheses.
+/// An `Ok` result containes `None` if there are no pairs or the indices of the 
+/// pair as `Some((usize,usize))`.  Unmatched parentheses will lead to an `Err`. 
 pub fn find_outermost_parentheses(tokens: &[Token], line_number: usize) 
   -> Result<Option<(usize,usize)>, CluEError>
 {
@@ -125,8 +133,8 @@ pub fn find_outermost_parentheses(tokens: &[Token], line_number: usize)
   Ok( Some( (idx_open,idx_close) ) )
 }
 //------------------------------------------------------------------------------
-// This function finds the first pair of delimiters that do not contain
-// other delimiters.
+/// This function finds the first pair of delimiters that do not contain
+/// other delimiters.
 pub fn find_deepest_parentheses(tokens: &[Token], line_number: usize) 
   -> Result<Option<(usize,usize)>, CluEError>{
 
@@ -175,9 +183,9 @@ pub fn find_deepest_parentheses(tokens: &[Token], line_number: usize)
 
 }
 //------------------------------------------------------------------------------
-// This function takes a Vec::<Token> and replaces each 
-// Token::UserInputValue(String) with a Token::Float(f64).
-// The function will err if the conversion fails.
+/// This function takes a `Vec::<Token>` and replaces each 
+/// `Token::UserInputValue(String)` with a `Token::Float(f64)`.
+/// The function will err if the conversion fails.
 pub fn read_strings_as_floats(tokens: Vec::<Token>, line_number: usize)
 -> Result<Vec::<Token>, CluEError>
 {
@@ -220,9 +228,9 @@ pub fn read_strings_as_floats(tokens: Vec::<Token>, line_number: usize)
   
 }
 //------------------------------------------------------------------------------
-// This function takes a Vec::<Token> and replaces each 
-// Token::UserInputValue(String) with a Token::Int(i32).
-// The function will err if the conversion fails.
+/// This function takes a `Vec::<Token>` and replaces each 
+/// `Token::UserInputValue(String)` with a `Token::Int(i32)`.
+/// The function will err if the conversion fails.
 pub fn read_strings_as_integers(tokens: Vec::<Token>, line_number: usize)
 -> Result<Vec::<Token>, CluEError>
 {
@@ -265,9 +273,9 @@ pub fn read_strings_as_integers(tokens: Vec::<Token>, line_number: usize)
   
 }
 //------------------------------------------------------------------------------
-// This function takes a vector of tokens and return a vector of vector of
-// tokens, split on the specified token.  
-// The specified token in removed from the output.
+/// This function takes a vector of tokens and return a vector of vector of
+/// tokens, split on the specified token.  
+/// The specified token in removed from the output.
 pub fn split_on_token(tokens: Vec::<Token>, split_on: Token) 
  -> Vec::<Vec::<Token>>
 {
@@ -342,6 +350,8 @@ fn are_delimiters_paired(open: &Token, close: &Token, line_number: usize)
 //------------------------------------------------------------------------------
 /// The functions take a token slice and return the index of the first "[" 
 /// and the following  "]".  The finction will err if there are nested brackets.
+/// This function will return an `Err` if there are unmatched/out-of-order 
+/// square brackets or multiple square bracket pairs.
 pub fn find_brackets(tokens: &[Token], line_number: usize) 
  -> Result<Option<(usize,usize)>, CluEError>
 {

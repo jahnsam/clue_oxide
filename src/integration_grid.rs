@@ -66,6 +66,7 @@ impl IntegrationGrid{
   }
 
   //----------------------------------------------------------------------------
+  /// This function generates a single point grid one unit in the z-direction.
   pub fn z_3d() -> Self{
     let dim = 3;
     let points = vec![0.0, 0.0, 1.0];
@@ -73,6 +74,7 @@ impl IntegrationGrid{
     IntegrationGrid{dim,points,weights}
   }
   //----------------------------------------------------------------------------
+  /// This function generates a new `dim`-dimensional grid with no points.
   pub fn new(dim: usize) -> Self {
     let points = Vec::<f64>::new();
     let weights = Vec::<f64>::new();
@@ -80,6 +82,8 @@ impl IntegrationGrid{
     IntegrationGrid{dim,points,weights}
   }
   //----------------------------------------------------------------------------
+  /// This function generations a grid with `num_point` points randomly 
+  /// distributed over the unit sphere.
   pub fn random_unit_sphere(num_points: usize,rng: &mut ChaCha20Rng) -> Self
   {
     let dim = 3;
@@ -97,6 +101,7 @@ impl IntegrationGrid{
     IntegrationGrid{dim,points,weights}
   }
   //----------------------------------------------------------------------------
+  /// This function scales all the points by a `scale_factor`.
   pub fn scale(&self, scale_factor: f64) -> Self{
 
     let points = self.points.iter().map(|x| x*scale_factor)
@@ -105,6 +110,7 @@ impl IntegrationGrid{
 
   }
   //----------------------------------------------------------------------------
+  /// This function pushes a new point to a grid.
   pub fn push(&mut self, points: Vec::<f64>,weight: f64)
     -> Result<(),CluEError>
   {
@@ -121,33 +127,45 @@ impl IntegrationGrid{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  /// This function returns the number of points in a grid.
   pub fn len(&self) -> usize { self.weights.len() }
   //----------------------------------------------------------------------------
+  /// This function returns the dimensionality of the space that the grid
+  /// is imbeded in. 
   pub fn dim(&self) -> usize { self.dim }
   //----------------------------------------------------------------------------
+  /// This function checks if the grid is empty.
   pub fn is_empty(&self) -> bool { self.weights.is_empty() }
   //----------------------------------------------------------------------------
+  /// This function returns the weight of point `index`.
   pub fn weight(&self, index: usize) -> f64{ 
     self.weights[index]
   }
   //----------------------------------------------------------------------------
+  /// This function returns the x value of point `index`.
   pub fn x(&self, index: usize) -> f64{ 
     let idx = self.dim*index;
     self.points[idx]
   }
   //----------------------------------------------------------------------------
+  /// This function returns the y value of point `index`.
+  /// The function will panic if the space is not at least 2D.
   pub fn y(&self, index: usize) -> f64{ 
     assert!(self.dim >= 2);
     let idx = self.dim*index;
     self.points[idx+1]
   }
   //----------------------------------------------------------------------------
+  /// This function returns the z value of point `index`.
+  /// The function will panic if the space is not at least 3D.
   pub fn z(&self, index: usize) -> f64{ 
     assert!(self.dim >= 3);
     let idx = self.dim*index;
     self.points[idx+2]
   }
   //----------------------------------------------------------------------------
+  /// This function returns the coordinates of point `index`.
+  /// The function will err if the space is not 3D.
   pub fn xyz(&self, index: usize) -> Result<Vector3D,CluEError>{
     if self.dim != 3{
       return Err(CluEError::NotA3DVector(self.dim));
@@ -155,6 +173,7 @@ impl IntegrationGrid{
     Ok(Vector3D::from( [ self.x(index), self.y(index), self.z(index) ] ))
   }
   //----------------------------------------------------------------------------
+  /// This function returns the centroid of the grid.
   pub fn mean(&self) -> Vec::<f64>{
     let mut r: Vec::<f64> = (0..self.dim).map(|_| 0.0).collect();
 
@@ -169,6 +188,9 @@ impl IntegrationGrid{
     r
   }
   //----------------------------------------------------------------------------
+  /// This function translates all the points in the grid by `vector`.
+  /// The function will panic if the vector is of a different dimension than
+  /// the grid.
   pub fn translate(&mut self, vector: &Vec::<f64>){
     assert_eq!(vector.len(), self.dim);
 
@@ -179,6 +201,7 @@ impl IntegrationGrid{
 
   }
   //----------------------------------------------------------------------------
+  /// This function reads a grid from a csv file. 
   pub fn read_from_csv(filename: &str) -> Result<Self,CluEError>{
 
     let Ok(mut rdr) = csv::Reader::from_path(filename) else{
@@ -234,7 +257,7 @@ impl IntegrationGrid{
 
   }
   //----------------------------------------------------------------------------
-
+  /// This function removes the negative hemisphere of a grid.
   pub fn remove_3d_hemisphere(self) -> IntegrationGrid{
     assert_eq!(self.dim,3);
 

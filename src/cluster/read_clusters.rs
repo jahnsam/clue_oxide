@@ -7,6 +7,7 @@ use std::io::BufRead;
 use substring::Substring;
 
 //------------------------------------------------------------------------------
+/// This function reads a cluster file and build the corresponding `ClusterSet`.
 pub fn read_cluster_file(filename: &str, structure: &Structure) 
   -> Result<ClusterSet,CluEError>
 {
@@ -48,6 +49,7 @@ pub fn read_cluster_file(filename: &str, structure: &Structure)
   Ok(ClusterSet::from(clusters))
 }
 //------------------------------------------------------------------------------
+// This function reads lines that specify single clusters.
 fn parse_cluster_line(line: &str) 
   -> Result<Vec::<usize>,CluEError>
 {
@@ -77,6 +79,8 @@ fn parse_cluster_line(line: &str)
   Ok(cluster)
 }
 //------------------------------------------------------------------------------
+// This function uses the meta data in the cluster files to initialize 
+// the clusters' `Vec::<Vec::<Cluster>` to the correct size.
 fn initialize_clusters(filename: &str) 
   -> Result<Vec::<Vec::<Cluster>>,CluEError>
 {
@@ -108,6 +112,8 @@ fn initialize_clusters(filename: &str)
   Err(CluEError::ClusterFileContainsNoHeader(filename.to_string()))
 }
 //------------------------------------------------------------------------------
+// This function reads the meta data in the cluster files to learn how many 
+// clusters of each size there are.
 fn parse_number_clusters(line: &str, filename: &str) 
   -> Result<Vec::<usize>,CluEError>
 {
@@ -146,6 +152,8 @@ fn parse_number_clusters(line: &str, filename: &str)
   Ok(n_clusters)
 }
 //------------------------------------------------------------------------------
+// This function takes a `&str` and builds a `String` identical except 
+// all instances of a specified `char` removed.
 fn remove_char(s: &str, c: char) -> String {
   let mut out_str = s.trim().to_owned();
   out_str.retain(|ch| {ch != c });

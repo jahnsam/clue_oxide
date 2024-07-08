@@ -1,3 +1,6 @@
+/// `SymList2D` is a data structure for a 2D list where `list[i][j]==list[j][i]`
+/// for all `i` and `j`.
+/// `SymList2D` starts out with all entries set to `None`.
 #[derive(Debug, Clone)] 
 pub struct SymList2D<T>{
   dim: usize,
@@ -17,8 +20,12 @@ impl<T> SymList2D<T>{
     SymList2D{dim, elements}
   }
   //----------------------------------------------------------------------------
+  /// This function returns the number of unique indices for `SymList2D` as
+  /// a 2D list, 
+  /// equivalently the dimension of `SymList2D` viewed as a matrix.
   pub fn dim(&self) -> usize {self.dim}
   //----------------------------------------------------------------------------
+  /// Viewed as a symmetric matrix, this functions gets the `(row,col)` entry.
   pub fn get(& self, row: usize, col: usize) -> Option<&T>{
     let idx = get_uppertriangle_index(row,col,self.dim);
     
@@ -28,11 +35,13 @@ impl<T> SymList2D<T>{
     }
   }
   //----------------------------------------------------------------------------
+  /// Viewed as a symmetric matrix, this functions sets the `(row,col)` entry.
   pub fn set(&mut self, row: usize, col: usize, value: T){
     let idx = get_uppertriangle_index(row,col,self.dim);
     self.elements[idx] = Some(value);
   }
   //----------------------------------------------------------------------------
+  /// This functions sets the `(row,col)` entry to `None`.
   pub fn remove(&mut self, row: usize, col: usize){
     let idx = get_uppertriangle_index(row,col,self.dim);
     self.elements[idx] = None;
@@ -41,6 +50,11 @@ impl<T> SymList2D<T>{
 
 }
 
+// This function takes to indices refering to a row and a column and
+// converts it to a 1D index. Below is an example for the 3-by-3 case.
+// 1 2 3
+// 2 4 5
+// 3 5 6
 fn get_uppertriangle_index(row: usize, col: usize, dim: usize) -> usize {
   
   let mut row = row as i32;

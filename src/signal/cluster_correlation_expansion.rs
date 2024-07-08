@@ -13,8 +13,15 @@ use rayon::prelude::*;
 use std::path::Path;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/// Thi function calculates the cluster correlation expansion (CCE)
+/// This function calculates the cluster correlation expansion (CCE)
 /// approximation of the echo decay.
+/// The CCE method is developed  in
+/// W. Yang and R.-B. Liu, “Quantum many-body theory of qubit decoherence
+/// in a finite-size spin bath baths,” Phys. Rev. B 78, 085315 (2008).
+/// and 
+/// W. Yang and R.-B. Liu, “Quantum many-body theory of qubit decoherence
+/// in a finite-size spin bath. II. Ensemble dynamics,” Phys. Rev. B 79, 115320
+/// (2009).
 pub fn do_cluster_correlation_expansion(
     cluster_set: &mut ClusterSet, spin_ops: &ClusterSpinOperators,
     tensors: &HamiltonianTensors, config: &Config, 

@@ -8,14 +8,19 @@ use std::io::BufWriter;
 use std::io::Write;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// This trait allows the exchange group to be translated.
 pub trait Translate{ fn translate(&mut self, r: &Vector3D); }
 
+/// This trait gets the corrdinates to the exchange group centroid.
 pub trait GetCentroid{fn centroid(&self) -> &Vector3D; }
 
+/// This trait gets the exchange group normal vector.
 pub trait GetNormal{fn normal(&self) -> &Vector3D; }
 
+/// This trait gets the indices of the particles in the exchange group.
 pub trait GetIndices{fn indices(&self) -> Vec::<usize>; }
 
+/// This trait gets the exchange group's exchange coupling.
 pub trait GetExchangeCoupling{fn exchange_coupling(&self) -> f64; }
 
 //pub trait ToStringResult{fn to_string_result(&self, structure: &Structure) 
@@ -24,6 +29,14 @@ pub trait GetExchangeCoupling{fn exchange_coupling(&self) -> f64; }
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// 'ExchangeGroupManager' contains the info needed to build the effective
+/// spin Hamiltonian for identical spins with a non-neglegible exchange rate
+/// via quantum tunneling.
+/// `exchange_groups` contains a list of the exchange groups.
+/// `exchange_group_ids` has an entry for every spin, `None` entries for 
+/// particles not part of an exchange group and `Some(idx)` entries for
+/// particles in the exchange group `exchange_groups[idx]`.
+/// `exchange_couplings` contains the effective couplings for each group.
 #[derive(Debug,Clone)]
 pub struct ExchangeGroupManager{
   pub exchange_groups: Vec::<ExchangeGroup>,
@@ -32,6 +45,7 @@ pub struct ExchangeGroupManager{
 }
 
 impl ExchangeGroupManager{
+  /// This function write the exchange groups in a `Structure` to a csv file.
   pub fn to_csv(&self, filename: &str,structure: &Structure) 
     -> Result<(),CluEError>
   {
@@ -82,6 +96,7 @@ exchange_coupling\n".to_string();
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `ExchangeGroup` lists the implemented exchange groups.
 #[derive(Debug, Clone)]
 pub enum ExchangeGroup{
   Methyl(C3Rotor),
@@ -89,6 +104,7 @@ pub enum ExchangeGroup{
 }
 
 impl ToString for ExchangeGroup{
+  // This function implements `ToString` for `ExchangeGroup`.
   fn to_string(&self) -> String{
     match self{
       ExchangeGroup::Methyl(rotor) => format!("methyl_{}",rotor.to_string()),
@@ -99,6 +115,7 @@ impl ToString for ExchangeGroup{
 }
 //------------------------------------------------------------------------------
 impl GetCentroid for ExchangeGroup{
+  // This function implements `GetCentroid` for `ExchangeGroup`.
   fn centroid(&self) -> &Vector3D{
     match self{
       ExchangeGroup::Methyl(rotor) => rotor.centroid(),
@@ -108,6 +125,7 @@ impl GetCentroid for ExchangeGroup{
 }
 
 impl GetIndices for ExchangeGroup{
+  // This function implements `GetIndices` for `ExchangeGroup`.
   fn indices(&self) -> Vec::<usize>{
     match self{
       ExchangeGroup::Methyl(rotor) => rotor.indices(),
@@ -117,6 +135,7 @@ impl GetIndices for ExchangeGroup{
 }
 
 impl GetNormal for ExchangeGroup{
+  // This function implements `GetNormal` for `ExchangeGroup`.
   fn normal(&self) -> &Vector3D{
     match self{
       ExchangeGroup::Methyl(rotor) => rotor.normal(),
@@ -126,6 +145,7 @@ impl GetNormal for ExchangeGroup{
 }
 
 impl Translate for ExchangeGroup{
+  // This function implements `Translate` for `ExchangeGroup`.
   fn translate(&mut self, r: &Vector3D){
     match self{
       ExchangeGroup::Methyl(rotor) => rotor.translate(r),
@@ -137,6 +157,10 @@ impl Translate for ExchangeGroup{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< 
+/// `C3Rotor` contains the info of a C3 symmetric rotor exchange group.
+/// 'center' is the coordinates of the centroid.
+/// 'normal' is the normal vector.
+/// 'indices' is a list of which particles, via index, make up the rotor.
 #[derive(Debug, Clone)]
 pub struct C3Rotor{
   pub center: Vector3D,
@@ -156,6 +180,7 @@ impl ToString for C3Rotor{
 }
 //------------------------------------------------------------------------------
 impl GetCentroid for C3Rotor{
+  // This function implements `GetCentroid` for `C3Rotor`.
   fn centroid(&self) -> &Vector3D {                                                
     &self.center                                                           
   }
@@ -163,6 +188,8 @@ impl GetCentroid for C3Rotor{
 impl C3Rotor{                                                                     
                                                                                  
 //------------------------------------------------------------------------------
+/// This function builds a `C3Rotor` from the positions and indices of the
+/// hydrogens and the position of the carbon atom within a methyl group.
 pub fn from(r_carbon: Vector3D,                                                   
     h0: Vector3D,                                                                 
     h1: Vector3D,                                                                 
@@ -189,7 +216,8 @@ pub fn from(r_carbon: Vector3D,
 }                                                                                
 
 //------------------------------------------------------------------------------
-
+/// This function return the unit vector normal to the plane of hydrogens in
+/// a methyl group, pointing away from the carbon.
 pub fn normal(&self) -> &Vector3D {                                                
   &self.normal                                                      
 }
@@ -197,6 +225,7 @@ pub fn normal(&self) -> &Vector3D {
 
 //------------------------------------------------------------------------------
 impl GetIndices for C3Rotor{
+  // This function implements `GetIndices` for `C3Rotor`.
   fn indices(&self) -> Vec::<usize>{
     
     let mut out = Vec::<usize>::with_capacity(3);
@@ -209,6 +238,7 @@ impl GetIndices for C3Rotor{
 }
 //------------------------------------------------------------------------------
 impl Translate for C3Rotor{
+  // This function implements `Translate` for `C3Rotor`.
   fn translate(&mut self, r: &Vector3D){
    self.center = &self.center + r;
   }

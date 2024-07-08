@@ -1,5 +1,6 @@
 use crate::info::version;
 
+/// This function prints the title info. 
 pub fn print_title() {  
 println!("\
 ##############################################################################\n\

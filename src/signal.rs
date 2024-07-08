@@ -10,6 +10,7 @@ use std::ops::{Add,Sub,Mul,Div};
 use num_complex::Complex;
 use std::error::Error;
 
+/// `Signal` is used to hold a calculated signal. 
 #[derive(PartialEq,Debug,Clone,Default)]
 pub struct Signal{
   pub data: Vec::<Complex<f64>>,
@@ -308,6 +309,7 @@ pub fn write_batch_signals(clusters: &[Cluster],
 impl Add for &Signal{
   type Output = Signal;
  
+  // The implementation of "+" is elementi-wise.
   fn add(self,rhs: &Signal) -> Signal{
     assert_eq!(self.len(), rhs.len());
     let mut data = Vec::<Complex<f64>>::with_capacity(self.len());
@@ -321,6 +323,7 @@ impl Add for &Signal{
 impl Sub for &Signal{
   type Output = Signal;
  
+  // The implementation of "-" is elementi-wise.
   fn sub(self,rhs: &Signal) -> Signal{
     assert_eq!(self.len(), rhs.len());
     let mut data = Vec::<Complex<f64>>::with_capacity(self.len());
@@ -333,6 +336,7 @@ impl Sub for &Signal{
 
 
 impl Mul for &Signal{
+  // The implementation of "*" is elementi-wise.
   type Output = Signal;
  
   fn mul(self, rhs: &Signal) -> Signal{
@@ -347,6 +351,7 @@ impl Mul for &Signal{
 impl Div for &Signal{
   type Output = Signal;
  
+  // The implementation of "/" is elementi-wise.
   fn div(self,rhs: &Signal) -> Signal{
     assert_eq!(self.len(), rhs.len());
     let mut data = Vec::<Complex<f64>>::with_capacity(self.len());

@@ -5,6 +5,7 @@ use std::ops::{Add,Sub,Mul,Div};
 
 use std::fmt;
 //------------------------------------------------------------------------------
+/// This enum specifies the tokens that user input text files get converted to.
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token{
  Active,
@@ -151,6 +152,7 @@ pub enum Token{
  WriteTensors,
 }
 impl fmt::Display for Token{
+  /// This function translates tokens to strings.
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
       Token::Active => write!(f,"active"), 
@@ -306,6 +308,7 @@ impl fmt::Display for Token{
   }
 }
 //------------------------------------------------------------------------------
+/// This function translates strings to tokens.
 pub fn identify_token(word: &str) -> Option<Token>{
   match word{
     "active" => Some(Token::Active),
@@ -456,6 +459,8 @@ pub fn identify_token(word: &str) -> Option<Token>{
 impl Add for Token{
   
   type Output = Result<Token,CluEError>;
+  /// This function implements "+" for tokens.
+  /// The function will return `Err` if the tokens cannot be added.
   fn add(self, rhs: Token) -> Result<Token,CluEError>{
     
     match (self, rhs){
@@ -514,6 +519,8 @@ impl Add for Token{
 impl Sub for Token{
   
   type Output = Result<Token,CluEError>;
+  /// This function implements "-" for tokens.
+  /// The function will return `Err` if the tokens cannot be subtracted.
   fn sub(self, rhs: Token) -> Result<Token,CluEError>{
     
     match (self, rhs){
@@ -572,6 +579,8 @@ impl Sub for Token{
 impl Mul for Token{
   
   type Output = Result<Token,CluEError>;
+  /// This function implements "*" for tokens.
+  /// The function will return `Err` if the tokens cannot be multiplied.
   fn mul(self, rhs: Token) -> Result<Token,CluEError>{
     
     match (self, rhs){
@@ -630,6 +639,8 @@ impl Mul for Token{
 impl Div for Token{
   
   type Output = Result<Token,CluEError>;
+  /// This function implements "/" for tokens.
+  /// The function will return `Err` if the tokens cannot be divided.
   fn div(self, rhs: Token) -> Result<Token,CluEError>{
     
     match (self, rhs){
@@ -685,13 +696,9 @@ impl Div for Token{
   }
 }
 
-//trait Pow{
-//  fn pow(self, )
-//}
-//impl Pow for Token{
-
-//  type Output = Result<Token,CluEError>;
 impl Token{
+  /// This function allows one token to be raised to the power of another
+  /// token.  The output is `Err` if the tokens do not allow for exponentiation.
   pub fn pow(self, rhs: Token) -> Result<Token,CluEError>{
 
     match (self, rhs){
@@ -789,6 +796,7 @@ impl Token{
   }
 }
 //------------------------------------------------------------------------------
+/// This function answers if the token specifies a relationship.
 pub fn is_relational_operator(token: &Token) -> bool{
   matches!( token,
     Token::Equals | Token::GreaterThan | Token::GreaterThanEqualTo
@@ -797,12 +805,14 @@ pub fn is_relational_operator(token: &Token) -> bool{
     )
 }
 //------------------------------------------------------------------------------
+/// This function answers whether or not the token is "(", "[" or "{".
 pub fn is_opening_delimiter(token: &Token) -> bool{
   matches!(token,
     Token::ParenthesisOpen | Token::SquareBracketOpen | Token::CurlyBracketOpen
     )
 }
 //------------------------------------------------------------------------------
+/// This function answers whether or not the token is ")", "]" or "}".
 pub fn is_closing_delimiter(token: &Token) -> bool{
   matches!(token,
     Token::ParenthesisClose | Token::SquareBracketClose 
@@ -810,6 +820,8 @@ pub fn is_closing_delimiter(token: &Token) -> bool{
     )
 }
 //------------------------------------------------------------------------------
+/// This function outputs a list of indices where the target token can be found
+/// within a list of tokens.
 pub fn find_token(target: &Token, tokens: &[Token]) -> Vec::<usize>{
 
   let mut out = Vec::<usize>::with_capacity(count_token(target,tokens) );
@@ -822,6 +834,8 @@ pub fn find_token(target: &Token, tokens: &[Token]) -> Vec::<usize>{
   out
 }
 //------------------------------------------------------------------------------
+/// This function outputs a the number of occurances of a target token
+/// within a list of tokens.
 pub fn count_token(target: &Token, tokens: &[Token]) -> usize{
 
   let mut counter = 0;
@@ -834,33 +848,38 @@ pub fn count_token(target: &Token, tokens: &[Token]) -> usize{
   counter   
 }
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// 'ModeAttribute' keeps tracks of the current parsing mode:
+/// "\#\[config\]", "\#\[group(...)\]", etc.
+/// The other fields hold potential arguments of the mode header.
 #[derive(PartialEq, Debug, Clone)]
 pub struct ModeAttribute{
   pub mode:  ConfigMode,
   pub isotope: Option<Isotope>,
   pub label: Option<String>,
   pub path: Option<String>,
-  //pub mode_type: Option<String>,
 }
 
 impl Default for ModeAttribute{
+  // This function implements the `default()` for `ModeAttribute`.
   fn default() -> Self{
     ModeAttribute{
       mode:  ConfigMode::Config,
       isotope: None,
       label: None,
       path: None,
-      //mode_type: None,
     }
   }
 }
 
 impl ModeAttribute{
 
+  /// This function implements the `new()` for `ModeAttribute`.
   pub fn new() -> Self{
     ModeAttribute::default()
   }
 
+  /// This function tries to interpret a list of tokens as a `ModeAttribute`.
+  /// The output will be `Err` if it cannot.
   pub fn from(tokens: Vec::<Token>) -> Result<Self,CluEError>
   {
 
@@ -975,6 +994,7 @@ impl ModeAttribute{
   //----------------------------------------------------------------------------
 }
 impl fmt::Display for ModeAttribute{
+  // This function translates `ModeAttribute` to a string.
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
   
     let mode_str = self.mode.to_string();
@@ -998,6 +1018,7 @@ impl fmt::Display for ModeAttribute{
   }
 }
 
+/// This enum list the possible configuration modes.
 #[derive(PartialEq, Debug, Clone)]
 pub enum ConfigMode{
   Clusters,
@@ -1011,6 +1032,8 @@ pub enum ConfigMode{
 }
 
 impl ConfigMode{
+  /// This function tries to interpret a list of tokens as a `ConfigMode`.
+  /// The output will be `Err` if it cannot.
   pub fn from(token: Token) -> Result<Self,CluEError>{
 
     match token{
@@ -1028,6 +1051,7 @@ impl ConfigMode{
   //----------------------------------------------------------------------------
 }
 impl fmt::Display for ConfigMode{
+  // This function translates a `ConfigMode` to a string.
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
       ConfigMode::Clusters => write!(f,"clusters"),

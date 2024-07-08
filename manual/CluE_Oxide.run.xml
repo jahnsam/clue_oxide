@@ -41,13 +41,13 @@
   >
 ]>
 <requests version="1.0">
-  <internal package="biblatex" priority="9" active="0">
+  <internal package="biblatex" priority="9" active="1">
     <generic>latex</generic>
     <provides type="dynamic">
-      <file>CluE.bcf</file>
+      <file>CluE_Oxide.bcf</file>
     </provides>
     <requires type="dynamic">
-      <file>CluE.bbl</file>
+      <file>CluE_Oxide.bbl</file>
     </requires>
     <requires type="static">
       <file>blx-dm.def</file>
@@ -68,19 +68,19 @@
     <generic>biber</generic>
     <cmdline>
       <binary>biber</binary>
-      <infile>CluE</infile>
+      <infile>CluE_Oxide</infile>
     </cmdline>
     <input>
-      <file>CluE.bcf</file>
+      <file>CluE_Oxide.bcf</file>
     </input>
     <output>
-      <file>CluE.bbl</file>
+      <file>CluE_Oxide.bbl</file>
     </output>
     <provides type="dynamic">
-      <file>CluE.bbl</file>
+      <file>CluE_Oxide.bbl</file>
     </provides>
     <requires type="dynamic">
-      <file>CluE.bcf</file>
+      <file>CluE_Oxide.bcf</file>
     </requires>
     <requires type="editable">
       <file>/home/kudarizaka/kudarizaka/uw/stoll/0final/thesis/refs.bib</file>

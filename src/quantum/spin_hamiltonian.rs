@@ -12,6 +12,9 @@ use num_complex::Complex;
 
 type CxMat = Array2::<Complex<f64>>;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// This function evolves the quantum system according to the specified
+/// pulse sequence and returns the time dependent expectation value of the
+/// measurement.
 pub fn propagate_pulse_sequence(
     density_matrix: &CxMat, hamiltonian: &SpinHamiltonian, config: &Config)
   -> Result<Signal,CluEError>
@@ -171,6 +174,7 @@ pub fn propagate_pulse_sequence_gcce(
 }
 */
 //------------------------------------------------------------------------------
+/// This function builds the density matrix.
 pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
   -> Result<CxMat,CluEError>
 {
@@ -328,10 +332,13 @@ fn ideal_pulse(spin_op: &SpinOp, angle: f64,
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `SpinHamiltonian` defines a block diagonal spin Hamiltonian, where
+/// the detected spin's eigenstates are beta and alpha.
 pub struct SpinHamiltonian{
   beta: CxMat,
   alpha: CxMat,
 }
+//------------------------------------------------------------------------------
 /// This function builds the cluster spin Hamiltonian assuming
 /// < mS | H | mS' > = 0, for mS != mS',
 pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
@@ -426,8 +433,8 @@ pub fn build_hamiltonian(spin_indices: &Vec::<usize>,
 Ok(SpinHamiltonian{beta,alpha})
 }
 //------------------------------------------------------------------------------
-// This function builds the cluster spin Hamiltonian without assuming
-// < mS | H | mS' > = 0, for mS != mS',
+/// This function builds the cluster spin Hamiltonian without assuming
+/// < mS | H | mS' > = 0, for mS != mS',
 pub fn build_spin_hamiltonian(spin_indices: &Vec::<usize>,
     spin_ops: &ClusterSpinOperators, tensors: &HamiltonianTensors)
   -> Result<CxMat,CluEError>
@@ -488,6 +495,12 @@ pub fn build_spin_hamiltonian(spin_indices: &Vec::<usize>,
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// 'ClusterSpinOperators' contains the spin operators used for clusters of 
+/// spins.
+/// `max_size` is the maximum cluster size specified.
+/// 'spin_multiplicities' contains the allowed spin multiplicities of the
+/// spins within each cluster (they must all be the ssame).
+/// 'cluster_spin_ops' contains the matrices.
 pub struct ClusterSpinOperators {
   max_size: usize, 
   spin_multiplicities: Vec<usize>, 
@@ -495,6 +508,8 @@ pub struct ClusterSpinOperators {
 }
 //------------------------------------------------------------------------------
 impl<'a> ClusterSpinOperators {
+  /// This function builds 'ClusterSpinOperators' for clusters of 
+  /// `spin_multiplicities` up to size `max_size`.
   pub fn new(spin_multiplicities: &Vec<usize>, max_size: usize) 
    -> Result<ClusterSpinOperators, CluEError> {
     
@@ -514,6 +529,11 @@ impl<'a> ClusterSpinOperators {
         })
   }
 
+  //----------------------------------------------------------------------------
+  /// This function tries to find the matrix corresponding to the specified 
+  /// spin operator for a spin of the specified multiplicity in a cluster
+  /// of the indicated size, where the single spin operator has `op_pos`
+  /// within the tensor product.
   pub fn get(&'a self, 
       sop: &SpinOp, spin_multiplicity: usize, cluster_size: usize,
       op_pos: usize) -> Result<&'a CxMat,CluEError> {
@@ -539,6 +559,8 @@ impl<'a> ClusterSpinOperators {
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `KronSpinOpXYZ` contains the Sx, Sy, and Sz spin operators tensored
+/// with various identity matrices on either side.
 pub struct KronSpinOpXYZ {
   sx_list: KronSpinOpList,
   sy_list: KronSpinOpList,
@@ -547,6 +569,8 @@ pub struct KronSpinOpXYZ {
 
 impl<'a> KronSpinOpXYZ {
 
+  /// This function builds `KronSpinOpXYZ` for spin with the input spin 
+  /// multiplicity for clusters up to size `max_size`.
   pub fn new(spin_multiplicity: usize, max_size: usize) 
     -> Result<KronSpinOpXYZ,CluEError> 
   {
@@ -562,6 +586,9 @@ impl<'a> KronSpinOpXYZ {
     })
   }
   //----------------------------------------------------------------------------
+  /// This function tries to find the matrix corresponding to the specified 
+  /// spin operator in a cluster of size `n_ops`,
+  /// where the single spin operator has `op_pos` within the tensor product.
   pub fn get(&'a self, sop: &SpinOp, op_pos: usize, n_ops: usize) 
     -> Result<&'a CxMat,CluEError> 
   {
@@ -578,12 +605,17 @@ impl<'a> KronSpinOpXYZ {
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `KronSpinOpList` contains a spin operator tensored with various identity 
+/// matrices on either side.
 pub struct KronSpinOpList {
   sop_list: Vec::<CxMat>,
 }
 //------------------------------------------------------------------------------
 impl<'a> KronSpinOpList {
 
+  /// This function builds `KronSpinOpList` with the specified 
+  /// spin operator, for spins with the input spin 
+  /// multiplicity for clusters up to size `max_size`.
   pub fn new(
       spin_multiplicity: usize,
       spin_operator: SpinOp,
@@ -610,6 +642,9 @@ impl<'a> KronSpinOpList {
     })
   }
   //----------------------------------------------------------------------------
+  /// This function tries to find the matrix of `n_ops` operators,
+  /// with the `op_pos` operator being the non-identity within the 
+  /// tensor product.
   pub fn get(&'a self, op_pos: usize, n_ops: usize) ->
     Result<&'a CxMat,CluEError> {
 
@@ -626,7 +661,9 @@ impl<'a> KronSpinOpList {
 
     Ok(&self.sop_list[idx])
   }
-//------------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
+  // This function translates the position within the tensor product to the
+  // index within the list where that product is stored.
   fn get_index(op_pos: usize, n_ops: usize) -> usize {
     ( n_ops*(n_ops - 1) )/2 + op_pos
   }
@@ -636,6 +673,8 @@ impl<'a> KronSpinOpList {
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 //------------------------------------------------------------------------------
+/// This function generates the matrix for spin operators, `sops`,
+/// corresponding to spins with `spin_mults` spin multiplicities.
 pub fn kron_spin_op(spin_mults: &Vec<usize>, sops: &Vec<SpinOp>) ->
   Result<CxMat,CluEError> 
 {
@@ -658,6 +697,7 @@ pub fn kron_spin_op(spin_mults: &Vec<usize>, sops: &Vec<SpinOp>) ->
   Ok(sop)
 }
 //------------------------------------------------------------------------------
+/// This enum list possible spin operators. 
 #[derive(Copy,Debug,Clone,PartialEq)]
 pub enum SpinOp{
   E,
@@ -669,6 +709,7 @@ pub enum SpinOp{
   S2,
 }
 impl fmt::Display for SpinOp {
+    // This function translates `SpinOp` to strings.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
       match self{
         SpinOp::E => write!(f, "E"),
@@ -682,6 +723,8 @@ impl fmt::Display for SpinOp {
     }
 }
 //------------------------------------------------------------------------------
+// This function builds the matrix corresponding to the specified spin operator
+// and multiplicity.
 fn get_sop(spin_multiplicity: usize, sop: &SpinOp) -> CxMat{
   match sop {
     SpinOp::E => CxMat::eye(spin_multiplicity),
@@ -698,7 +741,8 @@ fn get_sop(spin_multiplicity: usize, sop: &SpinOp) -> CxMat{
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //------------------------------------------------------------------------------
-// <m'|Sx|m> = 1/2*(delta_{m',m+1} + delta_{m'+1,1})*sqrt(S*(S+1) - m'*m).
+/// This function generates the Sx matrix:
+/// <m'|Sx|m> = 1/2*(delta_{m',m+1} + delta_{m'+1,1})*sqrt(S*(S+1) - m'*m).
 pub fn spin_x(spin_multiplicity: usize) -> CxMat {
 
   let spin: f64 = (spin_multiplicity as f64)/2.0 - 0.5;
@@ -717,7 +761,8 @@ pub fn spin_x(spin_multiplicity: usize) -> CxMat {
   op
 }
 //------------------------------------------------------------------------------
-// <m'|Sy|m> = -i/2*(delta_{m',m+1} - delta_{m'+1,1})*sqrt(S*(S+1) - m'*m).
+/// This function generates the Sy matrix:
+/// <m'|Sy|m> = -i/2*(delta_{m',m+1} - delta_{m'+1,1})*sqrt(S*(S+1) - m'*m).
 pub fn spin_y(spin_multiplicity: usize) -> CxMat {
 
   let spin: f64 = (spin_multiplicity as f64)/2.0 - 0.5;
@@ -736,7 +781,8 @@ pub fn spin_y(spin_multiplicity: usize) -> CxMat {
   op
 }
 //------------------------------------------------------------------------------
-// <m'|Sz|m> = delta_{m',m}*m.
+/// This function generates the Sz matrix:
+/// <m'|Sz|m> = delta_{m',m}*m.
 pub fn spin_z(spin_multiplicity: usize) -> CxMat {
 
   let spin: f64 = (spin_multiplicity as f64)/2.0 - 0.5;
@@ -753,7 +799,8 @@ pub fn spin_z(spin_multiplicity: usize) -> CxMat {
   op
 }
 //------------------------------------------------------------------------------
-// <m'|S-|m> = delta_{m'+1,m} * sqrt(S*(S+1) - m'*m).
+/// This function generates the lowering ladder operator matrix:
+/// <m'|S-|m> = delta_{m'+1,m} * sqrt(S*(S+1) - m'*m).
 pub fn spin_minus(spin_multiplicity: usize) -> CxMat {
 
   let spin: f64 = (spin_multiplicity as f64)/2.0 - 0.5;
@@ -770,7 +817,8 @@ pub fn spin_minus(spin_multiplicity: usize) -> CxMat {
   op
 }
 //------------------------------------------------------------------------------
-// <m'|S+|m> = delta_{m',m+1} * sqrt(S*(S+1) - m'*m).
+/// This function generates the raising ladder operator matrix:
+/// <m'|S+|m> = delta_{m',m+1} * sqrt(S*(S+1) - m'*m).
 pub fn spin_plus(spin_multiplicity: usize) -> CxMat {
 
   let spin: f64 = (spin_multiplicity as f64)/2.0 - 0.5;
@@ -787,7 +835,8 @@ pub fn spin_plus(spin_multiplicity: usize) -> CxMat {
   op
 }
 //------------------------------------------------------------------------------
-// <m'|S^2|m> = delta_{m',m}*S*(S+1).
+/// This function generates the S^2 matrix:
+/// <m'|S^2|m> = delta_{m',m}*S*(S+1).
 pub fn spin_squared(spin_multiplicity: usize) -> CxMat {
 
   let spin: f64 = (spin_multiplicity as f64)/2.0 - 0.5;

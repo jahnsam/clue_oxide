@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::hash::{Hash,Hasher};
 use std::collections::hash_map::DefaultHasher;
 
+/// This function compares two lists for equality.
 pub fn are_vecs_equal<T: std::cmp::PartialEq>
 (vec0: &[T], vec1: &[T])-> bool{
   if vec0.len() != vec1.len() {return false;}
@@ -13,6 +14,7 @@ pub fn are_vecs_equal<T: std::cmp::PartialEq>
   true
 }
 //------------------------------------------------------------------------------
+/// This function rounds a floating point number up to an interger. 
 pub fn ceil(x: f64) -> f64{
 
   let mut a = x as i32;
@@ -25,7 +27,7 @@ pub fn ceil(x: f64) -> f64{
   a as f64
 }
 //------------------------------------------------------------------------------
-
+/// This function sorts a vector and removes duplicate entries.
 pub fn unique<T>(vec: Vec::<T>) -> Vec::<T>
 where T: std::cmp::Eq  + std::hash::Hash + std::cmp::Ord
 {
@@ -38,6 +40,7 @@ where T: std::cmp::Eq  + std::hash::Hash + std::cmp::Ord
   out
 }
 //------------------------------------------------------------------------------
+/// This function converts `input` to a `u64` via a `String` intermediary.
 pub fn str_hash<T: Debug>(input: &T) -> u64 {
   let in_str = format!("{:?}",input);
   let mut out = DefaultHasher::new();

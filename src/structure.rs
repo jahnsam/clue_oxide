@@ -30,7 +30,13 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-// TODO: remove in favor of config properties.
+// TODO: move to field in config?
+/// `DetectedSpin` holds the data about the detected spin.
+/// `gamma_matrix` holds the effective gamma matrix.
+/// `isotope` identifies the species of the spin.
+/// `weighted_coordinates` holds the probability amplitude grid.
+/// 'spin_multiplicity' determines the spin of the particle.
+/// 'transition' selects which transition is being measured. 
 #[derive(Debug,Clone)]
 pub struct DetectedSpin{
   pub gamma_matrix: SymmetricTensor3D,
@@ -41,6 +47,7 @@ pub struct DetectedSpin{
 }
 //------------------------------------------------------------------------------
 impl DetectedSpin{
+  /// This function returns a reference to the detected spin's gamma matrix.
   pub fn gyromagnetic_ratio_matrix(&self) 
     -> &SymmetricTensor3D
   {
@@ -48,6 +55,7 @@ impl DetectedSpin{
     &self.gamma_matrix
   }
   //----------------------------------------------------------------------------
+  /// This function returns the detected spin's multiplicity.
   pub fn spin_multiplicity(&self) -> usize{
     self.spin_multiplicity
   }
@@ -57,56 +65,51 @@ impl DetectedSpin{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `Structure` contain info on the positions and identities of particles
+/// within the system.
+/// `detected_particl` is the particle giving rise to the detected signal.
+/// `bath_particles` contains all particles that are not directly detected.
+/// `bath_spins_indices` is a list of which bath_particles have spin.
+/// `cell_indices` is a set of lists of all periodic copies of each particle 
+/// from the primary cell 
+/// `cell_offsets` is the set of displacements for periodic boundary conditions.
+/// `connections` lists chemical bonds.
+/// `molecules` is the set of molecules in the system.
+/// `molecule_ids` is a list specifing which molecule each particle belongs to.
+/// `cosubstitution_groups` is a collections of atoms that should be isotope 
+/// substituted together
+/// `exchange_groups` contains information on methyls.
+/// `particle_config_ids` lists indices for which config.particle corresponds 
+/// to each particle
+/// `extracell_particle_config_ids` is a list of indices for which 
+/// `config.extracell_particle` corresponds to each particle.
+/// `pdb_origin` is the origin of the pdb frame.
+/// `primary_cell_indices` lists indices indicating the particle that each 
+/// particle is a periodic boundary condition copy of  
+/// `nth_active_to_reference_index` lists indices for display and output files.
+///
 #[derive(Debug,Clone)]
 pub struct Structure{
-  // the particle giving rise to the detected signal
   pub detected_particle: Option<DetectedSpin>,
-  
-  // all particles that are not directly detected   
   pub bath_particles: Vec::<Particle>,
-
-  // a list of which bath_particles have spin
   bath_spins_indices: Vec::<usize>,
-
-  // set of lists of all periodic copies of each particle from the primary cell 
   pub cell_indices: Vec::<Vec::<Option<usize>>>,
-
-  // set of displacements for periodic boundary conditions
   pub cell_offsets: Vec::<Vector3D>,
-
-  // list of chemical bonds
   pub connections: AdjacencyList,
-
-  // set of molecule
   molecules: Vec::<Vec::<usize>>,
-
-  // a list specifing which molecule each particle belongs to
   molecule_ids: Vec::<usize>,
-
-  // collections of atoms that should be isotope substituted together
   cosubstitution_groups: Vec::< Vec::<usize> >,
-
-  // information on methyls
   pub exchange_groups: Option<ExchangeGroupManager>,
-
-  // indices for which config.particle corresponds to each particle
   particle_config_ids: Vec::<Option<usize>>,
-
-  // indices for which config.extracell_particle corresponds to each particle
   extracell_particle_config_ids: Vec::<Option<usize>>,
-
-  // origin of the pdb frame
   pub pdb_origin: Vector3D,
-
-  // list indices indicating the particle that each particle is a periodic
-  // boundary condition copy of  
   primary_cell_indices: Vec::<usize>,
-
-  // indices for display and output file
   nth_active_to_reference_index: Vec::<usize>,
 }
 
 impl Structure{
+  /// This function builds a new `Structure` from a list of `Particle`s
+  /// their connectivity and cell info.
   pub fn new(
       bath_particles: Vec::<Particle>,
       connections: AdjacencyList,
@@ -133,6 +136,7 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
+  /// This function builds a `Structure` from info in `Config`.
   pub fn build_structure(rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<Self,CluEError>
   {
@@ -156,10 +160,12 @@ impl Structure{
     Ok(structure)
   }
   //----------------------------------------------------------------------------
+  /// This function returns the number of bath particles in the system.
   pub fn number(&self) -> usize{
     self.bath_particles.len()
   }
   //----------------------------------------------------------------------------
+  /// This function returns the number of active bath particles in the system.
   pub fn number_active(&self) -> usize{
     let mut n_active = 0;
     for particle in self.bath_particles.iter(){
@@ -168,6 +174,8 @@ impl Structure{
     n_active
   }
   //----------------------------------------------------------------------------
+  /// This function finds the set of particles that pass `&ParticleFilter`
+  /// and returns a list of references.
   pub fn find<'a>(&'a self, particle_filter: &ParticleFilter)
     -> Vec::<&'a Particle>
   {
@@ -199,6 +207,8 @@ impl Structure{
     Ok(cell_id)
   }
   //----------------------------------------------------------------------------
+  /// This function returns the ID number of the molecule that particle `idx`
+  /// is in.
   pub fn molecule_id(&self,idx: usize) -> usize{
 
     let idx0 = self.primary_cell_indices[idx];
@@ -292,16 +302,7 @@ impl Structure{
         break;
       }
     }
-    /*
-    let nth_active: usize = self.bath_particle.iter().take(bath_index+1)
-      .map(|particle| 
-          if particle.active{
-            1
-          }else{
-            0
-          }
-       ).sum();
-    */
+
     let ref_idx = self.get_reference_index_of_nth_active(nth_active)?;
     if ref_idx != reference_index {
       return Err(CluEError::CannotFindParticleForRefIndex(reference_index));
@@ -330,36 +331,7 @@ impl Structure{
     Ok(r_ave)
   }
   //----------------------------------------------------------------------------
-  /*
-  fn get_extended_index(&self, 
-      primary_cell_index: usize, unit_cell_id: usize, guess_idx: mut usize) 
-    -> Option<usize>
-  {
-    if unit_cell_id == 0{
-      return Some(primary_cell_index);
-    }
-
-    let decend: bool
-    let idx = self.primary_cell_indices[guess_idx];
-    if idx0 == primary_cell_index && 
-
-  }
-  */
-  //----------------------------------------------------------------------------
-  /*
-  pub fn molecule(&self,mol_id: usize) -> Vec::<usize>{
-    let mol_id0 = mol_id%self.molecules.len();
-    let cell_id = (mol_id-mol_id0)/self.molecules.len();
-
-    let mut molecule = self.molecules[mol_id0].clone();
-
-    for idx in molecule.iter_mut(){
-      idx = 
-    }
-
-  }
-  */
-  //----------------------------------------------------------------------------
+  /// This function returns the exchange coupling for particle `particle_index`.
   pub fn extract_exchange_coupling(&self, particle_index: usize,
       config: &Config)
     -> f64
@@ -377,6 +349,8 @@ impl Structure{
     }
   }
   //----------------------------------------------------------------------------
+  /// This function returns the electric quadrupole coupling for particle 
+  /// `particle_index`.
   pub fn extract_electric_quadrupole_specifier<'a>(&self, particle_index: usize,
       config: &'a Config)
     -> Option<&'a TensorSpecifier>
@@ -390,6 +364,7 @@ impl Structure{
     isotope_properties.electric_quadrupole_coupling.as_ref()
   }
   //----------------------------------------------------------------------------
+  /// This function returns the g-matrix for particle `particle_index`.
   pub fn extract_g_matrix_specifier<'a>(&self, particle_index: usize,
       config: &'a Config)
     -> Option<&'a TensorSpecifier>
@@ -403,6 +378,8 @@ impl Structure{
     isotope_properties.g_matrix.as_ref()
   }
   //----------------------------------------------------------------------------
+  /// This function returns the info to determine the hyperfine coupling for 
+  /// particle `particle_index`.
   pub fn extract_hyperfine_specifier<'a>(&self, particle_index: usize,
       config: &'a Config)
     -> Option<&'a TensorSpecifier>
@@ -416,6 +393,8 @@ impl Structure{
     isotope_properties.hyperfine_coupling.as_ref()
   }
   //----------------------------------------------------------------------------
+  /// This function returns the `&IsotopeProperties` that appies to particle 
+  /// `particle_index`.
   pub fn extract_isotope_properties<'a>(&self, particle_index: usize,
       config: &'a Config)
     -> Option<&'a IsotopeProperties>
@@ -471,6 +450,7 @@ impl Structure{
     Ok(particle_config_ids)
   }
   //----------------------------------------------------------------------------
+  /// This function saves the bath particles in csv format.
   pub fn bath_to_csv(&self, filename: &str, config: &Config) 
     -> Result<(),CluEError>
   {

@@ -1,3 +1,4 @@
+/// This function prints the help message.
 pub fn print_help(){
   println!("\
 Usage:\n    \

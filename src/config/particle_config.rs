@@ -5,29 +5,13 @@ use crate::structure::particle_filter::{ParticleFilter,VectorSpecifier,
 use crate::physical_constants::*;
 use std::collections::HashMap;
 
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/*
-pub fn find_particle_configs<'a>(
-    target: &SpecifiedParticle,
-    particle_configs: &'a [ParticleConfig]) 
-  -> Vec::<&'a ParticleConfig>{
-
-    let mut found_configs = Vec::<&ParticleConfig>::with_capacity(
-        particle_configs.len());
-
-    for particle_config in particle_configs.iter(){
-      if particle_config.filter.covers(target){
-        found_configs.push(particle_config);
-      }
-    }
-
-    found_configs
-}
-*/
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `ParticleConfig` stores user setting for how to treat particles/
+/// `label` is an identifier.
+/// `filter` selects the set of particles to modify.
+/// `properties` specify the custom properties.
+/// `cell_type` allows for treating the main cell and PBC copies differently.
 #[derive(Debug,Clone,PartialEq)]
 pub struct ParticleConfig{
   pub label: String,
@@ -35,7 +19,9 @@ pub struct ParticleConfig{
   pub properties: Option<ParticleProperties>,
   pub cell_type: CellType,
 }
+
 impl ParticleConfig{
+  /// This function generates a default `ParticleConfig` with the input `label`.
   pub fn new(label: String) -> Self{
     ParticleConfig{
       label,
@@ -45,6 +31,8 @@ impl ParticleConfig{
     }
   }
   //----------------------------------------------------------------------------
+  /// This function looks at all spins that the `ParticleConfig` might apply to
+  /// and returns the largest spin multiplicity, 2S+1.
   pub fn max_possible_spin_multiplicity(&self) -> Option<usize> {
     
     let Some(properties) = &self.properties else{
@@ -70,6 +58,7 @@ impl ParticleConfig{
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// This enum specifies different sets of PBC cells.
 #[derive(Debug,Clone,PartialEq)]
 pub enum CellType{
   AllCells,
@@ -79,6 +68,11 @@ pub enum CellType{
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `ParticleProperties` specifies custom particle properties.
+/// 'cosubstitute` selects the set of particles that should always be the same
+/// isotope when the isotopic distribution is randomized.
+/// `isotopic_distribution` specifies how elements are assigned an isotope.
+/// `isotope_properties` defines some physical properties of the spin.
 #[derive(Debug,Clone,PartialEq,Default)]
 pub struct ParticleProperties{
   pub cosubstitute: Option<SecondaryParticleFilter>,
@@ -87,6 +81,7 @@ pub struct ParticleProperties{
 }
 
 impl ParticleProperties{
+  /// This function creates a new instance of `ParticleProperties`.
   pub fn new() -> Self{
     Default::default()
   }
@@ -95,6 +90,16 @@ impl ParticleProperties{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `IsotopeProperties` defines some physical properties of a spin.
+/// `active` specifies whether the spin should be included in simulations.
+/// `electric_quadrupole_coupling` defines the coupling of the spin to the 
+/// local electric field gradient.
+/// `exchange_coupling` defines an effective coupling coming from
+/// symmetry requirements of the wavefunction upon the exchange of 
+/// identical particles.
+/// `g_matrix` specifies the effective coupling between the spin and the applied
+/// magnetic field.
+/// `hyperfine_coupling` specifices the coupling to the detected electron.
 #[derive(Debug,Clone,PartialEq,Default)]
 pub struct IsotopeProperties{
   pub active: Option<bool>,
@@ -105,18 +110,24 @@ pub struct IsotopeProperties{
 }
 
 impl IsotopeProperties{
+  /// This function creates a new instance of `IsotopeProperties`.
   pub fn new() -> Self{ IsotopeProperties::default() }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `IsotopeDistribution` determine how isotopes are assigned to elements.
+/// `isotope_abundances` lists the possible isotope and propabilities.
+/// 'void_probability' is the probability that the particle will be included
+/// at all.
 #[derive(Debug,Clone,PartialEq,Default)]
 pub struct IsotopeDistribution{
   pub isotope_abundances: Vec::<IsotopeAbundance>,
   pub void_probability: Option<f64>,
 }
-
+//------------------------------------------------------------------------------
+/// `IsotopeAbundances` lists the possible isotope and abundances.
 #[derive(Debug,Clone,PartialEq)]
 pub struct IsotopeAbundance{
   pub isotope: Isotope,
@@ -126,6 +137,10 @@ pub struct IsotopeAbundance{
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `TensorSpecifier` specifies a symmetric 3-by-3 coupling matrix.
+/// `values` contains the three eigenvalues.
+/// `e_axis` for `e` in {'x','y','z'} specify eigenvectors.
+/// Note that only two axes should be specified. 
 #[derive(Debug,Clone,PartialEq,Default)]
 pub struct TensorSpecifier{
   pub values: Option<[f64; 3]>,
@@ -135,6 +150,7 @@ pub struct TensorSpecifier{
 }
 
 impl TensorSpecifier{
+  /// This function creates a new instance of `TensorSpecifier`.
   pub fn new() -> Self{
     TensorSpecifier::default()
   }
@@ -142,60 +158,4 @@ impl TensorSpecifier{
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/*
-// TODO: deprected
-#[derive(Debug,Clone)]
-pub enum AxisSpecifier{
-  Connected(ParticleSelector, ParticleSelector),
-  PDBIndices(Vec::<u32>),
-  Random,
-  SameResidueSequence( ParticleSelector,ParticleSelector ),
-  Vector(Vector3),
-}
-
-#[derive(Debug,Clone)]
-pub enum ParticleSelector{
-  This,
-  Other(Box<ParticleSpecifier>),
-}
-*/
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-  /*
-#[cfg(test)]
-mod tests{
-  use super::*;
-  use crate::structure::pdb::read_pdb;
-
-  #[test]
-  fn test_find_particle_configs(){
-    let filename = "./assets/TEMPO.pdb";
-    let pdb = read_pdb(filename).expect("Could not read pdb file.");  
-
-    assert_eq!(Element::Nitrogen,pdb.element(27));
-    let target = SpecifiedParticle::specify(27, &pdb);
-
-
-    let number = 3;
-    let mut configs = Vec::<ParticleConfig>::with_capacity(number);
-    for _ii in 0..number{
-      configs.push(ParticleConfig::new());
-    }
-
-    configs[1].filter.elements.push(Element::Hydrogen);
-    configs[2].filter.elements.push(Element::Nitrogen);
-
-    let found_configs = find_particle_configs(&target, &configs);
-    assert_eq!(2,found_configs.len());
-
-    for ii in 0..found_configs.len() {
-      assert!(found_configs[ii].filter.covers(&target));
-    }
-  }
-}
-  */
-//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

@@ -1,6 +1,7 @@
 use crate::CluEError;
 use std::error::Error;
 //------------------------------------------------------------------------------
+/// This function writes signal data to a csv.
 pub fn write_data<T>(data: &Vec::<Vec::<T>>, filename: &str,
     headers: Vec::<String>) -> Result<(),CluEError> where T: std::fmt::Display
 {
@@ -20,6 +21,9 @@ pub fn write_data<T>(data: &Vec::<Vec::<T>>, filename: &str,
     }
 }
 //------------------------------------------------------------------------------
+// This function writes signal data to a csv.
+// The function write_data calls this function, but has an extra error handling
+// layer.
 fn write_vecs_to_csv<T>(data: &[Vec::<T>],filename: &str,
     headers: Vec::<String>) 
   -> Result<(),Box<dyn Error>> where T: std::fmt::Display

@@ -1,9 +1,9 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  6 JAN 2024 11:59
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  7 JUL 2024 19:42
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**CluE.tex
-(./CluE.tex
+**CluE_Oxide.tex
+(./CluE_Oxide.tex
 LaTeX2e <2022-11-01> patch level 1
 L3 programming layer <2023-05-22>
 (/usr/local/texlive/2023/texmf-dist/tex/latex/base/book.cls
@@ -102,7 +102,7 @@ Package: filehook-2020 2022/10/25 v0.8b Hooks for input files
 )
 \sa@out=\write3
 
-(./CluE.sta)
+(./CluE_Oxide.sta)
 (/usr/local/texlive/2023/texmf-dist/tex/latex/gincltex/gincltex.sty
 (/usr/local/texlive/2023/texmf-dist/tex/latex/svn-prov/svn-prov.sty
 Package: svn-prov 2010/04/24 v3.1862 Package Date/Version from SVN Keywords
@@ -882,8 +882,9 @@ Package csquotes Info: Checking for multilingual support...
 Package csquotes Info: ... found 'babel' package.
 Package csquotes Info: Adjusting default style.
 Package csquotes Info: Redefining alias 'default' -> 'english'.
- (./CluE.aux)
-\openout1 = `CluE.aux'.
+
+(./CluE_Oxide.aux)
+\openout1 = `CluE_Oxide.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 9.
 LaTeX Font Info:    ... okay on input line 9.
@@ -896,8 +897,7 @@ LaTeX Font Info:    ... okay on input line 9.
 LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 9.
 LaTeX Font Info:    Trying to load font information for TS1+cmr on input line 9
 .
-
-(/usr/local/texlive/2023/texmf-dist/tex/latex/base/ts1cmr.fd
+ (/usr/local/texlive/2023/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2022/07/10 v2.5l Standard LaTeX font definitions
 )
 LaTeX Font Info:    ... okay on input line 9.
@@ -942,8 +942,8 @@ LaTeX Font Info:    ... okay on input line 9.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-(./CluE.sta)
-\openout3 = `CluE.sta'.
+(./CluE_Oxide.sta)
+\openout3 = `CluE_Oxide.sta'.
 
 
 Package fontspec Info: Adjusting the maths setup (use [no-math] to avoid
@@ -1011,12 +1011,12 @@ Package biblatex Info: XeTeX detected.
 (biblatex)             Assuming input encoding 'utf8'.
 Package biblatex Info: Automatic encoding selection.
 (biblatex)             Assuming data encoding 'utf8'.
-\openout4 = `CluE.bcf'.
+\openout4 = `CluE_Oxide.bcf'.
 
 Package biblatex Info: Trying to load bibliographic data...
-Package biblatex Info: ... file 'CluE.bbl' found.
+Package biblatex Info: ... file 'CluE_Oxide.bbl' found.
 
-(./CluE.bbl)
+(./CluE_Oxide.bbl)
 Package biblatex Info: Reference section=0 on input line 9.
 Package biblatex Info: Reference segment=0 on input line 9.
 \c@lstlisting=\count458
@@ -1024,7 +1024,8 @@ File: figs/fig_CluE_Oxide_logo.png Graphic file (type bmp)
 <figs/fig_CluE_Oxide_logo.png>
 LaTeX Font Info:    Trying to load font information for U+msa on input line 40.
 
- (/usr/local/texlive/2023/texmf-dist/tex/latex/amsfonts/umsa.fd
+
+(/usr/local/texlive/2023/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
 LaTeX Font Info:    Trying to load font information for U+msb on input line 40.
@@ -1157,18 +1158,24 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
  [17]
 [18] [19] [20
 
-] [21] (./CluE.aux)
-Package logreq Info: Writing requests to 'CluE.run.xml'.
-\openout1 = `CluE.run.xml'.
+] [21] (./CluE_Oxide.aux)
+
+LaTeX Warning: There were undefined references.
+
+
+Package biblatex Warning: Please rerun LaTeX.
+
+Package logreq Info: Writing requests to 'CluE_Oxide.run.xml'.
+\openout1 = `CluE_Oxide.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
  22038 strings out of 476701
- 446354 string characters out of 5804296
+ 446510 string characters out of 5804296
  2463416 words of memory out of 5000000
  41887 multiletter control sequences out of 15000+600000
  519139 words of font info for 73 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 140i,14n,134p,1453b,4844s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 140i,14n,134p,1459b,4844s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on CluE.pdf (21 pages).
+Output written on CluE_Oxide.pdf (21 pages).

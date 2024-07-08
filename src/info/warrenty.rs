@@ -1,3 +1,4 @@
+/// This function prints the warrenty info.
 pub fn print_warrenty(){
 println!("\n\n\
                     GNU GENERAL PUBLIC LICENSE\n\

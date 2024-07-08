@@ -19,6 +19,16 @@ use std::io::BufWriter;
 use std::io::Write;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// `HamiltonianTensors` contians the information needed to write the spin
+/// Hamiltonian a the sum of spin operators times coupling tensors.
+/// `spin_multiplicities` lists the spin multiplicities, (2S+1), for each spin.
+/// 'spin1_tensors' the specifies the terms that contain only a
+/// single spin operator, such as the Zeeman coupling.
+/// 'spin2_tensors' the specifies the terms that contain two spin operators
+/// either between two different spins or from the same spin.
+/// Higher order terms are not supported.
+/// `detected_gamma_matrix` is the gamma matrix matrix for the detected spin.
+/// `magnetic_field` is the applied magnetic field, assumed to be uniform.
 #[derive(Debug,Clone)] 
 pub struct HamiltonianTensors{
   pub spin_multiplicities: Vec::<usize>,
@@ -29,24 +39,18 @@ pub struct HamiltonianTensors{
 }
 impl HamiltonianTensors{
   //----------------------------------------------------------------------------
+  /// This function returns the number of spins covered by the Hamiltonian.
   pub fn len(&self) -> usize{
     self.spin1_tensors.len()
   }
   //----------------------------------------------------------------------------
+  /// This function return `true` iff there are no spins covered by the 
+  /// Hamiltonian.
   pub fn is_empty(&self) -> bool{
     self.spin1_tensors.is_empty()
   }
   //----------------------------------------------------------------------------
-  /*
-  pub fn rotate_active(&mut self, dir: &UnitSpherePoint){
-    let gamma_matrix = self.detected_gamma_matrix.rotate_active(dir);
-    self.spin1_tensors.set(0,
-        construct_zeeman_tensor(&gamma_matrix,&self.magnetic_field));
-
-    self.spin2_tensors.rotate_active(dir);
-  }
-  */
-  //----------------------------------------------------------------------------
+  /// This function performs a passive rotation with respect to the system.
   pub fn rotate_pasive(&mut self, dir: &UnitSpherePoint){
     let gamma_matrix = self.detected_gamma_matrix.rotate_pasive(dir);
     self.spin1_tensors.set(0,
@@ -55,47 +59,8 @@ impl HamiltonianTensors{
     self.spin2_tensors.rotate_pasive(dir);
   }
   //----------------------------------------------------------------------------
-  /*
-  pub fn from(
-      spin_multiplicities: Vec::<usize>,
-      spin1_tensors: Spin1Tensors,
-      spin2_tensors: Spin2Tensors,
-      ) -> Result<Self,CluEError>
-  {
-
-    let n_spins = spin1_tensors.len();
-
-    // TODO: check spin1_tensors.len() == spin2_tensors.len()
-    Ok(HamiltonianTensors{
-      spin_multiplicities,
-      spin1_tensors,
-      spin2_tensors,
-    })
-  }
-  */
-  //----------------------------------------------------------------------------
-  /*
-  pub fn get_reference_index(&self, tensor_index: usize) 
-    -> Result<usize,CluEError>
-  {
-    if tensor_index >= self.reference_indices.len(){
-      return Err(CluEError::CannotFindStructureIndex(tensor_index));
-    }
-    Ok(self.reference_indices[tensor_index])
-  }
-  //----------------------------------------------------------------------------
-  pub fn get_tensor_index(&self,structure_index: usize) 
-    -> Result<usize,CluEError> 
-  {
-    for (ten_idx, &idx) in self.reference_indices.iter().enumerate(){
-      if idx == structure_index{
-        return Ok(ten_idx);
-      }
-    }
-    Err(CluEError::CannotFindTensorIndex(structure_index))
-  }
-  */
-  //----------------------------------------------------------------------------
+  /// This function builds the spin Hamiltonian from the input structure
+  /// and user specifications.
   pub fn generate(structure: &Structure, config: &Config) 
     -> Result<Self,CluEError>
   {
@@ -263,6 +228,7 @@ impl HamiltonianTensors{
 
   }
   //----------------------------------------------------------------------------
+  /// This function writes the coupling tensors to a text file.
   pub fn save(&self, filename: &str, structure: &Structure) 
     -> Result<(),CluEError>
   {

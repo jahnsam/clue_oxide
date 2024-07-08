@@ -12,6 +12,8 @@ use std::fs::File;
 use std::io::prelude::*;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// This function reads a PDB file and tries to build a `Structure`.
+/// If it cannot it will err.
 pub fn parse_pdb(filename: &str,target_model: usize) 
   -> Result< Structure, CluEError>
 {
@@ -33,6 +35,8 @@ pub fn parse_pdb(filename: &str,target_model: usize)
     )
 }
 //------------------------------------------------------------------------------
+// This function tries to parse the crystallographic data.
+// If it cannot it will err.
 fn parse_cell(filename: &str) -> Result<Vec::<Vector3D>,CluEError>
 {
 
@@ -57,6 +61,8 @@ fn parse_cell(filename: &str) -> Result<Vec::<Vector3D>,CluEError>
   Ok(cell_offsets)
 }
 //------------------------------------------------------------------------------
+// This function tries to parse the connections data.
+// If it cannot it will err.
 fn parse_connections(filename: &str ,n_atoms: usize,
     serial_to_index: HashMap::<u32,Option<usize>>) 
   -> Result<AdjacencyList,CluEError>
@@ -98,11 +104,15 @@ fn parse_connections(filename: &str ,n_atoms: usize,
    Ok(connections)
 }
 //------------------------------------------------------------------------------
+// `ParticleMap` contains a list of particles and a map from the PDB ID to 
+// the list index.
 struct ParticleMap{
   particles: Vec::<Particle>,
   map: HashMap::<u32,Option<usize>>
 }
 //------------------------------------------------------------------------------
+// This function tries to parse the atom data.
+// If it cannot it will err.
 fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize) 
   -> Result<ParticleMap,CluEError>
 {
@@ -172,6 +182,10 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
      map: serial_to_index})
 }
 //------------------------------------------------------------------------------
+// This function tries to parse the crystallographic data line.
+// If it cannot it will err.
+// The expected format is as follows.
+// https://www.wwpdb.org/documentation/file-format-content/format33/sect8.html
 /*
 COLUMNS       DATA  TYPE    FIELD          DEFINITION
 -------------------------------------------------------------
@@ -218,6 +232,9 @@ fn parse_crystal_line(line: &str)
 }
 
 //------------------------------------------------------------------------------
+// This function tries to parse an atom data line.
+// If it cannot it will err.
+// https://www.wwpdb.org/documentation/file-format-content/format33/sect9.html
 /*
 COLUMNS        DATA  TYPE    FIELD        DEFINITION
 -------------------------------------------------------------------------------------
@@ -278,6 +295,9 @@ fn parse_atom_line(line: &str) -> Result<Particle,(CluEError,u32)>{
       })
 }
 //------------------------------------------------------------------------------
+// This function tries to parse a connections data line.
+// If it cannot it will err.
+// https://www.wwpdb.org/documentation/file-format-content/format33/sect10.html
 /*
 COLUMNS       DATA  TYPE      FIELD        DEFINITION
 -------------------------------------------------------------------------
@@ -311,6 +331,8 @@ fn parse_connections_line(conect_line: &str) -> Result<Vec::<u32>,CluEError>{
 
 }
 //------------------------------------------------------------------------------
+// This function tries to count the number of atoms in the PDB.
+// If it cannot it will err.
 fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
 
    let mut count = 0;
@@ -343,6 +365,7 @@ fn count_pdb_atoms(filename: &str) -> Result<(usize,usize),CluEError> {
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Structure{
+  /// This function writes a `Structure` in PDB format.
   pub fn write_pdb(&self,filename: &str) -> Result<(),CluEError>{
 
     let n_active = self.number_active();
@@ -351,25 +374,14 @@ impl Structure{
     let bytes_per_char = 32;
     let n_bytes = (n_active +1)*pdb_chars_per_line*bytes_per_char;
 
-
-
-    /*  
-    let Ok(mut file) = std::fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(filename) 
-
-    */
     let Ok(file) = File::create(filename)
     else {
       return Err(CluEError::CannotOpenFile(filename.to_string()) );
     };
-    //let file = LineWriter::with_capacity(
     let mut stream = BufWriter::with_capacity(n_bytes,file);
 
     let pdb_det_str = self.get_detected_particle_pdb_string()?;
 
-    //if let Err(_) = writeln!(file, "{}",pdb_str) {
     if stream.write(pdb_det_str.as_bytes()).is_err(){
       return Err(CluEError::CannotWriteFile(filename.to_string()) );
     }
@@ -379,8 +391,6 @@ impl Structure{
     for particle in self.bath_particles.iter(){
       if !particle.active {continue;}
       self.set_bath_particle_pdb_string(&mut line, particle, &mut serial_num)?;
-
-      //if let Err(_) = writeln!(file, "{}",pdb_str) {
 
       
       let stream_result = stream.write(line.as_bytes());
@@ -399,43 +409,8 @@ impl Structure{
     Ok(())
   }
 //------------------------------------------------------------------------------
-/*
-COLUMNS        DATA  TYPE    FIELD        DEFINITION
--------------------------------------------------------------------------------------
- 1 -  6        Record name   "ATOM  "
- 7 - 11        Integer       serial       Atom  serial number.
-13 - 16        Atom          name         Atom name.
-17             Character     altLoc       Alternate location indicator.
-18 - 20        Residue name  resName      Residue name.
-22             Character     chainID      Chain identifier.
-23 - 26        Integer       resSeq       Residue sequence number.
-27             AChar         iCode        Code for insertion of residues.
-31 - 38        Real(8.3)     x            Orthogonal coordinates for X in Angstroms.
-39 - 46        Real(8.3)     y            Orthogonal coordinates for Y in Angstroms.
-47 - 54        Real(8.3)     z            Orthogonal coordinates for Z in Angstroms.
-55 - 60        Real(6.2)     occupancy    Occupancy.
-61 - 66        Real(6.2)     tempFactor   Temperature  factor.
-77 - 78        LString(2)    element      Element symbol, right-justified.
-79 - 80        LString(2)    charge       Charge  on the atom.
-*/
-pub fn to_string_pdb(&self) 
-  -> Result<String,CluEError>
-{
-
-  let mut pdb_str = self.get_detected_particle_pdb_string()?;
-
-  let mut serial_num = 1;
-  let mut line = String::new();
-  for particle in self.bath_particles.iter(){
-    if !particle.active {continue;}
-  
-    self.set_bath_particle_pdb_string(&mut line,particle, &mut serial_num)?;
-
-    pdb_str = format!("{}{}",pdb_str,line);
-  }
-  Ok(pdb_str)
-}
 //------------------------------------------------------------------------------
+// This function write the detected particle in PDB format.
 fn get_detected_particle_pdb_string(&self) 
   -> Result<String,CluEError>
 {
@@ -475,6 +450,7 @@ fn get_detected_particle_pdb_string(&self)
   Ok(pdb_str)
 }  
 //------------------------------------------------------------------------------
+// This function sets 'line' and a PDB formated line for a `Particle`.
 fn set_bath_particle_pdb_string(&self, line: &mut String, particle: &Particle, 
     serial_num: &mut usize) 
   -> Result<(),CluEError>
@@ -622,44 +598,4 @@ mod tests {
     assert!(!structure.connections.are_connected(0,28));
   }
   //----------------------------------------------------------------------------
-  #[test]
-  fn test_to_string_pdb(){
-    let filename = "./assets/TEMPO.pdb";
-    let structure = parse_pdb(&filename,0).unwrap();
-    let pdb_str = structure.to_string_pdb().unwrap();
-    let answer = "\
-HETATM    1 C    TEM     1     37.6999   36.15   37.34  1.00  0.00           C
-HETATM    2 C    TEM     1       38.19   36.29   38.76  1.00  0.00           C
-HETATM    3 H    TEM     1       38.97   35.51    38.8  1.00  0.00           H
-HETATM    4 H    TEM     1       37.38   36.13    39.5  1.00  0.00           H
-HETATM    5 H    TEM     1        38.8   37.18   39.01  1.00  0.00           H
-HETATM    6 C    TEM     1       37.56   34.69   37.01  1.00  0.00           C
-HETATM    7 H    TEM     1       37.11   34.14   37.86  1.00  0.00           H
-HETATM    8 H    TEM     1     38.5600   34.21   37.06  1.00  0.00           H
-HETATM    9 H    TEM     1       37.06   34.52   36.03  1.00  0.00           H
-HETATM   10 C    TEM     1       38.75   36.51   36.33  1.00  0.00           C
-HETATM   11 H    TEM     1       39.67   35.93   36.54  1.00  0.00           H
-HETATM   12 H    TEM     1       38.27   36.15    35.4  1.00  0.00           H
-HETATM   13 C    TEM     1       39.06   37.98   36.16  1.00  0.00           C
-HETATM   14 H    TEM     1       39.87   38.14   35.41  1.00  0.00           H
-HETATM   15 H    TEM     1       39.48   38.27   37.15  1.00  0.00           H
-HETATM   16 C    TEM     1       37.75   38.77   35.97  1.00  0.00           C
-HETATM   17 H    TEM     1       37.56 38.5300    34.9  1.00  0.00           H
-HETATM   18 H    TEM     1       37.81   39.88   36.01  1.00  0.00           H
-HETATM   19 C    TEM     1       36.61   38.38   36.85  1.00  0.00           C
-HETATM   20 C    TEM     1       36.65   39.17   38.23  1.00  0.00           C
-HETATM   21 H    TEM     1       37.57 38.8699   38.78  1.00  0.00           H
-HETATM   22 H    TEM     1       35.84 38.8699   38.94  1.00  0.00           H
-HETATM   23 H    TEM     1       36.85   40.26   38.12  1.00  0.00           H
-HETATM   24 C    TEM     1       35.34   38.82   36.15  1.00  0.00           C
-HETATM   25 H    TEM     1       35.26   38.37   35.14  1.00  0.00           H
-HETATM   26 H    TEM     1       35.27   39.92   36.06  1.00  0.00           H
-HETATM   27 H    TEM     1       34.53 38.4699   36.82  1.00  0.00           H
-HETATM   28 N    TEM     1       36.44    36.9    37.1  1.00  0.00           N
-HETATM   29 O    TEM     1       35.29   36.43   37.81  1.00  0.00           O
-".to_string();
-    assert_eq!(pdb_str,answer);
-
-
-  }
 }

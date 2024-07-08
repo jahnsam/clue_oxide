@@ -9,6 +9,7 @@ use crate::physical_constants::ANGSTROM;
 use crate::structure::particle_filter::ParticleFilter;
 
 impl Config{
+  ///  This function parses lines found under "#[group(...)]"
   pub fn parse_filter_line(&mut self, expression: &TokenExpression,
       label_opt: &Option<String>)
     -> Result<(),CluEError>

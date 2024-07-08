@@ -1,3 +1,4 @@
+/// This function prints the license information. 
 pub fn print_license(){
 println!("\n\n\
                     GNU GENERAL PUBLIC LICENSE\n\

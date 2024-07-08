@@ -11,7 +11,7 @@ use crate::space_3d::Vector3D;
 use crate::structure::particle_filter::{SecondaryParticleFilter,
   VectorSpecifier};
 
-// TokenExpression holds a line of input, organized for easy parsing.
+/// TokenExpression holds a line of input, organized for easy parsing.
 #[derive(Debug,Clone,Default,PartialEq)]
 pub struct TokenExpression{
   pub lhs: Vec::<Token>,
@@ -22,7 +22,7 @@ pub struct TokenExpression{
 
 impl TokenExpression{
   //----------------------------------------------------------------------------
-  // This function processes a vector of tokens into a TokenExpression.
+  /// This function processes a vector of tokens into a TokenExpression.
   pub fn from(tokens: Vec::<Token>, line_number:usize) -> Result<Self,CluEError>{
 
     if tokens[0]==Token::Sharp{
@@ -63,6 +63,10 @@ impl TokenExpression{
   }
 }
 //------------------------------------------------------------------------------
+/// This function finds the index where the relationship symbol is.
+/// For example in "a=b;", the output would be `Some(1)`.
+/// If there are multimple relationship symbols such as "a=b<c;",
+/// the output will be an `Err`.
 pub fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize) 
   -> Result<Option<usize>,CluEError>{
 
@@ -82,6 +86,7 @@ pub fn find_lhs_rhs_delimiter_index(tokens: &[Token], line_number: usize)
 }
 
 //------------------------------------------------------------------------------
+/// The purpose of this function is to err if the target option is already set.
 pub fn check_target_option<T>(target: &Option<T>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
@@ -97,6 +102,7 @@ pub fn check_target_option<T>(target: &Option<T>, expression: &TokenExpression)
 }
 
 //------------------------------------------------------------------------------
+/// The purpose of this function is to err if the target vector is already set.
 pub fn check_target_vector<T>(target: &Vec<T>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
@@ -112,6 +118,10 @@ pub fn check_target_vector<T>(target: &Vec<T>, expression: &TokenExpression)
 }
 
 //------------------------------------------------------------------------------
+/// This function reads a `&TokenExpression` and modifies `target` from `None`
+/// to either `Some(true)` or `Some(false)`.
+/// The function will err if either `target' is not 'None`, or if the 
+/// `&TokenExpression` cannot be intepreted as a true/false.
 pub fn set_to_some_bool(target: &mut Option<bool>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
@@ -135,6 +145,10 @@ pub fn set_to_some_bool(target: &mut Option<bool>, expression: &TokenExpression)
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function reads a `&TokenExpression` and modifies `target` from `None`
+/// to `Some(f64)`.
+/// The function will err if either `target' is not 'None`, or if the 
+/// `&TokenExpression` cannot be intepreted as a float.
 pub fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
@@ -153,6 +167,9 @@ pub fn set_to_some_f64(target: &mut Option<f64>, expression: &TokenExpression)
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function reads a `&TokenExpression` and fills an empty `Vec::<f64>`.
+/// The function will err if either `target` is not empty, or if the 
+/// `&TokenExpression` cannot be intepreted as a `Vec::<f64>`.
 pub fn set_to_vec_f64(target: &mut Vec<f64>, 
     expression: &TokenExpression)-> Result<(),CluEError>
 {
@@ -170,6 +187,10 @@ pub fn set_to_vec_f64(target: &mut Vec<f64>,
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function reads a `&TokenExpression` and modifies `target` from `None`
+/// to `Some(f32)`.
+/// The function will err if either `target` is not 'None`, or if the 
+/// `&TokenExpression` cannot be intepreted as a integer.
 pub fn set_to_some_i32(target: &mut Option<i32>, expression: &TokenExpression)
   -> Result<(),CluEError>
 {
@@ -188,6 +209,10 @@ pub fn set_to_some_i32(target: &mut Option<i32>, expression: &TokenExpression)
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function reads a `&TokenExpression` and modifies `target` from `None`
+/// to `Some(usize)`.
+/// The function will err if either `target' is not 'None`, or if the 
+/// `&TokenExpression` cannot be intepreted as a non-negative integer.
 pub fn set_to_some_usize(target: &mut Option<usize>, 
     expression: &TokenExpression)-> Result<(),CluEError>
 {
@@ -209,6 +234,9 @@ pub fn set_to_some_usize(target: &mut Option<usize>,
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function reads a `&TokenExpression` and fills an empty `Vec::<usize>`.
+/// The function will err if either `target` is not empty, or if the 
+/// `&TokenExpression` cannot be intepreted as a `Vec::<usize>`.
 pub fn set_to_vec_usize(target: &mut Vec<usize>, 
     expression: &TokenExpression)-> Result<(),CluEError>
 {
@@ -241,6 +269,10 @@ pub fn set_to_vec_usize(target: &mut Vec<usize>,
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function reads a `&TokenExpression` and modifies `target` from `None`
+/// to `Some(String)`.
+/// The function will err if either `target' is not 'None`, or if the 
+/// `&TokenExpression` cannot be intepreted as a single string.
 pub fn set_to_some_string(target: &mut Option<String>, 
     expression: &TokenExpression)
   -> Result<(),CluEError>
@@ -259,17 +291,14 @@ pub fn set_to_some_string(target: &mut Option<String>,
   }
 
   *target = Some(rhs[0].to_string());
-  /*
-  if let Token::UserInputValue(value) = &rhs[0]{
-    *target = Some(value.clone());
-  }else{
-    return Err(CluEError::CannotParseRHS(expression.line_number));
-  }
-  */
 
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function reads a `&TokenExpression` and modifies `target` from `None`
+/// to `Some(Vector3D)`.
+/// The function will err if either `target' is not 'None`, or if the 
+/// `&TokenExpression` cannot be intepreted as a `Vector3D`.
 pub fn set_to_some_vector3d(
     target: &mut Option<Vector3D>, expression: &TokenExpression)
   -> Result<(),CluEError>
@@ -292,7 +321,10 @@ pub fn set_to_some_vector3d(
   Ok(())
 }
 //------------------------------------------------------------------------------
-// TODO: add more descriptive errors.
+/// This function reads a `&TokenExpression` and modifies `target` from `None`
+/// to `Some(VectorSpecifier)`.
+/// The function will err if either `target' is not 'None`, or if the 
+/// `&TokenExpression` cannot be intepreted as a `VectorSpecifier`.
 pub fn set_to_some_vector_specifier(
     target: &mut Option<VectorSpecifier>, expression: &TokenExpression,
     label: &str)
@@ -399,14 +431,10 @@ pub fn set_to_some_vector_specifier(
   Ok(())
 }
 //------------------------------------------------------------------------------
+/// This function converts a `Vec::<Token>` to a `Vec::<String>`.
 pub fn vec_tokens_to_vec_strings(tokens: Vec::<Token>)
   -> Result<Vec::<String>,CluEError>
 {
-  /*
-  let str_token: Vec::<String> = tokens.into_iter()
-    .map(|tok| tok.to_string())
-    .collect();
-  */
   let mut value_token = Vec::<String>::with_capacity(tokens.len());
   for tok in tokens{
     if let Token::UserInputValue(tok_str) = tok{
@@ -417,6 +445,8 @@ pub fn vec_tokens_to_vec_strings(tokens: Vec::<Token>)
   Ok(value_token)
 }
 //------------------------------------------------------------------------------
+/// This function converts a `Vec::<Token>` to a `Vec::<Element>`.
+/// The function will err if any token cannot be converted to a valid element.
 pub fn vec_tokens_to_vec_elements(tokens: Vec::<Token>)
   -> Result<Vec::<Element>,CluEError>
 {
@@ -431,6 +461,10 @@ pub fn vec_tokens_to_vec_elements(tokens: Vec::<Token>)
   Ok(value_token)
 }
 //------------------------------------------------------------------------------
+/// The function takes tokens representing a function and extracts the
+/// arguments.
+/// The function will err if the tokens cannot be interpreted as a function
+/// with arguments.
 pub fn get_function_arguments(tokens: &[Token],line_number: usize) 
   -> Result<Vec::<Token>,CluEError>
 {

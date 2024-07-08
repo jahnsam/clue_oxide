@@ -183,6 +183,16 @@ pub enum Element{
 }
 
 impl Element{
+  /// This function converts valid strings to `Element`s.
+  /// Valid strings are the chemical symbols for the elements.
+  /// Electrons have the symbol "e".
+  /// Hydrogen has the standard symbol "H", but "D" and "T" are accepted aslo.
+  /// This function will err if the symbol is not recognized.
+  /// ``` 
+  /// use clue_oxide::physical_constants::Element;
+  /// assert_eq!(Element::from("e"), Ok(Element::Electron));
+  /// assert_eq!(Element::from("H"), Ok(Element::Hydrogen));
+  /// ```
   pub fn from(element: &str) -> Result<Element,CluEError> {
 
     match element {
@@ -311,6 +321,7 @@ impl Element{
 
 impl ToString for Element{
 
+  // This function implements `ToString` for `Element`.
   fn to_string(&self) -> String{
     match self{  
       Element::Electron => "e".to_string(),
@@ -673,11 +684,11 @@ pub enum Isotope{
 
 impl Isotope{
 
+  /// This function returns the g value for the particle.
   pub fn g_value(&self) -> f64{
 
     match self{
       Isotope::Electron => ELECTRON_G, 
-      //Isotope::Hydrogen1 => 5.5869,
       // https://physics.nist.gov/cgi-bin/cuu/Value?gp
       Isotope::Hydrogen1 => 5.5856946893,
       Isotope::Hydrogen2 => 0.857438,
@@ -842,6 +853,7 @@ impl Isotope{
     }
   }
   //----------------------------------------------------------------------------
+  /// This function return a particle's gyromagnetic ratio.
   pub fn gyromagnetic_ratio(&self) -> f64{
 
     let mu: f64 = if *self == Isotope::Electron{
@@ -854,7 +866,11 @@ impl Isotope{
   
   }
   //----------------------------------------------------------------------------
-
+  /// This function return a particle's spin multiplicity, 2S + 1.
+  /// ``` 
+  /// use clue_oxide::physical_constants::Isotope;
+  /// assert_eq!(Isotope::spin_multiplicity(&Isotope::Hydrogen2),3);
+  /// ```
   pub fn spin_multiplicity(&self) -> usize {
     match self {
          Isotope::Electron => 2,
@@ -1022,6 +1038,13 @@ impl Isotope{
     }
   }
   //----------------------------------------------------------------------------
+  /// This function returns the `Isotope` of an `Element` that has the highest 
+  /// naturally occuring abundance.
+  /// ``` 
+  /// use clue_oxide::physical_constants::{Element,Isotope};
+  /// assert_eq!(Isotope::most_common_for(&Element::Hydrogen), 
+  ///   Isotope::Hydrogen1);
+  /// ```
   pub fn most_common_for(element: &Element) -> Isotope{
 
     match element{
@@ -1149,6 +1172,12 @@ impl Isotope{
   
   }
 
+  /// This function translates an isotope symbol string to an `Isotope`.
+  /// ``` 
+  /// use clue_oxide::physical_constants::Isotope;
+  /// assert_eq!(Isotope::from("e"), Ok(Isotope::Electron));
+  /// assert_eq!(Isotope::from("1H"), Ok(Isotope::Hydrogen1));
+  /// ```
   pub fn from(isotope_string: &str) -> Result<Isotope,CluEError>{
     match isotope_string{
        "e" =>  Ok(Isotope::Electron   ),  
@@ -1382,6 +1411,7 @@ impl Isotope{
   }
 }
 impl ToString for Isotope{
+  // This function implements `ToString` for `Isotope`.
   fn to_string(&self) -> String{
     match self{
      Isotope::Electron => "e".to_string(), 

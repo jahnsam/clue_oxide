@@ -41,6 +41,7 @@ impl Structure{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  // This function applies periodic boudary conditions.
   fn extend_structure(&mut self, 
       rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
@@ -190,6 +191,8 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
+  // This function runs through the primary cell and randomly removes
+  // particles that the user has set to be randomly removable.
   fn set_primary_cell_voidable_particles(&mut self, 
       rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
@@ -307,7 +310,7 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
-  
+  // This function trims the extended system down to the user specified shape. 
   fn trim_system(&mut self, config: &Config) -> Result<(),CluEError>{
     let Some(load_geometry) = &config.load_geometry else {
       return Err(CluEError::NoLoadGeometry);
@@ -355,6 +358,8 @@ impl Structure{
   }
   
   //----------------------------------------------------------------------------
+  // This function checks for clashes between particles in the primary cell
+  // and PBC particles.
   fn check_primary_clashes(&mut self, config: &Config) -> Result<(),CluEError>{
 
     let Some(clash_distance) = &config.clash_distance else{
@@ -388,6 +393,8 @@ impl Structure{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  // This removes particles in in PBC copies that closer than a user specified
+  // distance.
   fn trim_pbc_clashes(&mut self, config: &Config) -> Result<(),CluEError>{
 
     let Some(clash_distance) = &config.clash_distance_pbc else {
@@ -428,6 +435,8 @@ impl Structure{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  // This function updates the exchange groups to account for the extended
+  // system.
   fn update_exhange_groups(&mut self, config: &Config) -> Result<(),CluEError>
   {
     let Some(exchange_group_manager0) = &self.exchange_groups else {
@@ -507,6 +516,8 @@ impl Structure{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  // This function draws a random isotopologue from the user defined
+  // distribution.
   fn set_isotopologue(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
     -> Result<(),CluEError>
   {
@@ -582,12 +593,13 @@ impl Structure{
 
   }
   //----------------------------------------------------------------------------
+  // This function sets the offset vector between PBC copies.
   fn set_cell_shifts(&mut self, config: &Config) -> Result<(),CluEError>{
     let cell_edges = self.cell_offsets.clone();
 
     if cell_edges.is_empty(){
       self.cell_offsets = vec![Vector3D::zeros()];
-      println!("No unit cell information found.  
+      println!("No unit cell information found. \
 Periodic boudary conditions will not be applied.");
       return Ok(());
     }else if cell_edges.len() != 3 {
@@ -599,15 +611,11 @@ Periodic boudary conditions will not be applied.");
   }
 }
   //----------------------------------------------------------------------------
+  // This function builds the offset vector between PBC copies.
   fn build_cell_shifts(cell_edges: Vec::<Vector3D>, config: &Config) 
     -> Result<Vec::<Vector3D>,CluEError>
   {
     
-    /*
-    let Some(load_geometry) = &config.load_geometry else {
-      return Err(CluEError::NoLoadGeometry);
-    };
-    */
     let mut n_cells_per_dim = [1,1,1];
 
     let Some(radius) = config.radius else {
@@ -629,26 +637,6 @@ Periodic boudary conditions will not be applied.");
     for ix in -n_cells_per_dim[0]..=n_cells_per_dim[0]{
       for iy in -n_cells_per_dim[1]..=n_cells_per_dim[1]{
         for iz in -n_cells_per_dim[2]..=n_cells_per_dim[2]{
-
-          /*
-          // For spherical geometries, do not use unit cell that cannot
-          // have any particles within the load radius.
-          if ix !=0 && iy != 0 && iz != 0 
-            && *load_geometry == LoadGeometry::Sphere{
-              let jx = (ix.abs() - 1)*ix.signum();
-              let jy = (iy.abs() - 1)*iy.signum();
-              let jz = (iz.abs() - 1)*iz.signum();
-              
-            let min_possible_r = &(&cell_edges[0].scale(jx as f64)
-              + &cell_edges[1].scale(jy as f64)) 
-              + &cell_edges[2].scale(jz as f64);
-            
-            if min_possible_r.norm() > radius{
-              continue;
-            }
-
-          }
-          */
 
           let offset = &(&cell_edges[0].scale(ix as f64)
             + &cell_edges[1].scale(iy as f64)) 

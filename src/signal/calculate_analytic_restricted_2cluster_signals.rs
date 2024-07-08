@@ -12,6 +12,12 @@ use rayon::prelude::*;
 use std::path::Path;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+/// This function calculates 2-CCE, using an analytic solution
+/// to the 3-spin Hamiltonian from
+/// W. Witzel and S. Das Sarma, “Quantum theory for electron spin decoherence 
+/// induced by nuclear spin dynamics in semiconductor quantum computer 
+/// architectures: Spectral diffusion of localized electron spins in the 
+/// nuclear solid-state environment,” Phys. Rev. B 74, 035322 (2006).
 pub fn calculate_analytic_restricted_2cluster_signals(
     cluster_set: &mut ClusterSet, 
     tensors: &HamiltonianTensors, config: &Config, 
@@ -101,6 +107,8 @@ pub fn calculate_analytic_restricted_2cluster_signals(
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------
+/// This function applies Witzel Das Sarma's analytic solution to calculate
+/// the 2-CCE auxiliary signal the specified cluster.
 pub fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
     tensors: &HamiltonianTensors, config: &Config) 
   -> Result<Option<Signal>,CluEError>
@@ -144,6 +152,7 @@ pub fn analytic_restricted_2cluster_signal(vertices: &Vec::<usize>,
 
 }
 //------------------------------------------------------------------------------
+/// This function calculate the modulation depth for a single 2-cluster.
 pub fn hahn_three_spin_modulation_depth(delta_hf: f64,b:f64) -> f64{
   (2.0*b*delta_hf/( delta_hf*delta_hf + b*b) ).powi(2)
 }

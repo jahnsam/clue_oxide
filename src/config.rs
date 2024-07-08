@@ -83,10 +83,12 @@ pub struct Config{
 
 impl Config{
   //----------------------------------------------------------------------------
+  /// This function generates a empty `Config`.
   pub fn new() -> Self{
     Default::default()
   }
   //----------------------------------------------------------------------------
+  /// This function generates a `Config` from an input string.
   pub fn from(input: &str) -> Result<Self,CluEError>
   {
     let expressions
@@ -208,6 +210,7 @@ impl Config{
     self.set_detected_spin()
   }
   //----------------------------------------------------------------------------
+  // This function sets the detected spin.
   fn set_detected_spin(&mut self) -> Result<(),CluEError>{
 
     if self.detected_spin_identity.is_none(){
@@ -216,22 +219,6 @@ impl Config{
 
     // Set g-matrix
     if self.detected_spin_g_matrix.is_some(){
-    /*
-    if let Some(g_matrix) = &mut self.detected_spin_g_matrix{
-      let Some(values) = &mut g_matrix.values else{
-        return Err(CluEError::NoGMatrixValues);
-      };
-
-      // For consistancy g free > 0, but gamma free < 0.
-      // The electron g free is conventionally positive and are entered as such,
-      // but CluE uses a negative electron g free.
-      // This line applies the sign change.
-      if self.detected_spin_identity == Some(Isotope::Electron){
-        for v in values.iter_mut(){
-          *v *= -1.0;
-        }
-      }
-      */
      
     }else{
       self.detected_spin_g_matrix = Some(TensorSpecifier{
@@ -253,6 +240,7 @@ impl Config{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  /// This function the highest spin multiplicity for a "#[group(...)]". 
   pub fn max_spin_multiplicity_for_particle_config(&self, id: usize) 
     -> Option<usize>
   {
@@ -279,6 +267,7 @@ impl Config{
 
   }
   //----------------------------------------------------------------------------
+  /// This function gets the simulated experiment's time axis.
   pub fn get_time_axis(&self) -> Result<&Vec::<f64>,CluEError>
   {
     if self.time_axis.is_empty() {
@@ -287,6 +276,7 @@ impl Config{
     Ok(&self.time_axis)
   }
   //----------------------------------------------------------------------------
+  /// This function constructs the simulated experiment's time axis.
   pub fn construct_time_axis(&mut self) -> Result<(),CluEError>
   {
     let dts = &self.time_increments;
@@ -326,11 +316,13 @@ impl Config{
     Ok(())
   }
   //----------------------------------------------------------------------------
+  /// This function writes the simulated experiment's time axis to a file.
   pub fn write_time_axis(&self,save_path: String) -> Result<(),CluEError>{
     io::write_data(& vec![self.time_axis.clone()], 
         &format!("{}/time_axis.csv",save_path), vec!["time_axis".to_string()])
   }
   //----------------------------------------------------------------------------
+  /// This function finds the `ParticleConfig` that has `label` if it exists.
   pub fn find_particle_config(&self, label: &str) 
     -> Option<(usize,&ParticleConfig)>
   {
@@ -345,7 +337,8 @@ impl Config{
 
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+/// `DensityMatrixMethod` specifies different methods for determining the
+// /density ,atrix.
 #[derive(Debug,Clone,PartialEq)]
 pub enum DensityMatrixMethod{
   ApproxThermal(f64),
@@ -353,55 +346,51 @@ pub enum DensityMatrixMethod{
   Thermal(f64),
 }
 
+/// `LoadGeometry` specifies how the system is trimmed/
 #[derive(Debug,Clone,PartialEq)]
 pub enum LoadGeometry{
   Cube,
   Sphere,
 }
+
+/// `DetectedSpinCoordinates` lists options for indicating the coordinates
+/// of the detected spin.
 #[derive(Debug,Clone,PartialEq)]
 pub enum DetectedSpinCoordinates{
   CentroidOverSerials(Vec::<u32>),
   XYZ(Vector3D),
   ProbabilityDistribution(IntegrationGrid),
 }
-/*
-#[derive(Debug,Clone,PartialEq)]
-pub enum NeighborCutoff{
-  DeltaHyperfine(f64),
-  DipoleDipole(f64),
-  HahnThreeSpinModulationDepth(f64),
-  HahnThreeSpinFourthOrderTaylorCoefficient(f64),
-}
-*/
+
+/// `ClusterMethod` list different cluster simulation methods.
 #[derive(Debug,Clone,PartialEq)]
 pub enum ClusterMethod{
   AnalyticRestricted2CCE,
   CCE,
   GCCE,
 }
+
+/// `PulseSequence` lists the options for pulse sequences to simulate.
 #[derive(Debug,Clone,PartialEq)]
 pub enum PulseSequence{
   CarrPurcell(usize),
   //RefocusedEcho,
 }
 
+/// `OrientationAveraging` lists the different orientation averaging options.
 #[derive(Debug,Clone,PartialEq)]
 pub enum OrientationAveraging{
   Grid(IntegrationGrid),
   Lebedev(usize),
   Random(usize),
 }
-/*
 
 
-#[derive(Debug,Clone)]
-pub enum PBCSyle{
-  CRYST1,
-  TIGHT,
-}
-*/
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Config{
+
+  /// This function takes the parsed command line input and develops the main
+  /// configuration data structure.
   pub fn read_input(input: CommandLineInput) -> Result<Self,CluEError>{
     let Some(filename) = &input.config_file else{
       return Err(CluEError::NoInputFile);
@@ -423,6 +412,7 @@ impl Config{
     Ok(config)
   }
   //----------------------------------------------------------------------------
+  // This functions sets properties for particles outside the primary cell.
   fn set_extracell_particles(&mut self){
     
     let mut n_extra = 0; 
@@ -457,7 +447,7 @@ impl Config{
 
   }
   //----------------------------------------------------------------------------
-  /// This function updates config from a Vec<TokenExpression>.
+  /// This function updates config from a `Vec<TokenExpression>`.
   pub fn parse_token_stream(&mut self,token_stream: Vec<TokenExpression>) 
     -> Result<(),CluEError>
   {
