@@ -8,7 +8,7 @@ license = "GPL-3.0"
 repository = "https://github.com/jahnsam/clue_oxide"
 documentation = "https://github.com/jahnsam/clue_oxide/blob/main/manual/CluE_Oxide.pdf"
 readme = "README.md"
-keywords = ["quantum", "spin","simulation","CCE", "cluster correlation expansion"]
+keywords = ["quantum", "spin","simulation","CCE","EPR"]
 categories = ["command-line-utilities"]
 exclude =["/.github/*","examples/*","assets/*","manual/*","pyclue/*",
          "CluE_Oxide_logo.*"]
