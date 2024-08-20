@@ -1,3 +1,9 @@
+--------------------------------------------------------------------------------
+CluE Oxide: 0.2.1
+
+FIXED:
+
+In the dependencies, updated the ndarray-linalg version to fix compilation errors on Windows.
 
 --------------------------------------------------------------------------------
 CluE Oxide: 0.2.0-alpha.2

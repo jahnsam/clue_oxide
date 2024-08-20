@@ -1,6 +1,6 @@
 [package]
 name = "clue_oxide"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Samuel M. Jahn <jahn.samuel@gmail.com>"]
 description = "CluE Oxide (Cluster Evolution Oxide) is a spin dynamics simulation program for electron spin decoherence"
@@ -34,10 +34,10 @@ substring = "1.4"
 
 
 [target.'cfg(unix)'.dependencies]
-ndarray-linalg = { version = "0.15", features = ["openblas-static"] }
+ndarray-linalg = { version = "0.16", features = ["openblas-static"] }
 
 [target.'cfg(windows)'.dependencies.ndarray-linalg]
-version = '0.15.0'
+version = '0.16.0'
 features = ['intel-mkl']
 
 
