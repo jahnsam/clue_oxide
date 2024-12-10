@@ -4,7 +4,7 @@ use crate::config::{
   particle_config::{
     IsotopeAbundance,IsotopeProperties,
     ParticleConfig, ParticleProperties,
-    TensorSpecifier},
+    EigSpecifier, TensorSpecifier},
   to_f64_token,
   Token,
   token_expressions::*,
@@ -12,6 +12,7 @@ use crate::config::{
 };
 use crate::structure::particle_filter::SecondaryParticleFilter;
 use crate::physical_constants::Isotope;
+use crate::space_3d::SymmetricTensor3D;
 
 
 impl Config{
@@ -99,169 +100,20 @@ fn parse_isotope_properties(properties: &mut ParticleProperties,
       set_to_some_bool(&mut isotope_properties.active,expression)?;
     },
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Token::GMatrix | Token::GX | Token::GY | Token::GZ => {
-      if isotope_properties.g_matrix.is_none() {
-        isotope_properties.g_matrix = Some(TensorSpecifier::new());
-      }
-      let Some(g_matrix) = &mut isotope_properties.g_matrix else{
-        return Err(CluEError::NoBathGMatrixSpecifier(label.to_string(),
-              isotope.to_string() ));
-      }; 
-      match expression.lhs[0]{
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::GMatrix => {
-      
-          let mut g_values = Vec::<f64>::new();
-      
-          set_to_vec_f64(&mut g_values,expression)?;
-          
-          if g_matrix.values.is_some(){
-            return Err(already_set());
-          }
-
-          if g_values.len() == 1{
-            g_matrix.values = Some([g_values[0],g_values[0],g_values[0]]);
-          }else if g_values.len() == 3{
-            g_matrix.values = Some([g_values[0],g_values[1],g_values[2]]);
-          }else{
-            return Err(CluEError::CannotInferEigenvalues(
-                  expression.line_number));
-          }
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::GX => {
-          set_to_some_vector_specifier(&mut g_matrix.x_axis, expression,
-              label)?;
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::GY => {
-          set_to_some_vector_specifier(&mut g_matrix.y_axis, expression,
-              label)?;
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::GZ => {
-
-          set_to_some_vector_specifier(&mut g_matrix.z_axis, expression,
-              label)?;
-
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        _ => return Err(CluEError::InvalidToken(expression.line_number,
-          expression.lhs[0].to_string())),
-      }
-    },
+    Token::GMatrix | Token::GX | Token::GY | Token::GZ 
+      => set_symmetric_tensor_3d(&mut isotope_properties.g_matrix, 
+          &expression.lhs[0], expression, label)?,
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Token::HyperfineCoupling | Token::HyperfineX | 
-      Token::HyperfineY | Token::HyperfineZ =>{
-
-      if isotope_properties.hyperfine_coupling.is_none() {
-        isotope_properties.hyperfine_coupling = Some(TensorSpecifier::new());
-      }
-      let Some(hyperfine) = &mut isotope_properties.hyperfine_coupling else{
-        return Err(CluEError::NoHyperfineSpecifier(label.to_string(),
-              isotope.to_string() ));
-      }; 
-
-      match expression.lhs[0]{
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::HyperfineCoupling => {
-      
-          let mut hf_values = Vec::<f64>::new();
-      
-          set_to_vec_f64(&mut hf_values,expression)?;
-          
-          if hyperfine.values.is_some(){
-            return Err(already_set());
-          }
-
-          if hf_values.len() == 1{
-            hyperfine.values = Some([hf_values[0],hf_values[0],hf_values[0]]);
-          }else if hf_values.len() == 3{
-            hyperfine.values = Some([hf_values[0],hf_values[1],hf_values[2]]);
-          }else{
-            return Err(CluEError::CannotInferEigenvalues(
-                  expression.line_number));
-          }
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::HyperfineX => {
-          set_to_some_vector_specifier(&mut hyperfine.x_axis, expression,
-              label)?;
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::HyperfineY => {
-          set_to_some_vector_specifier(&mut hyperfine.y_axis, expression,
-              label)?;
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::HyperfineZ => {
-
-          set_to_some_vector_specifier(&mut hyperfine.z_axis, expression,
-              label)?;
-
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        _ => return Err(CluEError::InvalidToken(expression.line_number,
-          expression.lhs[0].to_string())),
-      }
-    },
+        Token::HyperfineY | Token::HyperfineZ 
+      => set_symmetric_tensor_3d(&mut isotope_properties.hyperfine_coupling, 
+          &expression.lhs[0], expression, label)?,
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Token::ElectricQuadrupoleCoupling | Token::ElectricQuadrupoleX
-      | Token::ElectricQuadrupoleY | Token::ElectricQuadrupoleZ =>{
-
-      if isotope_properties.electric_quadrupole_coupling.is_none() {
-        isotope_properties.electric_quadrupole_coupling =
-          Some(TensorSpecifier::new());
-      }
-      let Some(quadrupole) 
-        = &mut isotope_properties.electric_quadrupole_coupling else{
-        return Err(CluEError::NoQuadrupoleSpecifier(label.to_string(),
-              isotope.to_string() ));
-      }; 
-
-      match expression.lhs[0]{
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::ElectricQuadrupoleCoupling => {
-
-          let mut qc_values = Vec::<f64>::new();
-    
-          set_to_vec_f64(&mut qc_values, expression)?;
-    
-          if quadrupole.values.is_some(){
-            return Err(already_set());
-          }
-
-          if qc_values.len() == 1{
-            quadrupole.values 
-              = Some([qc_values[0],qc_values[0],qc_values[0]]);
-          }else if qc_values.len() == 3{
-            quadrupole.values 
-              = Some([qc_values[0],qc_values[1],qc_values[2]]);
-          }else{
-            return Err(CluEError::CannotInferEigenvalues(
-                  expression.line_number));
-          }
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::ElectricQuadrupoleX => {
-          set_to_some_vector_specifier(&mut quadrupole.x_axis, expression,
-              label)?;
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::ElectricQuadrupoleY => {
-          set_to_some_vector_specifier(&mut quadrupole.y_axis, expression,
-              label)?;
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        Token::ElectricQuadrupoleZ => {
-          set_to_some_vector_specifier(&mut quadrupole.z_axis, expression,
-              label)?;
-        },
-        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
-        _ => return Err(CluEError::InvalidToken(expression.line_number,
-          expression.lhs[0].to_string())),
-      }
-    },
+        | Token::ElectricQuadrupoleY | Token::ElectricQuadrupoleZ 
+      => set_symmetric_tensor_3d(
+             &mut isotope_properties.electric_quadrupole_coupling, 
+             &expression.lhs[0], expression, label)?,
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Token::TunnelSplitting => {
       let mut nut_opt = isotope_properties.exchange_coupling;
@@ -424,6 +276,141 @@ fn parse_isotope_abundances(expression: &TokenExpression)
   Ok(isotope_abundances)
 }
 //------------------------------------------------------------------------------
+// TODO: update errors
+pub fn set_symmetric_tensor_3d(matrix_opt: &mut Option<TensorSpecifier>, 
+    token: &Token, expression: &TokenExpression, label: &str)
+  -> Result<(),CluEError>
+{
+
+  if matrix_opt.is_none() {
+    *matrix_opt = Some(TensorSpecifier::new());
+  }
+
+  let already_set = ||{
+    CluEError::OptionAlreadySet(
+        expression.line_number, expression.lhs[0].to_string()) };
+
+  match token{
+    // TODO: There should be a beter method to catch these cases.
+    Token::DetectedSpinGMatrix | Token::GMatrix | 
+      Token::HyperfineCoupling | Token::ElectricQuadrupoleCoupling 
+    => {
+    
+      // Extract the user input values.
+      let mut vals = Vec::<f64>::new();    
+      set_to_vec_f64(&mut vals,expression)?;
+      
+
+      // The number of values determines how to set the matrix.
+      match vals.len(){
+        3 => {
+
+          let new_values = Some([vals[0],vals[1],vals[2]]);
+      
+          let mut matrix = match matrix_opt{
+            Some(TensorSpecifier::Unspecified) => EigSpecifier::new(),
+
+            Some(TensorSpecifier::Eig(eig_specifier)) => eig_specifier.clone(),
+
+            _ => return Err(already_set()),
+          };
+        
+          if matrix.values.is_some(){ 
+            return Err(already_set()); 
+          };
+
+          matrix.values = new_values;
+        
+          *matrix_opt = Some(TensorSpecifier::Eig(matrix));
+          
+        },
+
+        1 | 6 | 9 =>{   
+          if *matrix_opt != Some(TensorSpecifier::Unspecified){
+            return Err(CluEError::CannotInferEigenvalues(
+                expression.line_number));
+          } 
+          let values = if vals.len() == 1{
+            [vals[0],     0.0,     0.0,
+                      vals[0],     0.0,
+                               vals[0]]
+
+          }else if vals.len() == 6{
+            [ vals[0], vals[1], vals[2],
+                       vals[3], vals[4],
+                                vals[5]] 
+          }else{
+            [ vals[0], vals[1], vals[2],
+                       vals[4], vals[5],
+                                vals[8]] 
+          };
+
+          *matrix_opt = Some(TensorSpecifier::SymmetricTensor3D(
+              SymmetricTensor3D::from(values)));
+        },
+
+        _ => return Err(CluEError::CannotInferEigenvalues(
+                expression.line_number)),
+      }
+    },
+    // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+    // TODO: There should be a beter method to catch these cases.
+    Token::DetectedSpinGX | Token::DetectedSpinGY | Token::DetectedSpinGZ |
+        Token::GX | Token::GY | Token::GZ  |
+        Token::HyperfineX | Token::HyperfineY | Token::HyperfineZ |
+        Token::ElectricQuadrupoleX | Token::ElectricQuadrupoleY |
+        Token::ElectricQuadrupoleZ
+    => {
+
+      // Check that axes can be assigned.
+      let mut matrix = match matrix_opt{
+        Some(TensorSpecifier::Unspecified) => EigSpecifier::new(),
+
+        Some(TensorSpecifier::Eig(eig_specifier)) => eig_specifier.clone(),
+
+        _ => return Err(already_set()),
+      };
+
+
+      // The the appropriate axis.
+      match expression.lhs[0]{
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        Token::DetectedSpinGX | Token::GX | 
+          Token::HyperfineX | Token::ElectricQuadrupoleX
+        => {
+          set_to_some_vector_specifier(&mut matrix.x_axis, expression,
+              label)?;
+        },
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        Token::DetectedSpinGY | Token::GY | 
+          Token::HyperfineY | Token::ElectricQuadrupoleY
+        => {
+          set_to_some_vector_specifier(&mut matrix.y_axis, expression,
+              label)?;
+        },
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        Token::DetectedSpinGZ | Token::GZ | 
+          Token::HyperfineZ | Token::ElectricQuadrupoleZ
+        => {
+
+          set_to_some_vector_specifier(&mut matrix.z_axis, expression,
+              label)?;
+
+        },
+        // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+        _ => return Err(CluEError::InvalidToken(expression.line_number,
+          expression.lhs[0].to_string())),
+      }
+
+      *matrix_opt = Some(TensorSpecifier::Eig(matrix));
+    },
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    _ => return Err(CluEError::InvalidToken(expression.line_number,
+          expression.lhs[0].to_string())),
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  }
+  Ok(())
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -443,19 +430,15 @@ mod tests{
         active = false;
         tunnel_splitting = 60e3;\
         hyperfine_coupling = 12.3e2;\
-        hyperfine_x = vector([-1,0,1]);\
-        hyperfine_y = diff(particle, bonded(test_label1));\
-        hyperfine_z = diff(particle, same_molecule(test_label1));\
         electric_quadrupole_coupling = [1.2, 3.4, 5.6];\
         electric_quadrupole_x = vector([-1,0,1]);\
         electric_quadrupole_y = diff(bonded(test_label1),\
           bonded(test_label2));\
         electric_quadrupole_z = diff(same_molecule(test_label1),\
           particle);\
-        g_matrix = [-1,2,5];\
-        g_x = vector([-1,0,1]);\
-        g_y = diff(particle, bonded(test_label1));\
-        g_z = diff(particle, same_molecule(test_label1));\
+        g_matrix = [1, 2, 3,
+                    4, 5, 6,
+                    7, 8, 9];\
         ").unwrap();
 
     let isotope = Isotope::Hydrogen2;
@@ -467,29 +450,32 @@ mod tests{
     }
 
     let d_properties = &properties.isotope_properties["2H"];
-    let hyperfine_coupling = d_properties.hyperfine_coupling.as_ref().unwrap();
+
+    let hyperfine_coupling = match d_properties.hyperfine_coupling
+        .as_ref().unwrap(){
+          TensorSpecifier::SymmetricTensor3D(tensor) => tensor.clone(),
+          _ => panic!("Expected TensorSpecifier::SymmetricTensor3D(tensor)."),
+    };
+
     let quadrupole_coupling 
-      = d_properties.electric_quadrupole_coupling.as_ref().unwrap();
-    let g_matrix = d_properties.g_matrix.as_ref().unwrap();
+      = match d_properties.electric_quadrupole_coupling.as_ref().unwrap(){
+          TensorSpecifier::Eig(eig_specifier) => eig_specifier.clone(),
+          _ => panic!("Expected TensorSpecifier::Eig(eig_specifier)."),
+    };
+
+    let g_matrix = match d_properties.g_matrix.as_ref().unwrap(){
+          TensorSpecifier::SymmetricTensor3D(tensor) => tensor.clone(),
+          _ => panic!("Expected TensorSpecifier::SymmetricTensor3D(tensor)."),
+    };
     
 
     assert_eq!(d_properties.active, Some(false) );
     
     assert_eq!(d_properties.exchange_coupling, Some(-40e3) );
 
-    assert_eq!(hyperfine_coupling.values , Some([12.3e2, 12.3e2, 12.3e2]));
-    assert_eq!(hyperfine_coupling.x_axis , Some(
-          VectorSpecifier::Vector(Vector3D::from([-1.0, 0.0, 1.0]))));
-    assert_eq!(hyperfine_coupling.y_axis , Some(
-          VectorSpecifier::Diff(
-            SecondaryParticleFilter::Particle, "test_label0".to_string(),
-            SecondaryParticleFilter::Bonded, "test_label1".to_string(),
-            ) ) );
-    assert_eq!(hyperfine_coupling.z_axis , Some(
-          VectorSpecifier::Diff(
-            SecondaryParticleFilter::Particle, "test_label0".to_string(),
-            SecondaryParticleFilter::SameMolecule, "test_label1".to_string(),
-            ) ) );
+    assert_eq!(hyperfine_coupling, SymmetricTensor3D::from([12.3e2, 0.0, 0.0,
+                                                                 12.3e2, 0.0,
+                                                                      12.3e2]));
     
     assert_eq!(quadrupole_coupling.values , Some([1.2, 3.4, 5.6]));
     assert_eq!(quadrupole_coupling.x_axis , Some(
@@ -505,20 +491,11 @@ mod tests{
             SecondaryParticleFilter::Particle, "test_label0".to_string(),
             ) ) );
 
-    assert_eq!(g_matrix.values , Some([-1.0, 2.0, 5.0]));
-    assert_eq!(g_matrix.x_axis , Some(
-          VectorSpecifier::Vector(Vector3D::from([-1.0, 0.0, 1.0]))));
-    assert_eq!(g_matrix.y_axis , Some(
-          VectorSpecifier::Diff(
-            SecondaryParticleFilter::Particle, "test_label0".to_string(),
-            SecondaryParticleFilter::Bonded, "test_label1".to_string(),
-            ) ) );
-    assert_eq!(g_matrix.z_axis , Some(
-          VectorSpecifier::Diff(
-            SecondaryParticleFilter::Particle, "test_label0".to_string(),
-            SecondaryParticleFilter::SameMolecule, "test_label1".to_string(),
-            ) ) );
-    }
+    assert_eq!(g_matrix , SymmetricTensor3D::from([ 1.0, 2.0, 3.0,
+                                                         5.0, 6.0,
+                                                              9.0])
+    );
+  }
   //----------------------------------------------------------------------------
   #[test]
   fn test_parse_structure_properties(){

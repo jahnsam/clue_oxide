@@ -5,8 +5,9 @@ use crate::config::lexer::*;
 use crate::config::token::*;
 use crate::config::token_algebra::*;
 use crate::config::token_expressions::*;
-use crate::config::particle_config::{CellType, ParticleConfig,TensorSpecifier};
-
+use crate::config::particle_config::{CellType, ParticleConfig,
+  EigSpecifier,TensorSpecifier};
+use crate::config::parse_properties::set_symmetric_tensor_3d;
 use crate::physical_constants::{ANGSTROM,ELECTRON_G, Isotope};
 use crate::space_3d::Vector3D;
 use crate::structure::particle_filter::VectorSpecifier;
@@ -221,12 +222,12 @@ impl Config{
     if self.detected_spin_g_matrix.is_some(){
      
     }else{
-      self.detected_spin_g_matrix = Some(TensorSpecifier{
+      self.detected_spin_g_matrix = Some(TensorSpecifier::Eig(EigSpecifier{
         values: Some([ELECTRON_G,ELECTRON_G,ELECTRON_G]),
         x_axis: Some(VectorSpecifier::Vector(Vector3D::from([1.0, 0.0, 0.0]))),
         y_axis: Some(VectorSpecifier::Vector(Vector3D::from([0.0, 1.0, 0.0]))),
         z_axis: None,
-          });
+          }));
     }
     if self.detected_spin_multiplicity.is_none(){
       self.detected_spin_multiplicity = match self.detected_spin_identity{
@@ -606,49 +607,8 @@ impl Config{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::DetectedSpinGMatrix 
         | Token::DetectedSpinGX| Token::DetectedSpinGY | Token::DetectedSpinGZ
-        =>{
-          if self.detected_spin_g_matrix.is_none() {
-            self.detected_spin_g_matrix = Some(TensorSpecifier::new())
-          }
-          let Some(g_matrix) = &mut self.detected_spin_g_matrix else{
-            return Err(CluEError::NoGMatrixSpecifier );
-          };
-          let Some(rhs) = &expression.rhs else{
-            return Err(CluEError::NoRHS(expression.line_number));
-          }; 
-
-          match expression.lhs[0]{
-            Token::DetectedSpinGMatrix => {
-              let mut g_values = Vec::<f64>::new();
-        
-              set_to_vec_f64(&mut g_values,expression)?;
-            
-              if g_matrix.values.is_some(){
-                return Err(already_set());
-              }
-
-              if g_values.len() == 1{
-                g_matrix.values = Some([g_values[0],g_values[0],g_values[0]]);
-              }else if g_values.len() == 3{
-                g_matrix.values = Some([g_values[0],g_values[1],g_values[2]]);
-              }else{
-                return Err(CluEError::CannotInferEigenvalues(
-                    expression.line_number));
-              }
-            },
-            Token::DetectedSpinGX 
-              => set_to_some_vector_specifier(&mut g_matrix.x_axis, expression,
-                  "detected_spin")?,
-            Token::DetectedSpinGY 
-              => set_to_some_vector_specifier(&mut g_matrix.y_axis, expression,
-                  "detected_spin")?,
-            Token::DetectedSpinGZ
-              => set_to_some_vector_specifier(&mut g_matrix.z_axis, expression,
-                  "detected_spin")?,
-            _ => return Err(CluEError::InvalidToken(expression.line_number,
-                  rhs[0].to_string())),
-          }
-        },
+        => set_symmetric_tensor_3d(&mut self.detected_spin_g_matrix,
+            &expression.lhs[0], expression, &"detected_spin")?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::DetectedSpinPosition =>{
         if let Some(_value) = &self.detected_spin_position{
@@ -1200,7 +1160,11 @@ mod tests{
     assert_eq!(config.density_matrix, Some(DensityMatrixMethod::Thermal(20.0)));
     assert_eq!(config.cluster_method,Some(ClusterMethod::CCE));
 
-    let g_matrix = config.detected_spin_g_matrix.unwrap();
+    let g_matrix = match config.detected_spin_g_matrix.unwrap(){
+      TensorSpecifier::Eig(eig_specifier) => eig_specifier.clone(),
+      _ => panic!("Expected TensorSpecifier::Eig(eig_specifier)."),
+    };
+
     assert_eq!(g_matrix.values, 
         Some([2.0097, 2.0064, 2.0025] ) );
     assert_eq!(g_matrix.z_axis, None);

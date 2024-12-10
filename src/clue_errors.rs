@@ -140,6 +140,7 @@ pub enum CluEError{
   NotAnOperator(usize,String),
   NotAProperSubset(String,String),
   NoTemperature,
+  NoTensorSpecifier,
   NoTensorValues,
   NoTimeAxis,
   NoTimeIncrements,
@@ -609,6 +610,9 @@ and p0,p1 > 0 are abundances",line_number),
 
       CluEError::NoTemperature => write!(f,
           "no temperature specified"),
+      
+      CluEError::NoTensorSpecifier => write!(f,
+          "no specifier for tensor"),
       
       CluEError::NoTensorValues => write!(f,
           "no values specified for tensor"),

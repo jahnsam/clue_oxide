@@ -3,6 +3,8 @@ use crate::structure::particle_filter::{ParticleFilter,VectorSpecifier,
   SecondaryParticleFilter};
 //use super::particle_specifier::*;
 use crate::physical_constants::*;
+use crate::space_3d::SymmetricTensor3D;
+
 use std::collections::HashMap;
 
 
@@ -136,21 +138,37 @@ pub struct IsotopeAbundance{
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /// `TensorSpecifier` specifies a symmetric 3-by-3 coupling matrix.
+#[derive(Debug,Clone,PartialEq,Default)]
+pub enum TensorSpecifier{
+  Eig(EigSpecifier),
+  SymmetricTensor3D(SymmetricTensor3D),
+  #[default]
+  Unspecified,
+}
+
+impl TensorSpecifier{
+  /// This function creates a new instance of `TensorSpecifier`.
+  pub fn new() -> Self{
+    Self::default()
+  }
+}
+
+/// `EigSpecifier` specifies a symmetric 3-by-3 coupling matrix.
 /// `values` contains the three eigenvalues.
 /// `e_axis` for `e` in {'x','y','z'} specify eigenvectors.
 /// Note that only two axes should be specified. 
 #[derive(Debug,Clone,PartialEq,Default)]
-pub struct TensorSpecifier{
+pub struct EigSpecifier{
   pub values: Option<[f64; 3]>,
   pub x_axis: Option<VectorSpecifier>,
   pub y_axis: Option<VectorSpecifier>,
   pub z_axis: Option<VectorSpecifier>,
 }
 
-impl TensorSpecifier{
-  /// This function creates a new instance of `TensorSpecifier`.
+impl EigSpecifier{
+  /// This function creates a new instance of `EigSpecifier`.
   pub fn new() -> Self{
-    TensorSpecifier::default()
+    Self::default()
   }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

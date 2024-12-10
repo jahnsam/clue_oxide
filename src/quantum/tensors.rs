@@ -1,7 +1,7 @@
 
 use crate::clue_errors::CluEError;
 use crate::config::Config;
-use crate::config::particle_config::TensorSpecifier;
+use crate::config::particle_config::{EigSpecifier,TensorSpecifier};
 use crate::physical_constants::{HBAR, Isotope, JOULES_TO_HERTZ,
   MU0,MUB,MUN,PI};
 use crate::space_3d::{SymmetricTensor3D,UnitSpherePoint,Vector3D};
@@ -637,6 +637,20 @@ pub fn construct_symmetric_tensor_from_tensor_specifier(
     structure: &Structure, config: &Config) 
   -> Result<SymmetricTensor3D, CluEError>
 {
+  match tensor_specifier{
+    TensorSpecifier::Unspecified => Err(CluEError::NoTensorSpecifier),
+    TensorSpecifier::Eig(eig_specifier) 
+        => construct_symmetric_tensor_from_eig_specifier(eig_specifier,
+            particle_index_opt, structure, config),
+    TensorSpecifier::SymmetricTensor3D(tensor) => Ok(tensor.clone()),
+  }
+}
+//------------------------------------------------------------------------------
+fn construct_symmetric_tensor_from_eig_specifier(
+    tensor_specifier: &EigSpecifier, particle_index_opt: Option<usize>,
+    structure: &Structure, config: &Config) 
+  -> Result<SymmetricTensor3D, CluEError>
+{
   let Some(values) = tensor_specifier.values else{
     return Err(CluEError::NoTensorValues);
   }; 
@@ -937,12 +951,12 @@ mod tests{
     let values = [e2qqh*(eta-1.0), e2qqh*(-eta-1.0), 2.0*e2qqh];
     assert_eq!(values,[-1119999.9999999998, -5880000.000000001, 7000000.0]);
 
-    let tensor_specifier = TensorSpecifier{
+    let tensor_specifier = TensorSpecifier::Eig(EigSpecifier{
       values: Some(values.clone()),
       x_axis: Some(vector_specifier_no),
       y_axis: Some(vector_specifier_cc),
       z_axis: None,
-    };
+    });
 
     let tensor = construct_symmetric_tensor_from_tensor_specifier(
         &tensor_specifier, Some(particle_index),&structure, &config).unwrap();

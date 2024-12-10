@@ -1,9 +1,35 @@
 --------------------------------------------------------------------------------
+CluE Oxide: 0.2.2-alpha.1
+
+CHANGED:
+
+Isotropic tensors no longer require axes to be specified.
+
+ADDED: 
+
+Tensors can now be specified directly, rather than just by eigenvalues and
+eigenvectors.  For example both
+  g_matrix = [1, 2, 3,
+              4, 5, 6,
+              7, 8, 9];
+and
+  g_matrix = [1, 2, 3,
+                 5, 6,
+                    9];
+give the same symmetric matrix
+  [1, 2, 3,
+   2, 5, 6,
+   3, 6, 9];
+note that the lower triangle entries are discarded.  The axes should not be
+specified when using this method.
+
+--------------------------------------------------------------------------------
 CluE Oxide: 0.2.1
 
 FIXED:
 
-In the dependencies, updated the ndarray-linalg version to fix compilation errors on Windows.
+In the dependencies, updated the ndarray-linalg version to fix compilation 
+errors on Windows.
 
 --------------------------------------------------------------------------------
 CluE Oxide: 0.2.0-alpha.2

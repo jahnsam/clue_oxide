@@ -5,7 +5,7 @@ use rand_distr::Distribution;
 use rand_chacha::ChaCha20Rng;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,PartialEq)]
 pub struct SymmetricTensor3D{
   elements: [f64; 6],
 }
