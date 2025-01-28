@@ -163,6 +163,15 @@ pub fn hahn_three_spin_modulation_depth(delta_hf: f64,b:f64) -> f64{
 pub fn hahn_three_spin_modulation_frequency(delta_hf: f64,b:f64) -> f64{
   (delta_hf*delta_hf + b*b).sqrt()/8.0
 }
+//------------------------------------------------------------------------------
+/// This function calculates the 4th order Taylor series coefficient 
+/// for a single 2-cluster.
+pub fn hahn_three_spin_fourth_order_coefficient(delta_hf: f64,b:f64) -> f64{
+  let k = hahn_three_spin_modulation_depth(delta_hf,b);
+  let omega = 2.0*PI*hahn_three_spin_modulation_frequency(delta_hf,b);
+  let kom4 = k*(omega.powi(4));
+  kom4
+}
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 

@@ -18,6 +18,7 @@ pub struct Particle{
   pub active: bool,
 
   pub serial: Option<u32>,
+  pub name: Option<String>,
   pub residue: Option<String>,
   pub residue_sequence_number: Option<u32>,
 }
@@ -35,6 +36,7 @@ impl Particle{
       coordinates,
       active: true,
       serial: None,
+      name: None,
       residue: None,
       residue_sequence_number: None,
     }

@@ -434,14 +434,14 @@ mod tests{
   
     let lexer = Lexer{
       input: String::from(
-"element in [H];
+"elements in [H];
 tunnel_splitting = 80e3; // Hz"),
       position: 0, 
       line_number: 0,
       quoting: false
     };
 
-    let ref_tokens = vec![Token::Element, Token::Whitespace, Token::In,
+    let ref_tokens = vec![Token::Elements, Token::Whitespace, Token::In,
      Token::Whitespace, Token::SquareBracketOpen, 
      Token::UserInputValue("H".to_string()), 
      Token::SquareBracketClose, Token::Semicolon, Token::EOL, 
@@ -466,14 +466,14 @@ tunnel_splitting = 80e3; // Hz"),
   fn test_find_comments(){
     let lexer = Lexer{
       input: String::from(
-"/*element in [H];*/
+"/*elements in [H];*/
 tunnel_splitting = 80e3; // Hz"),
       position: 0, 
       line_number: 0,
       quoting: false
     };
     let ref_tokens = vec![ Token::BlockCommentStart,
-     Token::Element, Token::Whitespace, Token::In,
+     Token::Elements, Token::Whitespace, Token::In,
      Token::Whitespace, Token::SquareBracketOpen, 
      Token::UserInputValue("H".to_string()), 
      Token::SquareBracketClose, Token::Semicolon, 
@@ -500,7 +500,7 @@ tunnel_splitting = 80e3; // Hz"),
   fn test_prune_tokens(){
     let lexer = Lexer{
       input: String::from(
-"/*element in [H];*/
+"/*elements in [H];*/
 tunnel_splitting = 80e3; // Hz
 magnetic_field = 1.2; // T"),
       position: 0, 

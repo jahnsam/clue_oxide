@@ -1,6 +1,6 @@
 [package]
 name = "clue_oxide"
-version = "0.2.2-alpha.1" # on update, ensure to also update src/info/version.rs
+version = "0.2.2-alpha.2" # on update, ensure to also update src/info/version.rs
 edition = "2021"
 authors = ["Samuel M. Jahn <jahn.samuel@gmail.com>"]
 description = "CluE Oxide (Cluster Evolution Oxide) is a spin dynamics simulation program for electron spin decoherence"
@@ -21,7 +21,7 @@ csv = "1.1"
 lebedev_laikov = "0.1.0"
 
 ndarray = '0.15.0'
-ndarray-rand = "0.14.0"
+ndarray-rand = "0.15.0"
 num-complex = "0.4"
 
 rand = "0.8"

@@ -113,6 +113,7 @@ pub enum CluEError{
   NoDensityMatrixMethod,
   NoDetectedSpinIdentity,
   NoDetectedSpinMultiplicity,
+  NoDetectedSpinNotSet,
   NoDetectedSpinTransition,
   NoExtracellIsotopicDistribution(String),
   NoGMatrixSpecifier,
@@ -536,6 +537,9 @@ and p0,p1 > 0 are abundances",line_number),
 
       CluEError::NoDetectedSpinMultiplicity => write!(f,
           "detected_spin_identity is not set"),
+
+      CluEError::NoDetectedSpinNotSet => write!(f,
+          "detected_spin is not set"),
 
       CluEError::NoDetectedSpinTransition => write!(f,
           "detected_transition is not set"),

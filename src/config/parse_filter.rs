@@ -149,6 +149,27 @@ impl Config{
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::AtomNames => {
+        let tokens = token_stream::extract_rhs(expression)?;
+        let value_token = vec_tokens_to_vec_strings(tokens);
+        if let Ok(vec) = value_token{
+          match expression.relationship{
+            Some(Token::In) => {
+              if !filter.names.is_empty(){return Err(already_set());}
+              filter.names = vec;
+            },
+            Some(Token::NotIn) => {
+              if !filter.not_names.is_empty(){return Err(already_set());}
+              filter.not_names = vec;
+            },
+            _ => return Err(CluEError::NoRelationalOperators(
+                expression.line_number)),
+          }
+        }else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+      },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Residues => {
         let tokens = token_stream::extract_rhs(expression)?;
         let value_token = vec_tokens_to_vec_strings(tokens);
@@ -269,6 +290,8 @@ mod tests{
         elements in [H,O]; elements not in [N];
         bonded_elements not in [C]; bonded_elements in [N];
         residues in SOL; residues not in TEM;
+        atom_names in [H13];
+        atom_names not in [H12];
         distance <= 4;
         distance >= 1;")
       .unwrap();
@@ -296,6 +319,8 @@ mod tests{
     assert_eq!(filter.not_elements,vec![Element::Nitrogen]);
     assert_eq!(filter.bonded_elements,vec![Element::Nitrogen]);
     assert_eq!(filter.not_bonded_elements,vec![Element::Carbon]);
+    assert_eq!(filter.names,vec!["H13".to_string()]);
+    assert_eq!(filter.not_names,vec!["H12".to_string()]);
     assert_eq!(filter.residues,vec!["SOL".to_string()]);
     assert_eq!(filter.not_residues,vec!["TEM".to_string()]);
     assert_eq!(filter.within_distance,Some(4e-10));

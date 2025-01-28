@@ -40,12 +40,10 @@ pub fn run(config: Config)
   -> Result<( Vec::<f64>, Vec::<Complex::<f64>> ),CluEError>
 {
 
-
-  let mut rng: ChaCha20Rng;
-  match config.rng_seed{
-    Some(seed) => rng = ChaCha20Rng::seed_from_u64(seed),
-    None => rng = ChaCha20Rng::from_entropy(),
-  }
+  let mut rng = match config.rng_seed{
+    Some(seed) => ChaCha20Rng::seed_from_u64(seed),
+    None => ChaCha20Rng::from_entropy(),
+  };
 
   let root_path = if let Some(root_dir) = &config.root_dir{
     root_dir.to_string()

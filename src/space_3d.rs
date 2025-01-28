@@ -7,7 +7,7 @@ use rand_chacha::ChaCha20Rng;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug, Clone,PartialEq)]
 pub struct SymmetricTensor3D{
-  elements: [f64; 6],
+  pub elements: [f64; 6],
 }
 
 impl SymmetricTensor3D{
@@ -250,7 +250,7 @@ impl std::ops::Sub<&SymmetricTensor3D> for &SymmetricTensor3D{
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug, Clone)]
 pub struct Vector3D{
-  elements: [f64; 3],
+  pub elements: [f64; 3],
 }
 
 impl Vector3D{

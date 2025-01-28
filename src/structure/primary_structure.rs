@@ -48,6 +48,26 @@ impl Structure{
 
     let mut weighted_coordinates = IntegrationGrid::new(3);
     match detected_spin_position{
+      DetectedSpinCoordinates::CentroidOverGroup(labels) =>{
+        
+        let mut filters = Vec::<&ParticleFilter>::with_capacity(labels.len());
+        
+        for label in labels.iter(){
+
+          let Some((_id, p_cfg)) = config.find_particle_config(label) else{
+            return Err(CluEError::MissingFilter(label.to_string()))
+          };
+
+          let Some(filter) = &p_cfg.filter else{
+            return Err(CluEError::MissingFilter(label.to_string()));
+          };
+
+          filters.push(filter);
+        }
+        
+        let r_ave = self.centroid_over_groups(&filters)?;
+        weighted_coordinates.push(vec![r_ave.x(),r_ave.y(),r_ave.z()],1.0)?;
+      },
       DetectedSpinCoordinates::CentroidOverSerials(serials) => {
         let r_ave = self.centroid_over_serials(serials.clone())?;
         weighted_coordinates.push(vec![r_ave.x(),r_ave.y(),r_ave.z()],1.0)?;

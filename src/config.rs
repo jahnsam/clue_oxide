@@ -358,6 +358,7 @@ pub enum LoadGeometry{
 /// of the detected spin.
 #[derive(Debug,Clone,PartialEq)]
 pub enum DetectedSpinCoordinates{
+  CentroidOverGroup(Vec::<String>),
   CentroidOverSerials(Vec::<u32>),
   XYZ(Vector3D),
   ProbabilityDistribution(IntegrationGrid),
@@ -622,6 +623,20 @@ impl Config{
         }
 
         match rhs[0]{
+          // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+          Token::Centroid =>{
+            let args = get_function_arguments(rhs,expression.line_number)?;
+            if args.is_empty(){
+              return Err(CluEError::InvalidArgument(expression.line_number,
+                    "#[group]".to_string()));
+            }
+
+            let filter_labels = vec_tokens_to_vec_strings(args)?;
+
+            self.detected_spin_position = Some(
+                DetectedSpinCoordinates::CentroidOverGroup(filter_labels));
+
+          }
           // -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
           Token::CentroidOverSerials =>{
             let args = get_function_arguments(rhs,expression.line_number)?;

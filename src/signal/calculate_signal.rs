@@ -60,7 +60,7 @@ pub fn calculate_signals(rng: &mut ChaCha20Rng, config: &Config,
   }
 
   for sig in signals.iter_mut(){
-    sig.scale(ONE/(number_system_instances as f64));
+    sig.mut_scale(ONE/(number_system_instances as f64));
   }
   Ok(signals)
 }
@@ -178,7 +178,7 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
     let weight = Complex::<f64>{ re: integration_grid.weight(iori), im: 0.0};
 
     for size_idx in 0..max_cluster_size{
-      ori_sigs[size_idx].scale(weight);
+      ori_sigs[size_idx].mut_scale(weight);
       order_n_signals[size_idx] 
         = &order_n_signals[size_idx] + &ori_sigs[size_idx];
     }

@@ -384,15 +384,7 @@ mod tests{
   fn get_test_structure() -> Structure{
     let bath_particles = (0..10).map(|_| 
         {
-          let particle = Particle{
-            element: Element::Hydrogen,
-            isotope: Isotope::Hydrogen1,
-            coordinates: Vector3D::from([0.0,0.0,0.0]),
-            active: true,
-            serial: None,
-            residue: None,
-            residue_sequence_number: None
-            };
+          let particle = Particle::new(Element::Hydrogen, 0.0, 0.0, 0.0);
           particle
         }).collect::<Vec::<Particle>>();
     let connections = AdjacencyList::with_capacity(1);

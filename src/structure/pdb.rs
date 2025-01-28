@@ -257,6 +257,7 @@ COLUMNS        DATA  TYPE    FIELD        DEFINITION
 fn parse_atom_line(line: &str) -> Result<Particle,(CluEError,u32)>{
 
   let serial_result = line[6..=10].trim().parse::<u32>();
+  let name = Some(line[12..=15].trim().to_string());
   let x_coor = line[30..=37].trim().parse::<f64>();
   let y_coor = line[38..=45].trim().parse::<f64>();
   let z_coor = line[46..=53].trim().parse::<f64>();
@@ -290,6 +291,7 @@ fn parse_atom_line(line: &str) -> Result<Particle,(CluEError,u32)>{
       coordinates,
       active: true,
       serial: Some(serial),
+      name,
       residue,
       residue_sequence_number: residue_sequence_number.ok(),
       })

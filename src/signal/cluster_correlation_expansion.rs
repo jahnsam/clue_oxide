@@ -115,6 +115,7 @@ fn calculate_auxiliary_signals(
       //      cluster.signal = calculate_general_cluster_signal(cluster.vertices(),
       //        spin_ops,tensors,config)
       //);
+      //}
       //
 
 

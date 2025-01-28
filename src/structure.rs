@@ -60,6 +60,24 @@ impl DetectedSpin{
     self.spin_multiplicity
   }
   //----------------------------------------------------------------------------
+  pub fn get_average_spin_position(&self) -> Result<Vector3D,CluEError>{
+
+    let mut r_ave = Vector3D::zeros();
+    for ii in 0..self.weighted_coordinates.len(){
+      let Ok(mut r) = self.weighted_coordinates.xyz(ii) else{
+        return Err(CluEError::NoCentralSpinCoor);
+      };
+
+      let w = self.weighted_coordinates.weight(ii);
+      
+      r = r.scale(w);
+
+      r_ave = &r_ave + &r;
+    }
+
+    Ok(r_ave)
+  }
+  //----------------------------------------------------------------------------
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -320,13 +338,27 @@ impl Structure{
     filter.serials = serials;
     filter.indices = math::unique(self.primary_cell_indices.clone());
 
-    let indices = filter.filter(self);
+    self.centroid_over_groups(&vec![&filter])
+  }
+  //----------------------------------------------------------------------------
+  /// This function finds the centroid over all particles that are in the
+  /// group defined by 
+  pub fn centroid_over_groups(&self, filters: &Vec::<&ParticleFilter>)
+    -> Result<Vector3D,CluEError>
+  {
     let mut r_ave = Vector3D::zeros();
-    for &idx in indices.iter(){
-      let r = &self.bath_particles[idx].coordinates;
-      r_ave = &r_ave + r;
+    let mut count = 0.0;
+
+    for filter in filters.iter(){
+      let indices = filter.filter(self);
+
+      for &idx in indices.iter(){
+        let r = &self.bath_particles[idx].coordinates;
+        r_ave = &r_ave + r;
+        count += 1.0;
+      }
     }
-    r_ave = r_ave.scale(1.0/(indices.len() as f64));
+    r_ave = r_ave.scale(1.0/count);
 
     Ok(r_ave)
   }

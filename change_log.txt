@@ -1,4 +1,22 @@
 --------------------------------------------------------------------------------
+CluE Oxide: 0.2.2-alpha.2
+
+ADDED:
+
+Expanded the Python API.
+
+Added keyword "atom_names" to filter particle groups by the atom name.
+
+REMOVED:
+
+Removed unused keyword "element" and "residue".  
+Note that keywords "elements" and "residues" are kept.
+
+CHANGED:
+
+Updated ndarray-rand to version 0.15.0.
+
+--------------------------------------------------------------------------------
 CluE Oxide: 0.2.2-alpha.1
 
 CHANGED:

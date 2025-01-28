@@ -2,12 +2,11 @@ use crate::config::Config;
 //use crate::config::{Config,NeighborCutoff};
 use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
-use crate::physical_constants::PI;
 use crate::quantum::tensors::{
   get_perpendicular_dipole_dipole_frequency, HamiltonianTensors};
 use crate::signal::calculate_analytic_restricted_2cluster_signals::{
   hahn_three_spin_modulation_depth,
-  hahn_three_spin_modulation_frequency,
+  hahn_three_spin_fourth_order_coefficient,
 };
 use crate::structure::Structure;
 
@@ -111,9 +110,7 @@ fn are_spins_neighbors(idx0: usize,idx1: usize,
     if k < *cutoff {return Ok(false);}
   }
   if let Some(cutoff) = &config.neighbor_cutoff_3_spin_hahn_taylor_4{
-    let k = hahn_three_spin_modulation_depth(delta_hf,b);
-    let omega = 2.0*PI*hahn_three_spin_modulation_frequency(delta_hf,b);
-    let kom4 = k*(omega.powi(4));
+    let kom4 = hahn_three_spin_fourth_order_coefficient(delta_hf,b);
     if kom4 < *cutoff {return Ok(false);}
   }
 

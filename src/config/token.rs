@@ -10,6 +10,8 @@ use std::fmt;
 pub enum Token{
  Active,
  ApproxThermal,
+ //AtomName,
+ AtomNames,
  Bang,
  BondedElements,                                               
  BondedIndices,                                                     
@@ -17,6 +19,7 @@ pub enum Token{
  BlockCommentStart, 
  CarrPurcell,
  CCE,
+ Centroid,
  CentroidOverSerials,
  ClashDistancePBC,
  ClusterBatchSize,
@@ -46,7 +49,7 @@ pub enum Token{
  ElectricQuadrupoleX,
  ElectricQuadrupoleY,
  ElectricQuadrupoleZ,
- Element,
+ //Element,
  Elements,                                                    
  EOL,
  Equals,
@@ -108,7 +111,7 @@ pub enum Token{
  Random,
  ReadCSV,
  RemovePartialMethyls,
- Residue,
+ //Residue,
  Residues,                                                     
  ResSeqNums,                                                   
  RNGSeed,
@@ -157,6 +160,8 @@ impl fmt::Display for Token{
     match self{
       Token::Active => write!(f,"active"), 
       Token::ApproxThermal => write!(f,"approx_thermal"),
+      //Token::AtomName => write!(f,"atom_name"),
+      Token::AtomNames => write!(f,"atom_names"),
       Token::Bang => write!(f,"!"), 
       Token::BondedIndices => write!(f,"bonded_indices"),
       Token::BondedElements => write!(f,"bonded_elements"),
@@ -164,6 +169,7 @@ impl fmt::Display for Token{
       Token::BlockCommentStart => write!(f,"/*"), 
       Token::CarrPurcell => write!(f,"cp"),
       Token::CCE => write!(f,"cce"),
+      Token::Centroid => write!(f,"centroid"),
       Token::CentroidOverSerials => write!(f,"centroid_over_serials"),
       Token::ClashDistancePBC => write!(f,"clash_distance_pbc"),
       Token::ClusterBatchSize => write!(f,"cluster_batch_size"),
@@ -194,7 +200,7 @@ impl fmt::Display for Token{
       Token::ElectricQuadrupoleX  => write!(f,"electric_quadrupole_x"),
       Token::ElectricQuadrupoleY  => write!(f,"electric_quadrupole_y"),
       Token::ElectricQuadrupoleZ  => write!(f,"electric_quadrupole_z"),
-      Token::Element => write!(f,"element"),
+      //Token::Element => write!(f,"element"),
       Token::Elements => write!(f,"elements"),
       Token::EOL => writeln!(f),
       Token::Equals => write!(f,"="),
@@ -262,7 +268,7 @@ impl fmt::Display for Token{
       Token::Random => write!(f,"random"),
       Token::ReadCSV => write!(f,"read_csv"),
       Token::RemovePartialMethyls => write!(f,"remove_partial_methyls"),
-      Token::Residue => write!(f,"residue"),
+      //Token::Residue => write!(f,"residue"),
       Token::Residues => write!(f,"residues"),
       Token::ResSeqNums => write!(f,"residue_sequence_numbers"),
       Token::RNGSeed => write!(f,"rng_seed"),
@@ -313,6 +319,8 @@ pub fn identify_token(word: &str) -> Option<Token>{
   match word{
     "active" => Some(Token::Active),
     "approx_thermal" => Some(Token::ApproxThermal),
+    //"atom_name" => Some(Token::AtomName),
+    "atom_names" => Some(Token::AtomNames),
     "!" => Some(Token::Bang),
     "bonded_indices" => Some(Token::BondedIndices),
     "bonded_elements" => Some(Token::BondedElements),
@@ -320,6 +328,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "/*" => Some(Token::BlockCommentStart),
     "cp" => Some(Token::CarrPurcell),
     "cce" => Some(Token::CCE),
+    "centroid" => Some(Token::Centroid),
     "centroid_over_serials" => Some(Token::CentroidOverSerials),
     "clash_distance_pbc" => Some(Token::ClashDistancePBC),
     "cluster_batch_size" => Some(Token::ClusterBatchSize),
@@ -349,7 +358,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "electric_quadrupole_x" => Some(Token::ElectricQuadrupoleX),
     "electric_quadrupole_y" => Some(Token::ElectricQuadrupoleY),
     "electric_quadrupole_z" => Some(Token::ElectricQuadrupoleZ),
-    "element" => Some(Token::Element),
+    //"element" => Some(Token::Element),
     "elements" => Some(Token::Elements), 
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
@@ -414,7 +423,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "random" => Some(Token::Random),
     "read_csv" => Some(Token::ReadCSV),
     "remove_partial_methyls" => Some(Token::RemovePartialMethyls),
-    "residue" => Some(Token::Residue),
+    //"residue" => Some(Token::Residue),
     "residues" => Some(Token::Residues),
     "residue_sequence_numbers" => Some(Token::ResSeqNums),
     "rng_seed" => Some(Token::RNGSeed),
@@ -1076,11 +1085,15 @@ mod tests{
   fn test_identify_token(){
     assert_eq!(identify_token("active"), Some(Token::Active));
     assert_eq!(identify_token("approx_thermal"), Some(Token::ApproxThermal));
+    //assert_eq!(identify_token("atom_name"), Some(Token::AtomName));
+    assert_eq!(identify_token("atom_names"), Some(Token::AtomNames));
     assert_eq!(identify_token("!"), Some(Token::Bang));
     assert_eq!(identify_token("*/"), Some(Token::BlockCommentEnd));
     assert_eq!(identify_token("/*"),Some( Token::BlockCommentStart));
     assert_eq!(identify_token("cp"),Some( Token::CarrPurcell));
     assert_eq!(identify_token("cce"),Some( Token::CCE));
+    assert_eq!(identify_token("centroid"),
+        Some(Token::Centroid));
     assert_eq!(identify_token("centroid_over_serials"),
         Some(Token::CentroidOverSerials));
     assert_eq!(identify_token("clash_distance_pbc"),
@@ -1123,7 +1136,7 @@ mod tests{
         Some(Token::ElectricQuadrupoleY));
     assert_eq!(identify_token("electric_quadrupole_z"),
         Some(Token::ElectricQuadrupoleZ));
-    assert_eq!(identify_token("element"),Some( Token::Element));
+    //assert_eq!(identify_token("element"),Some( Token::Element));
     assert_eq!(identify_token("\n"),Some( Token::EOL));
     assert_eq!(identify_token("="),Some( Token::Equals));
     assert_eq!(identify_token("extracells"), Some( Token::Extracells));
@@ -1192,7 +1205,7 @@ mod tests{
     assert_eq!(identify_token("read_csv"), Some(Token::ReadCSV));
     assert_eq!(identify_token("remove_partial_methyls"),
         Some(Token::RemovePartialMethyls));
-    assert_eq!(identify_token("residue"),Some( Token::Residue));
+    //assert_eq!(identify_token("residue"),Some( Token::Residue));
     assert_eq!(identify_token("rng_seed"),Some( Token::RNGSeed));
     assert_eq!(identify_token("save_dir"),Some( Token::SaveDir));
     assert_eq!(identify_token(";"),Some( Token::Semicolon));

@@ -53,11 +53,22 @@ impl Signal{
   }
   //----------------------------------------------------------------------------
   /// This function scales every element by `scale_factor`.
-  pub fn scale(&mut self, scale_factor: Complex<f64>){
+  pub fn mut_scale(&mut self, scale_factor: Complex<f64>){
 
     for z in self.data.iter_mut(){
       *z *= scale_factor;
     }
+
+  }
+  //----------------------------------------------------------------------------
+  /// This function returns a scaled `Signal`.
+  pub fn scale(&self, scale_factor: Complex<f64>) -> Self{
+
+    let mut out_signal = self.clone();
+    
+    out_signal.mut_scale(scale_factor);
+
+    out_signal
 
   }
   //----------------------------------------------------------------------------
@@ -122,6 +133,19 @@ impl Signal{
   //----------------------------------------------------------------------------
 }
 
+impl ToString for Signal{
+  fn to_string(&self) -> String{
+    let mut string = format!("[{}", self.data[0]);
+
+    for v in self.data.iter().skip(1){
+      string = format!("{},{}",string,v);
+    }
+
+    format!("{}]",string)
+  }
+}
+
+
 //------------------------------------------------------------------------------
 /// This function saves a `Vec::<Signal>` to a csv file.  
 /// Each `Signal` is saved as a coloumn with the supplied header.
@@ -180,9 +204,9 @@ fn write_vec_signals_to_csv(signals: &[Signal],filename: &str,
   Ok(())
 }
 //----------------------------------------------------------------------------
-// This function attempts to load a csv file into a `Vec::<Signal>`.
-// This function will return an error if it cannot find/parse the file.
-fn load_csv_to_vec_signals(filename: &str)
+/// This function attempts to load a csv file into a `Vec::<Signal>`.
+/// This function will return an error if it cannot find/parse the file.
+pub fn load_csv_to_vec_signals(filename: &str)
   -> Result<Vec::<Signal>, CluEError>
 {
   // Count data points.

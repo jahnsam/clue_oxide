@@ -819,7 +819,6 @@ mod tests{
     let tensor = tensors.spin1_tensors.get(19).unwrap().clone();
 
     let ref_value = -3693247.037734574/0.403761;
-    println!("DB: {:?}",tensor);
     assert!( (tensor.z() - ref_value ).abs() < 1e-12);
     assert!( (tensor.x()/ref_value).abs() < 1e-12);
     assert!( (tensor.y()/ref_value).abs() < 1e-12);

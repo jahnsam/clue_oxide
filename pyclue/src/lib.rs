@@ -1,5 +1,23 @@
+pub mod analytic_restricted_2cluster;
+pub mod io;
+pub mod py_clue_errors;
+pub mod py_cluster;
+pub mod py_config;
+pub mod py_particle;
+pub mod py_signal;
+pub mod py_structure;
+pub mod py_tensors;
 
-#![allow(unused)]
+use analytic_restricted_2cluster::*;
+use io::*;
+use py_cluster::PyCluster;
+use py_config::PyConfig;
+use py_signal::*;
+use py_particle::*;
+use py_structure::*;
+use py_tensors::*;
+
+#[allow(unused)]
 fn main() {
 use pyo3::prelude::*;
 use pyo3::exceptions::PyTypeError;
@@ -49,11 +67,11 @@ impl ToString for CluEOptions{
 impl CluEOptions {
 
   #[new]
-  #[args(config = "HashMap::<String,String>::new()",
-     group_list = "Vec::<Group>::new()",
-     structure_properties_list = "Vec::<StructureProperties>::new()",
-     spin_properties_list = "Vec::<SpinProperties>::new()",
-     )]
+  #[pyo3(signature = (
+        config, 
+        group_list,
+        structure_properties_list,
+        spin_properties_list))]
   fn new(config: HashMap::<String,String>,
     group_list: Vec::<Group>,
     structure_properties_list: Vec::<StructureProperties>,
@@ -225,7 +243,7 @@ impl ToString for Group{
 #[pymethods] 
 impl Group{
   #[new]
-  #[args(criteria = "HashMap::<String,String>::new()")]
+  #[pyo3(signature = (label, criteria))]
   pub fn new(label: String, criteria: HashMap::<String,String>) -> Self{
     Group{
       label,
@@ -258,7 +276,7 @@ impl ToString for StructureProperties{
 #[pymethods] 
 impl StructureProperties{
   #[new]
-  #[args(properties = "HashMap::<String,String>::new()")]
+  #[pyo3(signature = (label, properties))]
   pub fn new(label: String, properties: HashMap::<String,String>) -> Self{
     StructureProperties{
       label,
@@ -293,7 +311,7 @@ impl ToString for SpinProperties{
 #[pymethods] 
 impl SpinProperties{
   #[new]
-  #[args(properties = "HashMap::<String,String>::new()")]
+  #[pyo3(signature = (label, isotope, properties))]
   pub fn new(label: String, isotope: String,
       properties: HashMap::<String,String>) -> Self
   {
@@ -310,13 +328,28 @@ impl SpinProperties{
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
-#[pymodule]
-fn clue_oxide(_py: Python, m: &PyModule) -> PyResult<()> {
-    //m.add_function(wrap_pyfunction!(run, m)?)?;
+#[pymodule(name = "clue_oxide")]
+fn clue_odide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CluEOptions>()?;
     m.add_class::<Group>()?;
     m.add_class::<StructureProperties>()?;
     m.add_class::<SpinProperties>()?;
+    m.add_class::<PyCluster>()?;
+    m.add_class::<PyConfig>()?;
+    m.add_class::<PyElement>()?;
+    m.add_class::<PyIsotope>()?;
+    m.add_class::<PyParticle>()?;
+    m.add_class::<PySignal>()?;
+    m.add_class::<PySignals>()?;
+    m.add_class::<PyStructure>()?;
+    m.add_class::<PyHamiltonianTensors>()?;
+    m.add_function( wrap_pyfunction!(read_time_axis,m)? )?;
+    m.add_function( wrap_pyfunction!(read_signal,m)? )?;
+    m.add_function( wrap_pyfunction!(read_auxiliary_signals,m)? )?;
+    m.add_function( wrap_pyfunction!(hahn_three_spin_modulation_depth,m)? )?;
+    m.add_function( wrap_pyfunction!(hahn_three_spin_modulation_frequency,m)? )?;
+    m.add_function( 
+        wrap_pyfunction!(hahn_three_spin_fourth_order_coefficient,m)? )?;
     Ok(())
 }
 }

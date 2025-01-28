@@ -24,6 +24,9 @@ pub struct ParticleFilter{
   pub serials: Vec::<u32>, 
   pub not_serials: Vec::<u32>, 
 
+  pub names: Vec::<String>, 
+  pub not_names: Vec::<String>, 
+
   pub residues: Vec::<String>, 
   pub not_residues: Vec::<String>, 
 
@@ -117,6 +120,13 @@ impl ParticleFilter{
       if let Some(serial) = particle.serial{ 
         if (!self.serials.is_empty() && !self.serials.contains(&serial))
          || self.not_serials.contains(&serial){
+          return None;
+      }}
+
+      // Atom Name
+      if let Some(name) = &particle.name{ 
+        if (!self.names.is_empty() && !self.names.contains(name))
+         || self.not_names.contains(name){
           return None;
       }}
 
@@ -506,6 +516,17 @@ mod tests{
     filter.residues = vec!["SOL".to_string()];
     let indices = filter.filter(&structure);
     assert_eq!(indices,vec![43,44,45]);
+
+    let mut filter = ParticleFilter::new();
+    filter.names = vec!["H15".to_string()];
+    let indices = filter.filter(&structure);
+    assert_eq!(indices,vec![26]);
+
+    let mut filter = ParticleFilter::new();
+    filter.not_names = vec!["OW".to_string()];
+    filter.residues = vec!["SOL".to_string()];
+    let indices = filter.filter(&structure);
+    assert_eq!(indices,vec![44,45]);
 
     let mut filter = ParticleFilter::new();
     filter.not_residues = vec!["TEM".to_string(),"MGL".to_string()];

@@ -441,7 +441,6 @@ pub fn vec_tokens_to_vec_strings(tokens: Vec::<Token>)
       value_token.push(tok_str);
     }
   }
-
   Ok(value_token)
 }
 //------------------------------------------------------------------------------
