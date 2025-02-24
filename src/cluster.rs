@@ -4,17 +4,20 @@ use crate::structure::Structure;
 
 pub mod adjacency;
 pub mod build_adjacency_list;
+pub mod cluster_set;
 pub mod connected_subgraphs;
 pub mod find_clusters;
 pub mod read_clusters;
 pub mod get_subclusters;
 pub mod methyl_clusters;
+pub mod partition;
+pub mod unit_of_clustering;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /// `Cluster` contains both the vertices of the cluster and the simulated 
 /// signal. 
 #[derive(Debug,Clone,PartialEq)]
 pub struct Cluster{
-  vertices: Vec::<usize>,
+  pub vertices: Vec::<usize>,
   pub signal: Result<Option<Signal>,CluEError>,
 }
 
@@ -29,14 +32,13 @@ impl Cluster{
   }
 }
 //------------------------------------------------------------------------------
-impl ToString for Cluster{
-  // This function translates `Cluster` to a string.
-  fn to_string(&self) -> String {
+impl std::fmt::Display for Cluster {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     // "[1,2,3,4]"
     let cluster = &self.vertices;
 
     if cluster.is_empty(){
-      return "[]".to_string();
+      return write!(f,"[]");
     }
 
     let mut string = format!("[{}", cluster[0]);
@@ -44,7 +46,7 @@ impl ToString for Cluster{
     for vertex in cluster.iter().skip(1){
       string = format!("{},{}",string,vertex);
     } 
-    format!("{}]",string)
+    write!(f,"{}]",string)
   }
 }
 //------------------------------------------------------------------------------

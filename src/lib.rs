@@ -18,6 +18,7 @@ pub mod signal;
 pub mod space_3d;
 pub mod symmetric_list_2d;
 pub mod math;
+pub mod kmeans;
 pub mod io;
 
 

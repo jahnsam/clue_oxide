@@ -596,6 +596,15 @@ impl Structure{
   fn set_cell_shifts(&mut self, config: &Config) -> Result<(),CluEError>{
     let cell_edges = self.cell_offsets.clone();
 
+    match config.apply_pbc{
+      Some(true) => (),
+      Some(false) => {
+        self.cell_offsets = vec![Vector3D::zeros()];
+        return Ok(());
+      },
+      None => {return Err(CluEError::NoApplyPBC) }
+    }
+
     if cell_edges.is_empty(){
       self.cell_offsets = vec![Vector3D::zeros()];
       println!("No unit cell information found. \
@@ -734,6 +743,7 @@ mod tests{
       detected_spin_position = centroid_over_serials([28,29]);\
       radius = 73.5676;\
       load_geometry = cube;\
+      apply_pbc = true;\
       \
       pulse_sequence = hahn;\
       time_increments = 1e-8;\
@@ -860,6 +870,7 @@ mod tests{
     config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
+    config.apply_pbc = Some(true);
     let n_uc = 125;
     let r_nitrogen=Vector3D::from([36.440*1e-10, 36.900*1e-10,  37.100*1e-10]);
     let r_oxygen = Vector3D::from([35.290*1e-10, 36.430*1e-10, 37.810*1e-10]);
@@ -986,6 +997,7 @@ mod tests{
       detected_spin_position = centroid_over_serials([28,29]);\
       radius = 73.5676;\
       load_geometry = cube;\
+      apply_pbc = true;\
       \
       pulse_sequence = hahn;\
       time_increments = 1e-8;\
@@ -1115,6 +1127,7 @@ mod tests{
       detected_spin_position = centroid_over_serials([28,29]);\
       radius = 73.5676;\
       load_geometry = cube;\
+      apply_pbc = true;\
       \
       pulse_sequence = hahn;\
       time_increments = 1e-8;\

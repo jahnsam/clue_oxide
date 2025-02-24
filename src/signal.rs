@@ -133,15 +133,16 @@ impl Signal{
   //----------------------------------------------------------------------------
 }
 
-impl ToString for Signal{
-  fn to_string(&self) -> String{
+
+impl std::fmt::Display for Signal {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let mut string = format!("[{}", self.data[0]);
 
     for v in self.data.iter().skip(1){
       string = format!("{},{}",string,v);
     }
 
-    format!("{}]",string)
+    write!(f,"{}]",string)
   }
 }
 

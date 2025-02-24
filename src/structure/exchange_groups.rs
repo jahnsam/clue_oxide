@@ -103,14 +103,15 @@ pub enum ExchangeGroup{
   PrimaryAmonium(C3Rotor),
 }
 
-impl ToString for ExchangeGroup{
-  // This function implements `ToString` for `ExchangeGroup`.
-  fn to_string(&self) -> String{
-    match self{
-      ExchangeGroup::Methyl(rotor) => format!("methyl_{}",rotor.to_string()),
+
+impl std::fmt::Display for ExchangeGroup {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let string = match self{
+      ExchangeGroup::Methyl(rotor) => format!("methyl_{}",rotor),
       ExchangeGroup::PrimaryAmonium(rotor) 
-        => format!("primary_amonium_{}",rotor.to_string()),
-    }
+        => format!("primary_amonium_{}",rotor),
+    };
+    write!(f,"{}",string)
   }
 }
 //------------------------------------------------------------------------------
@@ -169,13 +170,12 @@ pub struct C3Rotor{
 }
 
 //------------------------------------------------------------------------------
-impl ToString for C3Rotor{
-  // This function returns the reference indices of the rotor as a string.
-  fn to_string(&self) -> String{
+impl std::fmt::Display for C3Rotor {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     // The output should be the reference indices, but the rotor stores the
     // structure indices, so a "+1" is used to convert from structure indices
     // to reference indices.
-    format!("{}_{}_{}", self.indices[0]+1,self.indices[1]+1,self.indices[2]+1)
+    write!(f,"{}_{}_{}", self.indices[0]+1,self.indices[1]+1,self.indices[2]+1)
   }
 }
 //------------------------------------------------------------------------------

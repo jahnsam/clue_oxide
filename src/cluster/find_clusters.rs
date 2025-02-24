@@ -1,109 +1,11 @@
 use crate::clue_errors::CluEError;
-use crate::cluster::adjacency::AdjacencyList;
+use crate::cluster::{adjacency::AdjacencyList, cluster_set::ClusterSet};
 use crate::math;
-use crate::structure::Structure;
 
 use crate::cluster::Cluster;
 
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufWriter;
-use std::io::Write;
 
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-/// The `ClusterSet` is a data structure that holds clusters of various sizes
-/// as well as indices to find the cluster.
-/// The first feild is `clusters: Vec::<Vec::<Cluster>>`, where
-/// `clusters[0]` is a  vector of 1-clusters, `clusters[1]` a vector of
-/// 2-clusters, and so on. 
-/// The other field is `cluster_indices: Vec::<HashMap::<Vec::<usize>,usize>>`,
-/// where `cluster_indices[0]` is a `HashMap` that has the vertices of 
-/// 1-clusters as keys and the index where the cluster with those vertices can
-/// be found as the value.
-/// For example if (key,value) = (`vec![a,b]`,idx) in `cluster_indices[1]`,
-/// then `clusters[1][idx]` has vertices `vec![a,b]`.
-#[derive(Debug,Clone,PartialEq)]
-pub struct ClusterSet{
-  pub clusters: Vec::<Vec::<Cluster>>,
-  pub cluster_indices: Vec::<HashMap::<Vec::<usize>,usize>>, 
-}
-//------------------------------------------------------------------------------
-impl ClusterSet{
-  //----------------------------------------------------------------------------
-  /// This function returns the number of clusters in the set.
-  pub fn len(&self) -> usize{ self.clusters.len() }
-  //----------------------------------------------------------------------------
-  /// This function returns true iff there are no clusters in the set.
-  pub fn is_empty(&self) -> bool{ self.clusters.is_empty() }
-  //----------------------------------------------------------------------------
-  /// This function converts a `Vec::<Vec::<Cluster>>` to a `ClusterSet`. 
-  pub fn from(clusters:Vec::<Vec::<Cluster>>) -> Self
-  {
-    let mut cluster_indices 
-      = Vec::<HashMap::<Vec::<usize>,usize>>::with_capacity(clusters.len());
-
-    for clusters_of_size in clusters.iter(){
-
-      let mut new_cluster_indices 
-        = HashMap::<Vec::<usize>,usize>::with_capacity(clusters_of_size.len());
-
-      for (idx,cluster) in clusters_of_size.iter().enumerate(){
-        new_cluster_indices.insert(cluster.vertices().clone(),idx);
-      }
-
-      cluster_indices.push(new_cluster_indices);
-    }
-
-    ClusterSet{clusters,cluster_indices}
-  }
-  //----------------------------------------------------------------------------
-  /// This function writes the `ClusterSet` to the supplied file.
-  /// The `Structure` is needed to convert the internal clusters vertices
-  /// to match the indices across output files.
-  pub fn save(&self, filename: &str,structure: &Structure) 
-    -> Result<(),CluEError>
-  {
-    let Ok(file) = File::create(filename) else{
-      return Err(CluEError::CannotOpenFile(filename.to_string()) );
-    };
-
-    let max_size = self.clusters.len();
-    let n_clusters: usize = self.clusters.iter().map(|c| c.len()).sum();
-
-    let chars_per_line = 4 + 2*max_size;
-    let bytes_per_char = 32;
-    
-    let n_bytes = n_clusters*chars_per_line*bytes_per_char + 3200;
-
-    let mut stream = BufWriter::with_capacity(n_bytes,file);
-
-    let mut line = "#[clusters, number_clusters = [".to_string();
-    for (ii,cluster_of_size) in self.clusters.iter().enumerate(){
-      if ii == 0{
-        line = format!("{}{}",line,cluster_of_size.len());
-      }else{
-        line = format!("{},{}",line,cluster_of_size.len());
-      }
-    }
-    line = format!("{}] ]\n\n",line);
-    if stream.write(line.as_bytes()).is_err(){
-      return Err(CluEError::CannotWriteFile(filename.to_string()) );
-    }
-
-    for cluster_of_size in self.clusters.iter(){
-      for cluster in cluster_of_size.iter(){
-        let line = format!("{}\n",
-            cluster.to_string_result(structure)? );
-          if stream.write(line.as_bytes()).is_err(){
-            return Err(CluEError::CannotWriteFile(filename.to_string()) );
-          }
-      }
-    }
-    Ok(())
-  }
-  //----------------------------------------------------------------------------
-
-}
 //------------------------------------------------------------------------------
 /// This function finds all connected graphs (clusters) with up to `max_size`
 /// vertices.
@@ -178,6 +80,7 @@ fn build_n_clusters(
 
   let mut new_clusters = Vec::<Cluster>::new();
   let mut new_cluster_indices = HashMap::new();
+
   if n_minus_1_clusters.is_empty(){ 
     return Ok( ClusterSet{ 
       clusters: vec![new_clusters],
@@ -194,14 +97,14 @@ fn build_n_clusters(
       
           let mut new_indices: Vec::<usize> = cluster.vertices.clone();
           new_indices.push(*vertex);
+
+          // Remove duplicates and sort.
           new_indices = math::unique(new_indices);
 
           if new_indices.len() == cluster.vertices.len(){ continue; }
-        
-          new_indices.sort();
 
           let  new_cluster = Cluster::from(new_indices.clone());
-          if new_cluster_indices.get(&new_indices).is_some(){
+          if new_cluster_indices.contains_key(&new_indices){
             continue;
           }
           new_cluster_indices.insert(new_indices,new_clusters.len());
@@ -521,70 +424,5 @@ mod tests{
     } 
   }
   //----------------------------------------------------------------------------
-  /*
-  #[test]
-  fn test_remove_subclusters_of(){
-
-    let mut square = AdjacencyList::with_capacity(4);
-    square.connect(0,1);
-    square.connect(1,2);
-    square.connect(2,3);
-    square.connect(3,0);
-    
-    let mut cluster_set = find_clusters(&square,4).unwrap();
-    remove_subclusters_of(&mut cluster_set, &Cluster::from(vec![0,1]));
-    let clusters = cluster_set.clusters;
-    let cluster_indices = cluster_set.cluster_indices;
-
-    let one_clusters = vec![
-      //vec![0], vec![1],
-      vec![2], vec![3],
-    ];
-
-    let size_idx = 0;
-    assert_eq!(clusters[size_idx].len(), one_clusters.len());
-    for v in one_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
-    } 
-
-    let two_clusters = vec![
-      vec![0,1], //vec![0,2], vec![0,3]
-      //vec![1,2], vec![1,3],
-      vec![2,3],
-    ];
-
-    let size_idx = 1;
-    assert_eq!(clusters[size_idx].len(), two_clusters.len());
-    for v in two_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
-    } 
-
-    let three_clusters = vec![
-      vec![0,1,2], vec![0,1,3], 
-      //vec![0,2,3], 
-      // vec![1,2,3],
-    ];
-
-    let size_idx = 2;
-    assert_eq!(clusters[size_idx].len(), three_clusters.len());
-    for v in three_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
-    } 
-
-    let four_clusters = vec![
-      vec![0,1,2,3], 
-    ];
-
-    let size_idx = 3;
-    assert_eq!(clusters[size_idx].len(), four_clusters.len());
-    for v in four_clusters.iter(){
-      let idx = cluster_indices[size_idx][v];
-      assert_eq!(clusters[size_idx][idx].vertices,*v);
-    } 
-  }
-  */
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

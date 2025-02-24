@@ -6,9 +6,12 @@ use std::ops::{Add,Sub,Mul,Div};
 use std::fmt;
 //------------------------------------------------------------------------------
 /// This enum specifies the tokens that user input text files get converted to.
+// After adding a new token to this list, the token should also be added to 
+// fmt(), identify_token(), and test_identify_token() below.
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token{
  Active,
+ ApplyPBC,
  ApproxThermal,
  //AtomName,
  AtomNames,
@@ -54,6 +57,7 @@ pub enum Token{
  EOL,
  Equals,
  Extracells,
+ ExchangeGroupsAndParticles,
  False,
  Filter,
  Float(f64),
@@ -85,7 +89,10 @@ pub enum Token{
  LineComment, 
  LoadGeometry,
  MagneticField,
+ MaxCellSize,
  MaxClusterSize,
+ MaxSpinOrder,
+ MinCellSize,
  Minus,
  Mode(ModeAttribute),
  NeighborCutoffDeltaHyperfine,
@@ -100,6 +107,8 @@ pub enum Token{
  NumberSystemInstances,
  NumberTimepoints,
  OrientationGrid,
+ Particles,
+ PartitioningMethod,
  Path,
  ParenthesisClose,
  ParenthesisOpen,
@@ -110,19 +119,18 @@ pub enum Token{
  Radius,
  Random,
  ReadCSV,
- RemovePartialMethyls,
- //Residue,
  Residues,                                                     
  ResSeqNums,                                                   
  RNGSeed,
  SaveDir,
  Semicolon,
  Serials,                                                      
+ Set,
  Sharp,
  Slash,
  Sphere,
  SpinProperties,
- Spins,
+ Spin,
  SquareBracketClose,
  SquareBracketOpen,
  StructureProperties,
@@ -136,6 +144,7 @@ pub enum Token{
  True,
  TunnelSplitting,
  Type,
+ UnitOfClustering,
  UserInputValue(String),
  Vector,
  VectorF64(Vec::<f64>),
@@ -159,6 +168,7 @@ impl fmt::Display for Token{
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
       Token::Active => write!(f,"active"), 
+      Token::ApplyPBC => write!(f,"apply_pbc"), 
       Token::ApproxThermal => write!(f,"approx_thermal"),
       //Token::AtomName => write!(f,"atom_name"),
       Token::AtomNames => write!(f,"atom_names"),
@@ -204,6 +214,8 @@ impl fmt::Display for Token{
       Token::Elements => write!(f,"elements"),
       Token::EOL => writeln!(f),
       Token::Equals => write!(f,"="),
+      Token::ExchangeGroupsAndParticles 
+        => write!(f,"exchange_groups_and_particles"),
       Token::Extracells => write!(f,"extracells"),
       Token::False => writeln!(f,"false"),
       Token::Filter => write!(f,"filter"),
@@ -236,7 +248,10 @@ impl fmt::Display for Token{
       Token::LineComment => write!(f,"//"), 
       Token::LoadGeometry => write!(f,"load_geometry"),
       Token::MagneticField => write!(f,"magnetic_field"),
+      Token::MaxCellSize => write!(f,"max_cell_size"),
       Token::MaxClusterSize => write!(f,"max_cluster_size"),
+      Token::MaxSpinOrder => write!(f,"max_spin_order"),
+      Token::MinCellSize => write!(f,"min_cell_size"),
       Token::Minus => write!(f,"-"),
       Token::Mode(mode) => write!(f,"{}",mode),
       Token::NeighborCutoffDeltaHyperfine 
@@ -257,6 +272,8 @@ impl fmt::Display for Token{
       Token::NumberSystemInstances => write!(f,"number_system_instances"),
       Token::NumberTimepoints => write!(f,"number_timepoints"),
       Token::OrientationGrid => write!(f,"orientation_grid"),
+      Token::Particles => write!(f,"particles"),
+      Token::PartitioningMethod => write!(f,"partition_method"),
       Token::Path => write!(f,"path"),
       Token::ParenthesisClose => write!(f,")"),
       Token::ParenthesisOpen => write!(f,"("),
@@ -267,18 +284,17 @@ impl fmt::Display for Token{
       Token::Radius => write!(f,"radius"),
       Token::Random => write!(f,"random"),
       Token::ReadCSV => write!(f,"read_csv"),
-      Token::RemovePartialMethyls => write!(f,"remove_partial_methyls"),
-      //Token::Residue => write!(f,"residue"),
       Token::Residues => write!(f,"residues"),
       Token::ResSeqNums => write!(f,"residue_sequence_numbers"),
       Token::RNGSeed => write!(f,"rng_seed"),
       Token::SaveDir => write!(f,"save_dir"),
       Token::Semicolon => write!(f,";"),
       Token::Serials => write!(f,"serials"),
+      Token::Set => write!(f,"set"),
       Token::Sharp => write!(f,"#"),
       Token::Slash => write!(f,"/"),
       Token::SpinProperties => write!(f,"spin_properties"),
-      Token::Spins => write!(f,"spins"),
+      Token::Spin => write!(f,"spin"),
       Token::Sphere => write!(f,"sphere"),
       Token::SquareBracketClose => write!(f,"]"),
       Token::SquareBracketOpen => write!(f,"["),
@@ -293,6 +309,7 @@ impl fmt::Display for Token{
       Token::True => writeln!(f,"true"),
       Token::TunnelSplitting => write!(f,"tunnel_splitting"),
       Token::Type => write!(f,"type"),
+      Token::UnitOfClustering => write!(f,"unit_of_clustering"),
       Token::UserInputValue(string) => write!(f,"{}",string),
       Token::Vector => write!(f,"vector"), 
       Token::VectorF64(v) => write!(f,"{:?}",v), 
@@ -318,6 +335,7 @@ impl fmt::Display for Token{
 pub fn identify_token(word: &str) -> Option<Token>{
   match word{
     "active" => Some(Token::Active),
+    "apply_pbc" => Some(Token::ApplyPBC),
     "approx_thermal" => Some(Token::ApproxThermal),
     //"atom_name" => Some(Token::AtomName),
     "atom_names" => Some(Token::AtomNames),
@@ -362,6 +380,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "elements" => Some(Token::Elements), 
     "\n" => Some(Token::EOL),
     "=" => Some(Token::Equals),
+    "exchange_groups_and_particles" => Some(Token::ExchangeGroupsAndParticles),
     "extracells" => Some(Token::Extracells),
     "false" => Some(Token::False),
     "filter" => Some(Token::Filter),
@@ -392,7 +411,10 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "<=" => Some(Token::LessThanEqualTo),
     "//" => Some(Token::LineComment),
     "magnetic_field" => Some(Token::MagneticField),
+    "max_cell_size" => Some(Token::MaxCellSize),
     "max_cluster_size" => Some(Token::MaxClusterSize),
+    "max_spin_order" => Some(Token::MaxSpinOrder),
+    "min_cell_size" => Some(Token::MinCellSize),
     "-" => Some(Token::Minus),
     "neighbor_cutoff_delta_hyperfine" 
       => Some(Token::NeighborCutoffDeltaHyperfine),
@@ -412,6 +434,8 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "number_system_instances" => Some(Token::NumberSystemInstances),
     "number_timepoints" => Some(Token::NumberTimepoints),
     "orientation_grid" => Some(Token::OrientationGrid),
+    "particles" => Some(Token::Particles),
+    "partitioning_method" => Some(Token::PartitioningMethod),
     "path" => Some(Token::Path),
     ")" => Some(Token::ParenthesisClose),
     "(" => Some(Token::ParenthesisOpen),
@@ -422,19 +446,18 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "radius" => Some(Token::Radius),
     "random" => Some(Token::Random),
     "read_csv" => Some(Token::ReadCSV),
-    "remove_partial_methyls" => Some(Token::RemovePartialMethyls),
-    //"residue" => Some(Token::Residue),
     "residues" => Some(Token::Residues),
     "residue_sequence_numbers" => Some(Token::ResSeqNums),
     "rng_seed" => Some(Token::RNGSeed),
     "save_dir" => Some(Token::SaveDir),
     ";" => Some(Token::Semicolon),
     "serials" => Some(Token::Serials), 
+    "set" => Some(Token::Set), 
     "#" => Some(Token::Sharp),
     "/" => Some(Token::Slash),
     "spin_properties" => Some(Token::SpinProperties),
     "sphere" => Some(Token::Sphere),
-    "spins" => Some(Token::Spins),
+    "spin" => Some(Token::Spin),
     "]" => Some(Token::SquareBracketClose),
     "[" => Some(Token::SquareBracketOpen),
     "structure_properties" => Some(Token::StructureProperties),
@@ -448,6 +471,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "time_increments" => Some(Token::TimeIncrements),
     "tunnel_splitting" => Some(Token::TunnelSplitting),
     "type" => Some(Token::Type),
+    "unit_of_clustering" => Some(Token::UnitOfClustering),
     "vector" => Some(Token::Vector),
     "void_probability" => Some(Token::VoidProbability),
     " " => Some(Token::Whitespace),
@@ -1030,14 +1054,10 @@ impl fmt::Display for ModeAttribute{
 /// This enum list the possible configuration modes.
 #[derive(PartialEq, Debug, Clone)]
 pub enum ConfigMode{
-  Clusters,
   Config,
   Filter,
   SpinProperties,
-  Spins,
   StructureProperties,
-  Structures,
-  Tensors,
 }
 
 impl ConfigMode{
@@ -1046,14 +1066,10 @@ impl ConfigMode{
   pub fn from(token: Token) -> Result<Self,CluEError>{
 
     match token{
-      Token::Clusters => Ok(ConfigMode::Clusters),
       Token::Config => Ok(ConfigMode::Config),
       Token::Filter | Token::Group => Ok(ConfigMode::Filter),
       Token::SpinProperties => Ok(ConfigMode::SpinProperties),
-      Token::Spins => Ok(ConfigMode::Spins),
       Token::StructureProperties => Ok(ConfigMode::StructureProperties),
-      Token::Structures => Ok(ConfigMode::Structures),
-      Token::Tensors => Ok(ConfigMode::Tensors),
       _ => Err(CluEError::ConfigModeNotRecognized(token.to_string())),
     }
   }
@@ -1063,14 +1079,10 @@ impl fmt::Display for ConfigMode{
   // This function translates a `ConfigMode` to a string.
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self{
-      ConfigMode::Clusters => write!(f,"clusters"),
       ConfigMode::Config => write!(f,"config"),
       ConfigMode::Filter => write!(f,"filter"),
       ConfigMode::SpinProperties => write!(f,"spin_properties"),
-      ConfigMode::Spins => write!(f,"spins"),
       ConfigMode::StructureProperties => write!(f,"structure_properties"),
-      ConfigMode::Structures => write!(f,"structures"),
-      ConfigMode::Tensors => write!(f,"tensors"),
     }
   }
 }
@@ -1084,6 +1096,7 @@ mod tests{
   #[test]
   fn test_identify_token(){
     assert_eq!(identify_token("active"), Some(Token::Active));
+    assert_eq!(identify_token("apply_pbc"), Some(Token::ApplyPBC));
     assert_eq!(identify_token("approx_thermal"), Some(Token::ApproxThermal));
     //assert_eq!(identify_token("atom_name"), Some(Token::AtomName));
     assert_eq!(identify_token("atom_names"), Some(Token::AtomNames));
@@ -1139,6 +1152,8 @@ mod tests{
     //assert_eq!(identify_token("element"),Some( Token::Element));
     assert_eq!(identify_token("\n"),Some( Token::EOL));
     assert_eq!(identify_token("="),Some( Token::Equals));
+    assert_eq!(identify_token("exchange_groups_and_particles"),
+        Some( Token::ExchangeGroupsAndParticles));
     assert_eq!(identify_token("extracells"), Some( Token::Extracells));
     assert_eq!(identify_token("false"),Some( Token::False));
     assert_eq!(identify_token("filter"),Some( Token::Filter));
@@ -1171,8 +1186,14 @@ mod tests{
     assert_eq!(identify_token("<="),Some( Token::LessThanEqualTo));
     assert_eq!(identify_token("//"),Some( Token::LineComment));
     assert_eq!(identify_token("magnetic_field"),Some( Token::MagneticField));
+    assert_eq!(identify_token("max_cell_size"),
+        Some(Token::MaxCellSize));
     assert_eq!(identify_token("max_cluster_size"),
         Some(Token::MaxClusterSize));
+    assert_eq!(identify_token("max_spin_order"),
+        Some(Token::MaxSpinOrder));
+    assert_eq!(identify_token("min_cell_size"),
+        Some(Token::MinCellSize));
     assert_eq!(identify_token("-"),Some( Token::Minus));
     assert_eq!(identify_token("neighbor_cutoff_delta_hyperfine"),
         Some(Token::NeighborCutoffDeltaHyperfine));
@@ -1194,6 +1215,9 @@ mod tests{
     assert_eq!(identify_token("number_timepoints"),
         Some(Token::NumberTimepoints));
     assert_eq!(identify_token("orientation_grid"),Some(Token::OrientationGrid));
+    assert_eq!(identify_token("particles"), Some( Token::Particles));
+    assert_eq!(identify_token("partitioning_method"),
+        Some( Token::PartitioningMethod));
     assert_eq!(identify_token("path"),Some( Token::Path));
     assert_eq!(identify_token(")"),Some( Token::ParenthesisClose));
     assert_eq!(identify_token("("),Some( Token::ParenthesisOpen));
@@ -1203,18 +1227,16 @@ mod tests{
     assert_eq!(identify_token("radius"),Some( Token::Radius));
     assert_eq!(identify_token("random"),Some( Token::Random));
     assert_eq!(identify_token("read_csv"), Some(Token::ReadCSV));
-    assert_eq!(identify_token("remove_partial_methyls"),
-        Some(Token::RemovePartialMethyls));
-    //assert_eq!(identify_token("residue"),Some( Token::Residue));
     assert_eq!(identify_token("rng_seed"),Some( Token::RNGSeed));
     assert_eq!(identify_token("save_dir"),Some( Token::SaveDir));
     assert_eq!(identify_token(";"),Some( Token::Semicolon));
+    assert_eq!(identify_token("set"),Some( Token::Set));
     assert_eq!(identify_token("#"),Some( Token::Sharp));
     assert_eq!(identify_token("/"),Some( Token::Slash));
     assert_eq!(identify_token("sphere"),Some( Token::Sphere));
     assert_eq!(identify_token("spin_properties"),
         Some(Token::SpinProperties));
-    assert_eq!(identify_token("spins"),Some( Token::Spins));
+    assert_eq!(identify_token("spin"),Some( Token::Spin));
     assert_eq!(identify_token("]"),Some( Token::SquareBracketClose));
     assert_eq!(identify_token("["),Some( Token::SquareBracketOpen));
     assert_eq!(identify_token("structure_properties"),
@@ -1231,6 +1253,8 @@ mod tests{
     assert_eq!(identify_token("tunnel_splitting"),
         Some(Token::TunnelSplitting));
     assert_eq!(identify_token("type"),Some( Token::Type));
+    assert_eq!(identify_token("unit_of_clustering"),
+        Some( Token::UnitOfClustering));
     assert_eq!(identify_token("vector"),Some( Token::Vector));
     assert_eq!(identify_token("void_probability"),
         Some( Token::VoidProbability));
@@ -1257,6 +1281,7 @@ mod tests{
     assert_eq!(identify_token("indices"),Some( Token::Indices)); 
     assert_eq!(identify_token("elements"),Some( Token::Elements)); 
     assert_eq!(identify_token("serials"),Some( Token::Serials)); 
+    assert_eq!(identify_token("set"),Some( Token::Set)); 
     assert_eq!(identify_token("r2cce"),Some( Token::R2CCE));
     assert_eq!(identify_token("residues"),Some( Token::Residues));
     assert_eq!(identify_token("residue_sequence_numbers"),

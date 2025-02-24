@@ -1,6 +1,6 @@
 use crate::clue_errors::CluEError;
 use crate::cluster::Cluster;
-use crate::cluster::find_clusters::ClusterSet;
+use crate::cluster::cluster_set::ClusterSet;
 use crate::structure::Structure;
 
 use std::io::BufRead;
@@ -11,25 +11,66 @@ use substring::Substring;
 pub fn read_cluster_file(filename: &str, structure: &Structure) 
   -> Result<ClusterSet,CluEError>
 {
-
-  let mut clusters = initialize_clusters(filename)?;
-
-  let Ok(file) = std::fs::File::open(filename) else{
-    return Err(CluEError::CannotOpenFile(filename.to_string()));
-  };
-
-  let lines = std::io::BufReader::new(file).lines();
-
-  for line_result in lines {
-    let Ok(line) = line_result else{
+  // Get number of lines.
+  let n_lines = {   
+    let Ok(file) = std::fs::File::open(filename) else{
       return Err(CluEError::CannotOpenFile(filename.to_string()));
     };
 
-    if line.contains('#') || !line.contains('['){
+    std::io::BufReader::new(file).lines().count()
+  }; 
+
+  // Get lines.
+  let lines_iter = {
+    let Ok(file) = std::fs::File::open(filename) else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()));
+    };
+
+    std::io::BufReader::new(file).lines()
+  };
+
+  let mut lines = Vec::<String>::with_capacity(n_lines);
+
+  // Allocate space for the cluster data.
+  let mut clusters = initialize_clusters(&lines,filename)?;
+
+  for line_result in lines_iter {
+    // Extract the line.
+    let Ok(line) = line_result else{
+      return Err(CluEError::CannotOpenFile(filename.to_string()));
+    };
+    if line.is_empty(){
+      continue;
+    }
+    lines.push(line);
+  }
+
+  set_clusters_from_lines(&mut clusters, lines,structure)?;
+
+  Ok(ClusterSet::from(clusters))
+}
+//------------------------------------------------------------------------------
+fn set_clusters_from_lines(
+    clusters: &mut [Vec<Cluster>],
+    lines: Vec::<String>, 
+    structure: &Structure,
+    ) -> Result<(),CluEError>
+{
+  let mut cluster_size = 0;
+
+  // Loop through lines.
+  for line in lines.iter() {
+
+    // Check line type.
+    if line.contains('#'){ 
+      if !line.contains("cluster_size") || !line.contains('['){
+        continue;
+      }
+      cluster_size = read_cluster_size_line(line)?;
       continue;
     }
     
-    let cluster_reference_indices = parse_cluster_line(&line)?;
+    let cluster_reference_indices = parse_cluster_line(line)?;
 
     let mut cluster_indices 
       = Vec::<usize>::with_capacity(cluster_reference_indices.len());
@@ -41,12 +82,46 @@ pub fn read_cluster_file(filename: &str, structure: &Structure)
 
     let cluster = Cluster::from(cluster_indices);
 
-    let size_idx = cluster.len() - 1;
+    let size_idx = if cluster_size == 0{
+      cluster.len() - 1
+    }else{
+      cluster_size - 1
+    };
+
     clusters[size_idx].push(cluster)
 
   }
 
-  Ok(ClusterSet::from(clusters))
+  Ok(())
+}
+//------------------------------------------------------------------------------
+fn read_cluster_size_line(line: &str) -> Result<usize,CluEError>
+{
+  let Some(idx_cluster_size) = line.find("cluster_size") else{
+    return Err(CluEError::ClusterLineFormatError(line.to_string()));
+  };
+  let Some(idx_equals) = line.find('=') else{
+    return Err(CluEError::ClusterLineFormatError(line.to_string()));
+  };
+  let Some(idx_close_bracket) = line.find(']') else{
+    return Err(CluEError::ClusterLineFormatError(line.to_string()));
+  };
+
+  if idx_cluster_size >= idx_equals{
+    return Err(CluEError::ClusterLineFormatError(line.to_string()));
+  }
+  if idx_equals >= idx_close_bracket{
+    return Err(CluEError::ClusterLineFormatError(line.to_string()));
+  }
+
+  let cluster_size_str = line.substring(idx_equals+1, idx_close_bracket)
+      .split_whitespace().collect::<Vec<_>>().join(" ");
+
+  let Ok(cluster_size) = cluster_size_str.parse::<usize>() else{
+      return Err(CluEError::ClusterLineFormatError(line.to_string()));
+  };
+
+  Ok(cluster_size)
 }
 //------------------------------------------------------------------------------
 // This function reads lines that specify single clusters.
@@ -81,22 +156,15 @@ fn parse_cluster_line(line: &str)
 //------------------------------------------------------------------------------
 // This function uses the meta data in the cluster files to initialize 
 // the clusters' `Vec::<Vec::<Cluster>` to the correct size.
-fn initialize_clusters(filename: &str) 
+fn initialize_clusters(lines: &[String],filename: &str) 
   -> Result<Vec::<Vec::<Cluster>>,CluEError>
 {
-  let Ok(file) = std::fs::File::open(filename) else{
-    return Err(CluEError::CannotOpenFile(filename.to_string()));
-  };
 
-  let lines = std::io::BufReader::new(file).lines();
 
-  for line_result in lines {
-    let Ok(line) = line_result else{
-      return Err(CluEError::CannotOpenFile(filename.to_string()));
-    };
+  for line in lines.iter() {
 
     if line.contains("#[clusters"){
-      let number_clusters = parse_number_clusters(&line, filename)?;
+      let number_clusters = parse_number_clusters(line, filename)?;
       let mut clusters = Vec::<Vec::<Cluster>>::with_capacity(
           number_clusters.len());
 
@@ -166,48 +234,82 @@ fn remove_char(s: &str, c: char) -> String {
 #[cfg(test)]
 mod tests{
   use super::*;
+  use crate::structure::particle::Particle;
+  use crate::cluster::adjacency::AdjacencyList;
+  use crate::space_3d::Vector3D;
+  use crate::physical_constants::Element;
   //----------------------------------------------------------------------------
-  /*
   #[test]
-  fn test_read_cluster_file(){
-    let filename = "assets/cluster_file.txt".to_string();
-    let value = read_cluster_file(&filename).unwrap();
+  fn test_set_clusters_from_lines(){
 
-    let clusters = vec![
-      vec![
-        Cluster::from(vec![1]),
-        Cluster::from(vec![2]),
-        Cluster::from(vec![4]),
-        Cluster::from(vec![8]),
-      ],
-      vec![
-        Cluster::from(vec![1,2]),
-        Cluster::from(vec![2,4]),
-        Cluster::from(vec![4,8]),
-      ],
-      vec![
-        Cluster::from(vec![2,4,8]),
-      ],
+    let lines = vec![
+      "#[clusters, number_clusters = [11,23,59] ]".to_string(),
+      "#[cluster_size = 1]".to_string(),
+      "[3,4,5]".to_string(),
+      "[6]".to_string(),
+      "[7]".to_string(),
+      "#[cluster_size = 2]".to_string(),
+      "[3,4,5,6]".to_string(),
+      "[3,4,5,7]".to_string(),
+      "#[cluster_size = 3]".to_string(),
+      "[3,4,5,6,7]".to_string(),
     ];
-    let expected = ClusterSet::from(clusters);
 
-    assert_eq!(value,expected);
+    let mut clusters = vec![
+      Vec::<Cluster>::with_capacity(3),
+      Vec::<Cluster>::with_capacity(2),
+      Vec::<Cluster>::with_capacity(1),
+    ];
+
+    let bath_particles = vec![
+      Particle::new(Element::Carbon, 0.0,0.0,1.0),
+      Particle::new(Element::Carbon, 0.0,0.0,10.0),
+      Particle::new(Element::Hydrogen,  1.0,0.0,0.0),
+      Particle::new(Element::Hydrogen, -0.5,0.87,0.0),
+      Particle::new(Element::Hydrogen, -0.5,-0.87,0.0),
+      Particle::new(Element::Hydrogen, 0.0,0.0,5.0),
+      Particle::new(Element::Hydrogen, 0.0,0.0,-5.0),
+    ];
+    let mut structure = Structure::new(
+        bath_particles,
+        AdjacencyList::with_capacity(2),
+        Vec::<Vector3D>::new(),
+        );
+
+    structure.map_nth_active_to_reference_indices();
+
+    set_clusters_from_lines(&mut clusters, lines, &structure).unwrap();
+
+    assert_eq!(*clusters[0][0].vertices(),vec![3,4,5]);
+    assert_eq!(*clusters[0][1].vertices(),vec![6]);
+    assert_eq!(*clusters[0][2].vertices(),vec![7]);
+
+    assert_eq!(*clusters[1][0].vertices(),vec![3,4,5,6]);
+    assert_eq!(*clusters[1][1].vertices(),vec![3,4,5,7]);
+
+    assert_eq!(*clusters[2][0].vertices(),vec![3,4,5,6,7]);
   }
-  */
   //----------------------------------------------------------------------------
   #[test]
   fn test_initialize_clusters(){
-    let filename = "assets/cluster_file.txt".to_string();
-    let value = initialize_clusters(&filename).unwrap();
+    let lines = vec![
+      "#[clusters, number_clusters = [11,23,59] ]".to_string(),
+      "#[cluster_size = 1]".to_string(),
+      "[3,4,5]".to_string(),
+      "[6]".to_string(),
+      "[7]".to_string(),
+      "#[cluster_size = 2]".to_string(),
+      "[3,4,5,6]".to_string(),
+      "[3,4,5,7]".to_string(),
+      "#[cluster_size = 3]".to_string(),
+      "[3,4,5,6,7]".to_string(),
+    ];
 
-    assert_eq!(value.len(),3);
-  
-    let expected_capacities = vec![4,3,1];
-    
-    for (ii ,&c) in expected_capacities.iter().enumerate(){
-      assert!(value[ii].is_empty());
-      assert_eq!(value[ii].capacity(),c);
-    }
+    let clusters = initialize_clusters(&lines,"filename").unwrap();
+    assert_eq!(clusters.len(),3);
+    assert!(clusters[0].capacity() >= 3);
+    assert!(clusters[1].capacity() >= 2);
+    assert!(clusters[2].capacity() >= 1);
   }
   //----------------------------------------------------------------------------
   #[test]

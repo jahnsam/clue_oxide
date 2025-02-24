@@ -2,7 +2,9 @@ use crate::Config;
 use crate::clue_errors::CluEError;
 use crate::cluster::{Cluster,
   get_subclusters::build_subclusters,
-  find_clusters::ClusterSet};
+  cluster_set::ClusterSet,
+  unit_of_clustering::UnitOfClustering,
+};
 use crate::signal::{Signal, load_batch_signals, write_batch_signals};
 use crate::structure::Structure;
 use crate::HamiltonianTensors;
@@ -119,11 +121,15 @@ fn calculate_auxiliary_signals(
       //
 
 
+      if cluster_size <= 1 {
+        continue;
+      }
       // Loop over cluster in this batch and calculate the auxiliary signals
       // from the cluster signals.
       for iclu in (0..n_clusters).skip(idx).take(batch_size){
         let mut cluster = clusters[cluster_size-1][iclu].clone();
-        
+        let cluster_num_spins = cluster.vertices().len();
+
         // Find subclusters.
         let subclusters = build_subclusters(cluster.vertices());
 
@@ -140,27 +146,40 @@ fn calculate_auxiliary_signals(
         for subcluster_vertices in subclusters.iter(){
           if subcluster_vertices.is_empty(){ continue; }
 
-          let subcluster_size = subcluster_vertices.len();
+          let subcluster_num_spins = subcluster_vertices.len();
 
           // error check
-          if subcluster_size >= cluster_size{
+          if subcluster_num_spins >= cluster_num_spins{
             let subcluster = Cluster::from(subcluster_vertices.clone());
             return Err(CluEError::NotAProperSubset(
                   subcluster.to_string(),cluster.to_string()));
           }
 
 
-          // Devide out subcluster auxiliary signals.
-          if let Some(subcluster_idx) = cluster_indices[subcluster_size-1]
-            .get(subcluster_vertices)
-          {
-            let subcluster = &clusters[subcluster_size-1][*subcluster_idx];
-            match &subcluster.signal{
-              Ok(Some(subsignal)) =>  *aux_signal = &(*aux_signal)/subsignal,
-              Ok(None) => continue,
-              Err(err) => return Err(err.clone()),
+          let (start_idx,end_idx) = match config.unit_of_clustering{
+            Some(UnitOfClustering::Spin) 
+                => (subcluster_num_spins-1,subcluster_num_spins-1),
+            Some(UnitOfClustering::Set) 
+              => (0,std::cmp::min(subcluster_num_spins-1,cluster_size-2)),
+            None => return Err(CluEError::NoUnitOfClustering),
+          };
+          
+          for subcluster_size_idx in start_idx..=end_idx{
+            // Devide out subcluster auxiliary signals.
+            if let Some(subcluster_idx) 
+                = cluster_indices[subcluster_size_idx]
+                .get(subcluster_vertices)
+            {
+              let subcluster = &clusters[subcluster_size_idx][*subcluster_idx];
+              match &subcluster.signal{
+                Ok(Some(subsignal)) =>  {
+                  *aux_signal = &(*aux_signal)/subsignal;
+                  break;
+                },
+                Ok(None) => continue,
+                Err(err) => return Err(err.clone()),
+              }
             }
-
           }
         
         }
@@ -256,6 +275,7 @@ mod tests{
     let freq = hahn_three_spin_modulation_frequency(delta_hf,b);
     config.time_increments = vec![0.05/freq];
     config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
+    config.unit_of_clustering = Some(UnitOfClustering::Spin);
 
     config.set_defaults().unwrap();
     config.construct_time_axis().unwrap();

@@ -193,9 +193,10 @@ impl SymmetricTensor3D{
 
 }
 
-impl ToString for SymmetricTensor3D{
-  fn to_string(&self) -> String{
-    format!("[{}, {}, {}, {}, {}, {}]", self.elements[0], self.elements[1],
+
+impl std::fmt::Display for SymmetricTensor3D {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f,"[{}, {}, {}, {}, {}, {}]", self.elements[0], self.elements[1],
         self.elements[2], self.elements[3],self.elements[4], self.elements[5])
   }
 }
@@ -324,14 +325,18 @@ impl Vector3D{
     phi
   }
   //----------------------------------------------------------------------------
-  pub fn norm(&self) -> f64 {
+  pub fn norm_squared(&self) -> f64 {
 
     let mut l2 = 0.0;
     for el in self.elements.iter(){
       l2 += (*el)*(*el);
     }
+    l2
+  }
+  //----------------------------------------------------------------------------
+  pub fn norm(&self) -> f64 {
 
-    l2.sqrt()
+    self.norm_squared().sqrt()
   
   }
   //----------------------------------------------------------------------------
@@ -506,9 +511,9 @@ impl PartialEq for Vector3D{
 }
 impl Eq for Vector3D {}
 //------------------------------------------------------------------------------
-impl ToString for Vector3D{
-  fn to_string(&self) -> String{
-    format!("[{}, {}, {}]", self.elements[0], self.elements[1],
+impl std::fmt::Display for Vector3D {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f,"[{}, {}, {}]", self.elements[0], self.elements[1],
         self.elements[2])
   }
 }

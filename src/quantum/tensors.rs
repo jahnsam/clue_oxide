@@ -283,7 +283,7 @@ impl HamiltonianTensors{
       if let Some(tensor) = self.spin1_tensors.get(ii){
         let line = format!("tensor[{}] = {}; // Hz.\n",
             structure.get_reference_index_of_nth_active(ii)?,
-            tensor.to_string());
+            tensor);
        
         if stream.write(line.as_bytes()).is_err(){
           return Err(CluEError::CannotWriteFile(filename.to_string()) );
@@ -304,7 +304,7 @@ impl HamiltonianTensors{
           let line = format!("tensor[{},{}] = {}; // Hz.\n",
               structure.get_reference_index_of_nth_active(ii)?,
               structure.get_reference_index_of_nth_active(jj)?, 
-              tensor.to_string());
+              tensor);
          
           if stream.write(line.as_bytes()).is_err(){
             return Err(CluEError::CannotWriteFile(filename.to_string()) );
@@ -759,6 +759,7 @@ mod tests{
         cluster_method = cce;
         max_cluster_size = 2;
         magnetic_field = 1.2;
+        apply_pbc = true;
 
         #[filter(label = tempo_h)]
           residues in [TEM];

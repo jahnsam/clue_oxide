@@ -4,8 +4,17 @@ use crate::find_clusters;
 use crate::config::{Config,ClusterMethod,OrientationAveraging};
 use crate::CluEError;
 use crate::cluster::methyl_clusters::partition_cluster_set_by_exchange_groups;
-use crate::cluster::{find_clusters::ClusterSet, 
-  read_clusters::read_cluster_file};
+use crate::cluster::{
+  cluster_set::ClusterSet, 
+  read_clusters::read_cluster_file,
+  unit_of_clustering::UnitOfClustering,
+};
+use crate::cluster::partition::{
+  expand_block_clusters,
+  get_partition_table,
+  PartitioningMethod,
+  partition_system,
+};
 use crate::HamiltonianTensors;
 use crate::integration_grid::IntegrationGrid;
 use crate::physical_constants::{ONE,PI};
@@ -36,7 +45,7 @@ pub fn calculate_signals(rng: &mut ChaCha20Rng, config: &Config,
     return Err(CluEError::NoNumberSystemInstances);
   }; 
 
-  let range = Uniform::from(0..std::u64::MAX);
+  let range = Uniform::from(0..u64::MAX);
   let new_seeds = (0..number_system_instances).map(|_ii|
       range.sample(rng) )
     .collect::<Vec::<u64>>();
@@ -71,90 +80,66 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
     path_opt: &Option<String>) -> Result<Vec::<Signal>,CluEError>
 {
 
-  // Build input structure.
-  let structure = Structure::build_structure(rng,config)?;
-  
-
-  // Determine if/where to save results.
-  let save_dir_opt = match path_opt{
-    Some(path) => {
-      
-      
-      let save_dir = match &config.system_name{
-        Some(system_name) => {
-          format!("{}/{}",path,system_name)
-        },
-        None => {
-          let structure_hash = math::str_hash(&structure);
-          format!("{}/system-{}",path,structure_hash)
-        }
-      };
-
-      match std::fs::create_dir_all(save_dir.clone()){
-        Ok(_) => (),
-        Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
-      }
-  
-      if let Some(info_dir) = &config.write_info{
-
-        let info_path = format!("{}/{}",save_dir,info_dir);
-
-        if std::fs::create_dir_all(info_path.clone()).is_err(){
-          return Err(CluEError::CannotCreateDir(info_path));
-        }
-
-        if let Some(filename) = &config.write_bath{
-          structure.bath_to_csv(&format!("{}/{}.csv", info_path, filename),
-              config)?;
-        }
-
-        if let Some(filename) = &config.write_structure_pdb{
-          structure.write_pdb(&format!("{}/{}.pdb", info_path, filename))?;
-        }
-
-        if let Some(exchange_group_manager) = &structure.exchange_groups{
-          if let Some(filename) = &config.write_exchange_groups{
-            let csv_file = format!("{}/{}.csv",info_path,filename);
-            exchange_group_manager.to_csv(&csv_file,&structure)?;
-          }
-        }
-      }
-      Some(save_dir)
-    },
-    None => None,
-  };
-
-
-
   // Determine maximum cluster size.
   let Some(max_cluster_size) = config.max_cluster_size else{
     return Err(CluEError::NoMaxClusterSize);
   };
 
-  // Get number of data points per trace.
-  let n_tot = config.number_timepoints.iter().sum::<usize>();
   
   // Initialize output.
-  let mut order_n_signals = (0..max_cluster_size).map(|_| Signal::zeros(n_tot))
-    .collect::<Vec::<Signal>>();
+  let mut order_n_signals = {
+    // Get number of data points per trace.
+    let n_tot = config.number_timepoints.iter().sum::<usize>();
 
-  
+    (0..max_cluster_size).map(|_| Signal::zeros(n_tot))
+    .collect::<Vec::<Signal>>()
+  };
+
+
+  // Build input structure.
+  let structure = Structure::build_structure(rng,config)?;
+
+
   // Generate coupling tensors.
   let tensors = HamiltonianTensors::generate(&structure, config)?;
-  if let Some(save_dir) = &save_dir_opt{
-    if let Some(info_dir) = &config.write_info{
-      let info_path = format!("{}/{}",save_dir,info_dir);
-      
-      if let Some(tensor_save_name) = &config.write_tensors{
-        if std::fs::create_dir_all(info_path.clone()).is_err(){
-          return Err(CluEError::CannotCreateDir(info_path));
-        }
-        let tensor_path = format!("{}/{}.txt",info_path,tensor_save_name);
 
-        tensors.save(&tensor_path,&structure)?;
-      }
+
+  // Determine if/where to save results.
+  let save_dir_opt = get_system_save_dir_opt(path_opt,&structure,config)?;
+
+  optionally_save_tensors(&save_dir_opt,&tensors,&structure,config)?;
+
+
+  let spin_ops = {
+
+    let spin_multiplicity_set =
+        math::unique(tensors.spin_multiplicities.clone());
+
+    match config.unit_of_clustering{
+    Some(UnitOfClustering::Spin) 
+        => ClusterSpinOperators::new(&spin_multiplicity_set,max_cluster_size)?,
+
+    Some(UnitOfClustering::Set) => {
+      let max_spins_per_cluster_unit = match config.partitioning_method{
+        Some(PartitioningMethod::Particles) => 1,
+        Some(PartitioningMethod::ExchangeGroupsAndParticles) => 3,
+        None => return Err(CluEError::NoPartitioningMethod),
+      };
+
+
+      let potential_max_order = max_cluster_size*max_spins_per_cluster_unit;
+      
+      let max_spin_order = match config.max_spin_order{
+        Some(s) => std::cmp::min(s,potential_max_order),
+        None => potential_max_order,
+      };
+
+      ClusterSpinOperators::new(&spin_multiplicity_set,
+        max_spin_order)?
+    },
+    None => return Err(CluEError::NoUnitOfClustering),
     }
-  }
+  };
 
 
   // Determin orientation averaging method.
@@ -167,13 +152,14 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
     None => IntegrationGrid::z_3d(),
   };
 
-  // Loop over orientation.
+
+  // Loop over orientations.
   for iori in 0..integration_grid.len(){
     
     let rot_dir = UnitSpherePoint::from(integration_grid.xyz(iori)?);
     
-    let mut ori_sigs = calculate_signal_at_orientation(
-        rot_dir,tensors.clone(), &structure,config, &save_dir_opt )?;
+    let mut ori_sigs = calculate_signal_at_orientation(rot_dir,
+        &spin_ops,tensors.clone(), &structure,config, &save_dir_opt )?;
 
     let weight = Complex::<f64>{ re: integration_grid.weight(iori), im: 0.0};
 
@@ -185,6 +171,8 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
 
   }
 
+
+  // Optionally save signals.
   if let Some(save_dir) =  &save_dir_opt{
     let save_path = format!("{}/signal.csv", save_dir);
     let headers = (1..=max_cluster_size)
@@ -192,44 +180,20 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
       .collect::<Vec::<String>>();
     write_vec_signals(&order_n_signals, headers, &save_path)?;
   }
+
   Ok(order_n_signals)
 }
 //------------------------------------------------------------------------------
 // This function calculates the signal for the input structure at the input
 // orientation.
 fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
+    spin_ops: &ClusterSpinOperators,
     mut tensors: HamiltonianTensors, structure: &Structure,
     config: &Config, path_opt: &Option<String>)
   -> Result<Vec::<Signal>,CluEError>
 {
   
-  let theta_degrees = rot_dir.theta()*180.0/PI;
-  let phi_degrees = rot_dir.phi()*180.0/PI;
-  println!(
-      "\nMagnetic field orientation: θ = {} degrees; φ = {} degrees.", 
-      theta_degrees, phi_degrees);
-  // Determine if/where to save results.
-  let save_dir_opt = match path_opt{
-    Some(path) => {
-
-      if let Some(ori_path) = &config.write_orientation_signals{ 
-      
-        let save_dir = format!("{}/{}/theta_{}deg_phi_{}deg",path, ori_path,
-            theta_degrees, phi_degrees);
-      
-        match std::fs::create_dir_all(save_dir.clone()){
-          Ok(_) => (),
-          Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
-        }
-
-        Some(save_dir)
-      }else{
-        None
-      }
-    },
-    None => None,
-  };
-  
+  let save_dir_opt = get_orientation_save_dir_opt(&rot_dir,config,path_opt)?;
 
   // Rotate the coupling tensor to the specified orientation.
   tensors.rotate_pasive(&rot_dir);
@@ -240,22 +204,44 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
     return Err(CluEError::NoMaxClusterSize);
   };
 
-  // Determine adjacencies.
-  let adjacency_list = build_adjacency_list(&tensors, structure, config)?;
 
   // Find clusters.
   let mut cluster_set = if let Some(clusters_file) = &config.clusters_file{
     read_cluster_file(clusters_file, structure)?
   }else{
-    find_clusters(&adjacency_list, max_cluster_size)?
+
+    // Pull out unit_of_clustering early, before more expensive calculations.
+    let Some(unit_of_clustering) = &config.unit_of_clustering else{
+      return Err(CluEError::NoUnitOfClustering);
+    };
+
+    // Determine spin adjacencies.
+    let spin_adjacency_list 
+        = build_adjacency_list(&tensors, structure, config)?;
+
+    //find_clusters(&spin_adjacency_list, max_cluster_size)?
+    // Partition the system into blocks.
+    let partition_table = get_partition_table(&spin_adjacency_list,
+        &tensors, structure, config)?;
+
+    // Determine block adjacencies for the partitioned system.
+    let block_adjacency_list 
+        = partition_system(&spin_adjacency_list,&partition_table)?;
+
+    // Find clusters of blocks.
+    let block_cluster_set 
+        = find_clusters(&block_adjacency_list, max_cluster_size)?;
+
+    // Expand block clusters out to spin clusters.
+    let mut clu_set = expand_block_clusters(block_cluster_set,&partition_table,
+        unit_of_clustering)?;
+
+    if let Some(max_spin_order) = config.max_spin_order{
+      clu_set.prune_large_clusters(max_spin_order)?;
+    } 
+
+    clu_set
   };
-  // Remove partial methyls.
-  let Some(do_remove_partial_methyls) = &config.remove_partial_methyls else{
-    return Err(CluEError::NoRemovePartialMethyls);
-  };
-  if *do_remove_partial_methyls{
-    cluster_set.remove_partial_methyls(structure)?;
-  }
 
   for (size_idx,clusters_of_size) in cluster_set.clusters.iter().enumerate(){
     println!("Found {} clusters of size {}.",clusters_of_size.len(),size_idx+1);
@@ -275,11 +261,7 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
       calculate_analytic_restricted_2cluster_signals(&mut cluster_set, &tensors,
           config,&save_dir_opt,structure)?,
     Some(_cce) => {
-      let spin_multiplicity_set =
-        math::unique(tensors.spin_multiplicities.clone());
-      let spin_ops = ClusterSpinOperators::new(&spin_multiplicity_set,
-          max_cluster_size)?;
-      do_cluster_correlation_expansion(&mut cluster_set, &spin_ops, &tensors, 
+      do_cluster_correlation_expansion(&mut cluster_set, spin_ops, &tensors, 
           config,&save_dir_opt,structure)?
     },
     None => return Err(CluEError::NoClusterMethod)
@@ -424,3 +406,125 @@ fn calculate_methyl_partition_cce(
   //let signal = do_cluster_correlation_expansion_product(&cluster_set,config)?;
   Ok(())
 } 
+//------------------------------------------------------------------------------
+fn get_system_save_dir_opt(
+    path_opt: &Option<String>,
+    structure: &Structure,
+    config: &Config,
+    ) -> Result<Option<String>,CluEError>
+{
+  let save_dir_opt = match path_opt{
+    Some(path) => {
+      
+      
+      let save_dir = match &config.system_name{
+        Some(system_name) => {
+          format!("{}/{}",path,system_name)
+        },
+        None => {
+          let structure_hash = math::str_hash(&structure);
+          format!("{}/system-{}",path,structure_hash)
+        }
+      };
+
+      match std::fs::create_dir_all(save_dir.clone()){
+        Ok(_) => (),
+        Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
+      }
+  
+      if let Some(info_dir) = &config.write_info{
+
+        let info_path = format!("{}/{}",save_dir,info_dir);
+
+        if std::fs::create_dir_all(info_path.clone()).is_err(){
+          return Err(CluEError::CannotCreateDir(info_path));
+        }
+
+        if let Some(filename) = &config.write_bath{
+          structure.bath_to_csv(&format!("{}/{}.csv", info_path, filename),
+              config)?;
+        }
+
+        if let Some(filename) = &config.write_structure_pdb{
+          structure.write_pdb(&format!("{}/{}.pdb", info_path, filename))?;
+        }
+
+        if let Some(exchange_group_manager) = &structure.exchange_groups{
+          if let Some(filename) = &config.write_exchange_groups{
+            let csv_file = format!("{}/{}.csv",info_path,filename);
+            exchange_group_manager.to_csv(&csv_file,structure)?;
+          }
+        }
+      }
+      Some(save_dir)
+    },
+    None => None,
+  };
+
+  Ok(save_dir_opt)
+}
+//------------------------------------------------------------------------------
+fn optionally_save_tensors(
+      save_dir_opt: &Option<String>,
+      tensors: &HamiltonianTensors,
+      structure: &Structure,
+      config: &Config
+      ) -> Result<(),CluEError>
+{
+  if let Some(save_dir) = &save_dir_opt{
+    if let Some(info_dir) = &config.write_info{
+      let info_path = format!("{}/{}",save_dir,info_dir);
+      
+      if let Some(tensor_save_name) = &config.write_tensors{
+        if std::fs::create_dir_all(info_path.clone()).is_err(){
+          return Err(CluEError::CannotCreateDir(info_path));
+        }
+        let tensor_path = format!("{}/{}.txt",info_path,tensor_save_name);
+
+        tensors.save(&tensor_path,structure)?;
+      }
+    }
+  }
+  Ok(())
+}
+//------------------------------------------------------------------------------
+fn get_orientation_save_dir_opt(
+      rot_dir: &UnitSpherePoint,
+      config: &Config,
+      path_opt: &Option<String>,
+      ) -> Result<Option<String>,CluEError>
+{
+  let theta_degrees = rot_dir.theta()*180.0/PI;
+  let phi_degrees = rot_dir.phi()*180.0/PI;
+  println!(
+      "\nMagnetic field orientation: θ = {} degrees; φ = {} degrees.", 
+      theta_degrees, phi_degrees);
+  // Determine if/where to save results.
+  let save_dir_opt = match path_opt{
+    Some(path) => {
+
+      if let Some(ori_path) = &config.write_orientation_signals{ 
+      
+        let save_dir = format!("{}/{}/theta_{}deg_phi_{}deg",path, ori_path,
+            theta_degrees, phi_degrees);
+      
+        match std::fs::create_dir_all(save_dir.clone()){
+          Ok(_) => (),
+          Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
+        }
+
+        Some(save_dir)
+      }else{
+        None
+      }
+    },
+    None => None,
+  };
+
+  Ok(save_dir_opt)
+}
+//------------------------------------------------------------------------------
+  
+
+
+

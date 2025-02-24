@@ -1,6 +1,7 @@
 use std::fmt;
 
 /// `CluEError` contains the possible errors.
+// After adding a new error, please update fmt() below as well.
 #[derive(PartialEq,Debug,Clone)]
 pub enum CluEError{
   AllSignalsNotSameLength(String),
@@ -17,6 +18,7 @@ pub enum CluEError{
   CannotCreateDir(String),
   CannotDiagonalizeHamiltonian(String),
   CannotDivTokens,
+  CannotExpandBlockClusters,
   CannotFindCellID(usize),
   CannotFindSpinOp(String),
   CannotFindParticleForRefIndex(usize),
@@ -29,9 +31,12 @@ pub enum CluEError{
   CannotParseElement(String),
   CannotParseLine(String),
   CannotParseIsotope(String),
+  CannotParsePartitioningMethod(usize,String),
   CannotParseRHS(usize),
   CannotParseSecondaryParticleFilter(String),
+  CannotParseUnitOfClustering(usize,String),
   CannotPowTokens,
+  CannotPruneClustersMisMatchedSizes,
   CannotReadGrid(String),
   CannotSampleBinomialDistribution(usize,f64),
   CannotSetExchangeCoupling(usize),
@@ -69,6 +74,7 @@ pub enum CluEError{
   FilterNeedsALabel,
   FilterNoMinDistance(String),
   FiltersOverlap(String,String),
+  InconsistentExhangeGroupActiveStatus(usize),
   IncorrectFormattingIsotopeAbundances(usize),
   IncorrectNumberOfAxes(usize,usize),
   InorrectNumberOfCellOffsets(usize,usize),
@@ -100,6 +106,8 @@ pub enum CluEError{
   NANTensorExchangeCoupling(usize,String,usize,String),
   NANTensorHyperfine(usize,String),
   NANTensorQuadrupole(usize,String),
+  NeighborListAndPartitionTableAreNotCompatible,
+  NoApplyPBC,
   NoArgument(usize),
   NoBathGMatrixSpecifier(String,String),
   NoCentralSpin,
@@ -127,11 +135,11 @@ pub enum CluEError{
   NoNeighborCutoffDistance,
   NoNumberSystemInstances,
   NoOrientationGrid,
+  NoPartitioningMethod,
   NoPulseSequence,
   NoQuadrupoleSpecifier(String,String),
   NoRadius,
   NoRelationalOperators(usize),
-  NoRemovePartialMethyls,
   NoRHS(usize),
   NoSpinOpForClusterSize(usize,usize),
   NoSpinOpWithMultiplicity(usize),
@@ -146,9 +154,11 @@ pub enum CluEError{
   NoTimeAxis,
   NoTimeIncrements,
   NoTimepoints,
+  NoUnitOfClustering,
   OptionAlreadySet(usize,String),
   ParticlesClash(usize,String,usize,String,f64,f64),
   ParticleIsNotActive(usize),
+  PartitionIsIncomplette,
   SaveNameEmpty,
   SaveNameNotSet,
   SecondaryFilterRequiresAnIndex(String),
@@ -217,6 +227,9 @@ impl fmt::Display for CluEError{
       CluEError::CannotDivTokens => write!(f,
           "cannot divide tokens meaningfully"),
 
+      CluEError::CannotExpandBlockClusters => write!(f,
+          "cannot expand block clusters"),
+
       CluEError::CannotFindCellID(idx) => write!(f,
           "cannot determine cell id for particle {}",idx),
 
@@ -253,11 +266,19 @@ impl fmt::Display for CluEError{
       CluEError::CannotParseIsotope(isotope) => write!(f,
           "cannot parse \"{}\" as an isotope", isotope),
 
+      CluEError::CannotParsePartitioningMethod(line_num, part_method) 
+          => write!(f, "line {}: cannot parse partitioning method \"{}\"", 
+          line_num, part_method),
+
       CluEError::CannotParseRHS(line_number) => write!(f,
           "line {}, cannot parse line right hand side", line_number),
 
       CluEError::CannotParseSecondaryParticleFilter(group) => write!(f,
           "cannot parse secondary particle group \"{}\"", group),
+
+      CluEError::CannotParseUnitOfClustering(line_num, unit) 
+          => write!(f, "line {}: cannot parse unit of clustering \"{}\"", 
+          line_num, unit),
 
       CluEError::CannotSampleBinomialDistribution(n,p) => write!(f,
           "cannot sample from the binomial distribution B(n={},p={})",
@@ -274,6 +295,9 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotPowTokens => write!(f,
           "cannot do token^token meaningfully"),
+
+      CluEError::CannotPruneClustersMisMatchedSizes => write!(f,
+          "cannot prune clusters because clusters_to_keep has the wrong size"),
 
       CluEError::CannotReadGrid(filename) => write!(f,
           "cannot read grid from \"{}\": \
@@ -395,6 +419,10 @@ fo nth active"),
           "groups \"{}\" and \"{}\" overlap: \
 particles must not reside in more than one group",label0,label1),
 
+      CluEError::InconsistentExhangeGroupActiveStatus(ex_grp_id) => write!(f,
+          "in exchange group {}, spins should all be either active or inactive",
+          ex_grp_id),
+
       CluEError::IncorrectFormattingIsotopeAbundances(line_number) 
         => write!(f,"line {}, isotope distributions are expected as
 \"isotope_distribution = {{X0: p0, X1: p1 }}\", where X0 and X1 are isotopes 
@@ -499,6 +527,13 @@ and p0,p1 > 0 are abundances",line_number),
           "electric quadrupole tensor for particle {} {} contains NANs",
           idx,isotope),
 
+      CluEError::NeighborListAndPartitionTableAreNotCompatible  => write!(f,
+          "neighbor list and partition table are incompatible"),
+
+      CluEError::NoApplyPBC => write!(f,
+          "please set \"apply_pbc: bool\" to select if \
+periodic boundary conditions should be applied"),
+
       CluEError::NoArgument(line_number) => write!(f,
           "line {}, expected a function argument",line_number),
 
@@ -580,6 +615,9 @@ and p0,p1 > 0 are abundances",line_number),
       CluEError::NoOrientationGrid => write!(f,
           "orientation_grid is not defined"),
       
+      CluEError::NoPartitioningMethod => write!(f,
+          "no partitioning method is defined"),
+      
       CluEError::NoPulseSequence => write!(f,
           "no pulse sequence is defined"),
       
@@ -593,9 +631,6 @@ and p0,p1 > 0 are abundances",line_number),
           "line {}, no relational operators (=, <, >, in, ...), are present", 
           line_number),
 
-      CluEError::NoRemovePartialMethyls => write!(f,
-          "remove_partial_methyls: bool is not set"),
-      
       CluEError::NotA3DVector(dim) => write!(f,
           "vector is {}-dimensional, not 3-dimensional", 
           dim),
@@ -630,6 +665,9 @@ and p0,p1 > 0 are abundances",line_number),
       CluEError::NoTimepoints => write!(f,
           "please specify how many timepoints there are for each increment"),
       
+      CluEError::NoUnitOfClustering => write!(f,
+          "please specify a unit of clustering"),
+      
       CluEError::NoRHS(line_number) => write!(f,
           "line {}, cannot read right hand side",line_number),
 
@@ -650,6 +688,9 @@ clash distance of {} Å",idx0,elmt0,idx1,elmt1,r,r_clash),
 
       CluEError::ParticleIsNotActive(ref_index) => write!(f,
           "particle \"{}\" is not active", ref_index),
+
+      CluEError::PartitionIsIncomplette => write!(f,
+          "partition table should contain n cell indexed by [0,n-1]"),
 
       CluEError::OptionAlreadySet(line_number,err_token) => write!(f,
           "line {}, \"{}\" has already been set",line_number, err_token),

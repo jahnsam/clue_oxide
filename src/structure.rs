@@ -110,7 +110,7 @@ impl DetectedSpin{
 pub struct Structure{
   pub detected_particle: Option<DetectedSpin>,
   pub bath_particles: Vec::<Particle>,
-  bath_spins_indices: Vec::<usize>,
+  //bath_spins_indices: Vec::<usize>,
   pub cell_indices: Vec::<Vec::<Option<usize>>>,
   pub cell_offsets: Vec::<Vector3D>,
   pub connections: AdjacencyList,
@@ -123,6 +123,8 @@ pub struct Structure{
   pub pdb_origin: Vector3D,
   primary_cell_indices: Vec::<usize>,
   nth_active_to_reference_index: Vec::<usize>,
+  pub active_indices: Vec::<usize>,
+  pub bath_indices_to_active_indices: Vec::<Option<usize>>,
 }
 
 impl Structure{
@@ -137,7 +139,7 @@ impl Structure{
     Structure{
       detected_particle: None,
       bath_particles,
-      bath_spins_indices: Vec::<usize>::new(),
+      //bath_spins_indices: Vec::<usize>::new(),
       cell_indices: Vec::<Vec::<Option<usize>>>::new(),
       cell_offsets,
       connections,
@@ -150,6 +152,8 @@ impl Structure{
       pdb_origin: Vector3D::zeros(),
       primary_cell_indices: Vec::<usize>::new(),
       nth_active_to_reference_index: Vec::<usize>::new(),
+      active_indices: Vec::<usize>::new(),
+      bath_indices_to_active_indices: Vec::<Option<usize>>::new(),
     }
 
   }
@@ -276,12 +280,20 @@ impl Structure{
   /// the set of active particles to the set of all system particles.
   pub fn map_nth_active_to_reference_indices(&mut self){
 
-    let mut act_to_ref = Vec::<usize>::with_capacity(self.number_active() + 1);
+    let number_active = self.number_active();
+    self.active_indices = Vec::<usize>::with_capacity(number_active);
+    self.bath_indices_to_active_indices = (0..self.bath_particles.len())
+        .map(|_| None).collect::<Vec::<Option<usize>>>();
+
+    let mut act_to_ref = Vec::<usize>::with_capacity(number_active + 1);
 
     act_to_ref.push(0);
 
     for (bath_index,particle) in self.bath_particles.iter().enumerate(){
       if particle.active{ 
+        self.bath_indices_to_active_indices[bath_index] 
+            = Some(act_to_ref.len());
+        self.active_indices.push(bath_index);
         act_to_ref.push(bath_index + 1);
       }
     }
@@ -338,12 +350,12 @@ impl Structure{
     filter.serials = serials;
     filter.indices = math::unique(self.primary_cell_indices.clone());
 
-    self.centroid_over_groups(&vec![&filter])
+    self.centroid_over_groups(&[&filter])
   }
   //----------------------------------------------------------------------------
   /// This function finds the centroid over all particles that are in the
   /// group defined by 
-  pub fn centroid_over_groups(&self, filters: &Vec::<&ParticleFilter>)
+  pub fn centroid_over_groups(&self, filters: &[&ParticleFilter])
     -> Result<Vector3D,CluEError>
   {
     let mut r_ave = Vector3D::zeros();
@@ -374,11 +386,7 @@ impl Structure{
       return 0.0;
     };
 
-    if let Some(ex_coup) = isotope_properties.exchange_coupling {
-      ex_coup
-    }else{
-      0.0
-    }
+    isotope_properties.exchange_coupling.unwrap_or(0.0)
   }
   //----------------------------------------------------------------------------
   /// This function returns the electric quadrupole coupling for particle 
@@ -516,7 +524,7 @@ impl Structure{
       };
 
       let line = format!("{},{},{},{},{},{},{},{}\n",
-          idx, particle.isotope.to_string(),
+          idx, particle.isotope,
           r.x()/ANGSTROM, r.y()/ANGSTROM, r.z()/ANGSTROM,
           particle.active,cell_id,group_label);
     
@@ -550,6 +558,7 @@ mod tests{
         cluster_method = cce;
         max_cluster_size = 2;
         magnetic_field = 1.2;
+        apply_pbc = true;
 
         #[filter(label = tempo)]
           elements in [H];

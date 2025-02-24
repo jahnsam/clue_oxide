@@ -1,5 +1,9 @@
 use crate::clue_errors::*;
 
+use crate::cluster::{
+  partition::PartitioningMethod,
+  unit_of_clustering::UnitOfClustering,
+};
 use crate::config::command_line_input::CommandLineInput;
 use crate::config::lexer::*;
 use crate::config::token::*;
@@ -33,6 +37,7 @@ pub mod parse_properties;
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
+  pub apply_pbc: Option<bool>,
   pub clash_distance: Option<f64>, 
   pub clash_distance_pbc: Option<f64>,
   pub cluster_batch_size: Option<usize>, 
@@ -48,7 +53,10 @@ pub struct Config{
   pub input_structure_file: Option<String>,
   pub load_geometry: Option<LoadGeometry>,
   pub magnetic_field: Option<Vector3D>,
+  pub max_cell_size: Option<usize>,
   pub max_cluster_size: Option<usize>,
+  pub max_spin_order: Option<usize>,
+  pub min_cell_size: Option<usize>,
   pub neighbor_cutoff_coupling: Option<f64>,
   pub neighbor_cutoff_delta_hyperfine: Option<f64>,
   pub neighbor_cutoff_dipole_perpendicular: Option<f64>,
@@ -58,10 +66,10 @@ pub struct Config{
   pub number_system_instances: Option<usize>, 
   pub number_timepoints: Vec::<usize>,
   pub orientation_grid: Option<OrientationAveraging>,
+  pub partitioning_method: Option<PartitioningMethod>,
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
-  pub remove_partial_methyls: Option<bool>,
   pub root_dir: Option<String>, 
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
@@ -69,6 +77,7 @@ pub struct Config{
   pub system_name: Option<String>,
   time_axis: Vec::<f64>,
   pub time_increments: Vec::<f64>,
+  pub unit_of_clustering: Option<UnitOfClustering>,
   pub write_auxiliary_signals: Option<String>, 
   pub write_bath: Option<String>,
   pub write_clusters: Option<String>,
@@ -122,6 +131,9 @@ impl Config{
   /// Any field that is already `Some` will be left alone.
   pub fn set_defaults(&mut self) -> Result<(),CluEError> {
 
+    if self.apply_pbc.is_none(){
+      self.apply_pbc = Some(true);
+    }
     if self.clash_distance.is_none(){
       self.clash_distance = Some(1e-12);
     }
@@ -145,19 +157,6 @@ impl Config{
 
     if self.number_system_instances.is_none(){
       self.number_system_instances = Some(1);
-    }
-    if self.remove_partial_methyls.is_none(){
-      self.remove_partial_methyls = Some(false);
-      'part_met : for particle_config in self.particles.iter(){
-        if let Some(properties) = &particle_config.properties{
-          for (_key, isotope_props) in properties.isotope_properties.iter(){
-            if isotope_props.exchange_coupling.is_some(){
-              self.remove_partial_methyls = Some(true);
-              break 'part_met;
-            }
-          }
-        }
-      }
     }
 
     if self.root_dir.is_none(){
@@ -464,7 +463,6 @@ impl Config{
       }
 
       match mode.mode{
-        ConfigMode::Clusters => (),
         ConfigMode::Config =>  self.parse_config_line(expression)?,
         ConfigMode::Filter => {
           let Some(_label) = &mode.label else{
@@ -481,7 +479,6 @@ impl Config{
           }
           self.parse_properties_line(expression,&mode.label,mode.isotope)?;
         },
-        ConfigMode::Spins => (),
         ConfigMode::StructureProperties => {
           let Some(label) = &mode.label else{
             return Err(CluEError::StructurePropertiesNeedsALabel);
@@ -493,8 +490,6 @@ impl Config{
           }
           self.parse_properties_line(expression,&mode.label,mode.isotope)?;
         },
-        ConfigMode::Structures => (),
-        ConfigMode::Tensors => (),
       }
 
     }
@@ -517,6 +512,8 @@ impl Config{
         expression.line_number, expression.lhs[0].to_string()) };
 
     match expression.lhs[0]{
+      Token::ApplyPBC 
+        => set_to_some_bool(&mut self.apply_pbc,expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::ClashDistancePBC => {
         set_to_some_f64(&mut self.clash_distance_pbc, expression)?;
@@ -609,7 +606,7 @@ impl Config{
       Token::DetectedSpinGMatrix 
         | Token::DetectedSpinGX| Token::DetectedSpinGY | Token::DetectedSpinGZ
         => set_symmetric_tensor_3d(&mut self.detected_spin_g_matrix,
-            &expression.lhs[0], expression, &"detected_spin")?,
+            &expression.lhs[0], expression, "detected_spin")?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::DetectedSpinPosition =>{
         if let Some(_value) = &self.detected_spin_position{
@@ -720,9 +717,6 @@ impl Config{
 
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::MaxClusterSize 
-        => set_to_some_usize(&mut self.max_cluster_size, expression)?,
-      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::MagneticField => {
   
         if let Some(_value) = &self.magnetic_field{
@@ -739,6 +733,18 @@ impl Config{
         }
 
       },
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::MaxCellSize 
+        => set_to_some_usize(&mut self.max_cell_size, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::MaxClusterSize 
+        => set_to_some_usize(&mut self.max_cluster_size, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::MaxSpinOrder 
+        => set_to_some_usize(&mut self.max_spin_order, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::MinCellSize 
+        => set_to_some_usize(&mut self.min_cell_size, expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::NeighborCutoffCoupling 
         => set_to_some_f64(&mut self.neighbor_cutoff_coupling,
@@ -860,6 +866,20 @@ impl Config{
         }
       },
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::PartitioningMethod => {
+        if let Some(_value) = &self.partitioning_method{
+          return Err(already_set());
+        }
+        let Some(rhs) = &expression.rhs else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }; 
+        if rhs.is_empty(){
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+        self.partitioning_method 
+            = Some(PartitioningMethod::from(rhs,expression.line_number)?);
+      }
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::PulseSequence => {
         if let Some(_value) = &self.pulse_sequence{
           return Err(already_set());
@@ -893,9 +913,6 @@ impl Config{
                 expression.line_number)),
         }
       },
-      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      Token::RemovePartialMethyls 
-        => set_to_some_bool(&mut self.remove_partial_methyls,expression)?,
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::Radius => {
         set_to_some_f64(&mut self.radius,expression)?;
@@ -937,6 +954,20 @@ impl Config{
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::TimeIncrements 
         => set_to_vec_f64(&mut self.time_increments, expression)?,
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Token::UnitOfClustering => {
+        if let Some(_value) = &self.unit_of_clustering{
+          return Err(already_set());
+        }
+        let Some(rhs) = &expression.rhs else{
+          return Err(CluEError::NoRHS(expression.line_number));
+        }; 
+        if rhs.is_empty(){
+          return Err(CluEError::NoRHS(expression.line_number));
+        }
+        self.unit_of_clustering 
+            = Some(UnitOfClustering::from(rhs,expression.line_number)?);
+      }
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       Token::WriteAuxiliarySignals
         //=> set_to_some_string(&mut self.write_auxiliary_signals, expression)?,
@@ -1130,6 +1161,7 @@ mod tests{
   fn test_parse_config_line(){
     let expressions = get_tokens_from_line("\
         #[config]\n
+        apply_pbc = false;
         clash_distance_pbc = 0.1;
         cluster_batch_size = 20000;
         cluster_density_matrix = thermal(20);
@@ -1141,14 +1173,18 @@ mod tests{
         input_clusters_file = \"clusters_file.txt\";
         input_structure_file = \"../../assets/TEMPO_wat_gly_70A.pdb\";
         load_geometry = cube;
+        max_cell_size = 2;
         max_cluster_size = 4;
+        max_spin_order = 8;
+        min_cell_size = 1;
         number_timepoints = [40,60];
-        neighbor_cutoff_delta_hyperfine = 1e4;
-        neighbor_cutoff_coupling = 1e3;
+        neighbor_cutoff_delta_hyperfine = 1e04;
+        neighbor_cutoff_coupling = 1e+3;
         neighbor_cutoff_dipole_perpendicular = 100;
         neighbor_cutoff_3_spin_hahn_mod_depth = 1e-10;
         neighbor_cutoff_3_spin_hahn_taylor_4 = 1e-9;
         orientation_grid = lebedev(170);
+        partitioning_method = particles;
         pulse_sequence = cp-1;
         radius = 80;
         save_dir = \"save_directory\";
@@ -1169,6 +1205,7 @@ mod tests{
     config.parse_token_stream(expressions).unwrap();
     config.set_defaults().unwrap();
 
+    assert_eq!(config.apply_pbc, Some(false));
     let clash_distance_pbc = config.clash_distance_pbc.unwrap();
     assert!( (clash_distance_pbc - 0.1e-10).abs()/(0.1e-10) < 1e-12 );
     assert_eq!(config.cluster_batch_size,Some(20000));
@@ -1202,13 +1239,17 @@ mod tests{
          Some("clusters_file.txt".to_string()));
     
     assert_eq!(config.load_geometry, Some(LoadGeometry::Cube));
+    assert_eq!(config.max_cell_size, Some(2));
     assert_eq!(config.max_cluster_size, Some(4));
+    assert_eq!(config.max_spin_order, Some(8));
+    assert_eq!(config.min_cell_size, Some(1));
     assert_eq!(config.neighbor_cutoff_delta_hyperfine, Some(1e4));
     assert_eq!(config.neighbor_cutoff_coupling, Some(1e3));
     assert_eq!(config.neighbor_cutoff_dipole_perpendicular, Some(1e2));
     assert_eq!(config.neighbor_cutoff_3_spin_hahn_mod_depth, Some(1e-10));
     assert_eq!(config.neighbor_cutoff_3_spin_hahn_taylor_4, Some(1e-9));
     assert_eq!(config.number_timepoints, vec![40,60]);
+    assert_eq!(config.partitioning_method, Some(PartitioningMethod::Particles));
     assert_eq!(config.pulse_sequence, Some(PulseSequence::CarrPurcell(1)));
     assert_eq!(config.radius, Some(80.0e-10));
     assert_eq!(config.save_name, Some(String::from("save_directory")));

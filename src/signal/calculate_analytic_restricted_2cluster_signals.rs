@@ -1,5 +1,5 @@
 use crate::Config;
-use crate::cluster::find_clusters::ClusterSet;
+use crate::cluster::cluster_set::ClusterSet;
 use crate::signal::{Signal, load_batch_signals, write_batch_signals};
 use crate::structure::Structure;
 use crate::HamiltonianTensors;
@@ -169,8 +169,7 @@ pub fn hahn_three_spin_modulation_frequency(delta_hf: f64,b:f64) -> f64{
 pub fn hahn_three_spin_fourth_order_coefficient(delta_hf: f64,b:f64) -> f64{
   let k = hahn_three_spin_modulation_depth(delta_hf,b);
   let omega = 2.0*PI*hahn_three_spin_modulation_frequency(delta_hf,b);
-  let kom4 = k*(omega.powi(4));
-  kom4
+  k*(omega.powi(4))
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

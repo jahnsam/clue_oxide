@@ -1,6 +1,6 @@
 use crate::clue_errors::CluEError;
 use crate::cluster::Cluster;
-use crate::cluster::find_clusters::ClusterSet;
+use crate::cluster::cluster_set::ClusterSet;
 use crate::math;
 use crate::structure::{Structure,exchange_groups::ExchangeGroupManager};
 
@@ -115,7 +115,7 @@ fn get_cluster_partition_key(cluster: &Cluster,
   let mut key = exchange_group_manager.exchange_groups[key_ids[0]].to_string();
   for &id in key_ids.iter().skip(1){
     key = format!("{}_{}",key,
-        exchange_group_manager.exchange_groups[id].to_string());
+        exchange_group_manager.exchange_groups[id]);
   }
 
   Ok(key)
@@ -126,6 +126,7 @@ fn get_cluster_partition_key(cluster: &Cluster,
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // TODO: generalize to other exchange groups
+/*
 impl ClusterSet{
   /// This function removes all clusters from a cluster set that contain partial
   /// methyl group, 
@@ -166,11 +167,13 @@ impl ClusterSet{
     Ok(())
   }
 }
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // TODO: generalize to other exchange groups
+/*    
 // This function determines if the cluster contains a partial methyl.
 impl Cluster{
 pub fn contains_partial_methyl(&self,
@@ -201,6 +204,7 @@ pub fn contains_partial_methyl(&self,
   Ok(false)
 }
 }
+*/
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -343,6 +347,7 @@ mod tests{
 
   }
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_remove_partial_methyls(){
 
@@ -380,6 +385,7 @@ mod tests{
     cluster_set.remove_partial_methyls(&structure).unwrap();
     assert_eq!(cluster_set,ref_cluster_set);
   }
+  */
   //----------------------------------------------------------------------------
   fn get_test_structure() -> Structure{
     let bath_particles = (0..10).map(|_| 
@@ -403,6 +409,7 @@ mod tests{
     structure
   }
   //----------------------------------------------------------------------------
+  /*
   #[test]
   fn test_contains_partial_methyl(){
 
@@ -433,6 +440,7 @@ mod tests{
     assert!(!cluster.contains_partial_methyl(&exchange_group_manager,
           &structure).unwrap());
   }
+  */
   //----------------------------------------------------------------------------
   fn generate_test_exchange_group_manager() -> ExchangeGroupManager{
     

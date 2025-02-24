@@ -441,6 +441,16 @@ mod tests{
         Token::Float(1.0),Token::Comma, Token::Float(-1.0),
         Token::SquareBracketClose]
         );
+
+    let tokens = vec![
+      Token::UserInputValue("3.23e-02".to_string()),
+      Token::UserInputValue("1e+11".to_string()),
+    ];
+
+    let result = read_strings_as_floats(tokens,0).unwrap();
+    assert_eq!(result, vec![
+        Token::Float(3.23e-2), 
+        Token::Float(1e11), ])
   }
   //----------------------------------------------------------------------------
   #[test]

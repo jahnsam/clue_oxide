@@ -1,5 +1,5 @@
 use crate::CluEError;
-use crate::cluster::find_clusters::ClusterSet;
+use crate::cluster::cluster_set::ClusterSet;
 use crate::config::Config;
 use crate::math;
 use crate::signal::load_batch_signals;

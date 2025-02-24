@@ -237,15 +237,17 @@ pub enum SecondaryParticleFilter{
   SameMolecule, // atoms on the same molecule as particle 
   //SameResidueSequenceNumber, // atoms with the same ResSeq as particle.
 }
-impl ToString for SecondaryParticleFilter{
-  fn to_string(&self) -> String{
-    match self{
+
+impl std::fmt::Display for SecondaryParticleFilter {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let string = match self{
       SecondaryParticleFilter::Bonded => String::from("bonded"),
       SecondaryParticleFilter::Filter => String::from("filter"),
       SecondaryParticleFilter::Particle => String::from("particle"),
       SecondaryParticleFilter::SameMolecule
         => String::from("same_molecule"),
-    }
+    };
+    write!(f,"{}",string)
   } 
 }
 impl SecondaryParticleFilter{
@@ -347,7 +349,7 @@ impl VectorSpecifier{
           if indices_0.len() != 2 {
             return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
                 format!("...diff({}..., {}...",
-                  sec_fltr_0.to_string(), sec_fltr_1.to_string(), )));
+                  sec_fltr_0, sec_fltr_1, )));
           }
 
           indices_1 = vec![indices_0[1]];
@@ -357,20 +359,20 @@ impl VectorSpecifier{
 
         if indices_0.len() != 1 {
           return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
-                format!("...diff({}...",sec_fltr_0.to_string() )));
+                format!("...diff({}...",sec_fltr_0 )));
         }
         let idx0 = indices_0[0]; 
 
         if indices_1.len() != 1 {
           return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
-                format!("...diff(..., {}...",sec_fltr_1.to_string() )));
+                format!("...diff(..., {}...",sec_fltr_1 )));
         }
         let idx1 = indices_1[0]; 
 
         if idx0 == idx1{
           return Err(CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(
                 format!("...diff({}..., {}...",
-                  sec_fltr_0.to_string(), sec_fltr_1.to_string(), )));
+                  sec_fltr_0, sec_fltr_1, )));
         }
 
         let vector3d = &structure.bath_particles[idx1].coordinates 

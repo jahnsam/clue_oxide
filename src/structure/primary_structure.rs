@@ -159,9 +159,9 @@ impl Structure{
       = self.pair_particle_configs(&config.extracell_particles)?;
 
     // Find spins.
-    let n_spins = self.count_spins(config);
+    //let n_spins = self.count_spins(config);
 
-    self.bath_spins_indices = Vec::<usize>::with_capacity(n_spins);
+    //self.bath_spins_indices = Vec::<usize>::with_capacity(n_spins);
 
 
     for (idx, particle) in self.bath_particles.iter_mut().enumerate(){
@@ -184,6 +184,7 @@ impl Structure{
   //----------------------------------------------------------------------------
   // This method counts the to an elements of self_bath_particles that have
   // the potential to have a spin.
+  /*
   fn count_spins(&self,config: &Config) -> usize{
     let mut n_spins = 0;
     for (idx, particle) in self.bath_particles.iter().enumerate(){
@@ -202,6 +203,7 @@ impl Structure{
     }
     n_spins
   }
+  */
   //----------------------------------------------------------------------------
   
   //----------------------------------------------------------------------------

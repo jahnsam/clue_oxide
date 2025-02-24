@@ -302,15 +302,15 @@ fn build_composit_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
   // Add an extra token at the end to make the loop cleaner.
   tokens.push(Token::Whitespace);
 
-  let mut skip_next = false;
+  let mut skip_next = 0;
 
   for ii in 1..tokens.len(){
   
-    if skip_next{
-      skip_next = false;
+    if skip_next > 0{
+      skip_next -= 1;
       continue;
     }
-    skip_next = true;
+    skip_next += 1;
 
     // !=
     if tokens[ii-1] == Token::Bang && tokens[ii] == Token::Equals{
@@ -367,7 +367,27 @@ fn build_composit_tokens(mut tokens: Vec::<Token>) -> Vec::<Token>
       out.push(Token::LineComment);
       continue;}
 
-    skip_next = false;
+    // 1e+3
+    if tokens[ii] == Token::Plus && tokens.len() > ii+1{
+      if let (Token::UserInputValue(s0), Token::UserInputValue(s1)) 
+        = (&tokens[ii-1],&tokens[ii+1])
+      {
+        let mut do_contract = s1.parse::<f64>().is_ok();
+
+        let n = s0.len();
+        let e = s0.substring(n-1,n);
+        do_contract &= e == "e".to_string();
+
+        do_contract &= s0.substring(0,n-1).parse::<f64>().is_ok();
+
+        if do_contract{
+          out.push(Token::UserInputValue(format!("{}{}",s0,s1)));
+          skip_next += 1;
+          continue;
+        }
+      }
+    }
+    skip_next -= 1;
     out.push(tokens[ii-1].clone());
   }
 
@@ -428,7 +448,34 @@ pub fn to_string_vector(tokens: Vec::<Token>, line_number: usize)
 mod tests{
   use super::*;
 
- 
+  //---------------------------------------------------------------------------- 
+  #[test]
+  fn test_get_tokens_from_line(){
+    let expressions = get_tokens_from_line(r#"
+      neighbor_cutoff_delta_hyperfine = 1e04;
+      neighbor_cutoff_coupling = 1e+3;
+      "#).unwrap();
+
+    let expected = vec![
+      TokenExpression{
+        lhs: vec![Token::NeighborCutoffDeltaHyperfine], 
+        rhs: Some(vec![Token::UserInputValue("1e04".to_string())]),
+        relationship: Some(Token::Equals), 
+        line_number: 2},
+      TokenExpression{
+        lhs: vec![Token::NeighborCutoffCoupling], 
+        rhs: Some(vec![Token::UserInputValue("1e3".to_string())]),
+        relationship: Some(Token::Equals), 
+        line_number: 4},
+    ];
+
+    assert_eq!(expressions.len(),expected.len());
+    for (ii,expression) in expressions.iter().enumerate(){
+      assert_eq!(*expression,expected[ii]);
+    }
+
+  }
+  //---------------------------------------------------------------------------- 
   #[test]
   fn test_parse_tokens(){
   
