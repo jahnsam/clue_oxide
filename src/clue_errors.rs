@@ -93,7 +93,7 @@ pub enum CluEError{
   MissingFilter(String),
   MissingFilterArgument(usize,String),
   MissingFilterLabel(usize),
-  MissingHeader(String),
+  MissingHeader(usize,usize,String),
   MissingProperties(String),
   MissingPropertiesLabel(usize),
   ModeAttributeWrongBrackets,
@@ -482,8 +482,9 @@ and p0,p1 > 0 are abundances",line_number),
       CluEError::MissingFilterLabel(line_number) => write!(f,
           "line {}, missing label in group",line_number),
 
-      CluEError::MissingHeader(filename) => write!(f,
-          "in \"{}\", every entry must have a header",filename),
+      CluEError::MissingHeader(n_headers, n_cols,filename) => write!(f,
+          "in \"{}\", every entry must have a header, \
+but there are {} headers and {} columns of data.",filename,n_headers,n_cols),
 
       CluEError::MissingProperties(label) => write!(f,
           "no properties with label \"{}\"",label),

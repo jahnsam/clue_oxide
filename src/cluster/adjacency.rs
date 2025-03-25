@@ -71,8 +71,12 @@ impl AdjacencyList{
   }
 
   //----------------------------------------------------------------------------
-  // This method activates vertex `n`.
-  fn activate(&mut self, n: usize){
+  pub fn is_active(&self, n: usize) -> bool {
+    self.list[n].is_some()
+  }
+  //----------------------------------------------------------------------------
+  /// This method activates vertex `n`.
+  pub fn activate(&mut self, n: usize){
     if self.list[n].is_none(){
       self.list[n] = Some(Vec::new());
     }

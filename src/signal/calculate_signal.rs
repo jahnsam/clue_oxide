@@ -1,7 +1,18 @@
 
 use crate::build_adjacency_list;
 use crate::find_clusters;
-use crate::config::{Config,ClusterMethod,OrientationAveraging};
+use crate::config::{
+  Config,ClusterMethod,OrientationAveraging,
+    SAVE_FILE_BATH, 
+    SAVE_FILE_CLUSTERS, 
+    SAVE_DIR_INFO, 
+    SAVE_FILE_EXCHANGE_GROUPS,
+    SAVE_FILE_METHYL_PARTITIONS,
+    SAVE_DIR_ORIENTATION_SIGNALS,
+    SAVE_FILE_SANS_SPIN_SIGNALS,
+    SAVE_FILE_STRUCTURE_PDB,
+    SAVE_FILE_TENSORS,
+};
 use crate::CluEError;
 use crate::cluster::methyl_clusters::partition_cluster_set_by_exchange_groups;
 use crate::cluster::{
@@ -248,8 +259,8 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
   }
 
   if let Some(path) = &save_dir_opt{
-    if let Some(cluster_file) = &config.write_clusters{
-      let cluster_save_path = format!("{}/{}.txt",path,cluster_file);
+    if config.write_clusters == Some(true){
+      let cluster_save_path = format!("{}/{}.txt",path,SAVE_FILE_CLUSTERS);
       cluster_set.save(&cluster_save_path,structure)?;
     }
   }
@@ -275,16 +286,16 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
       .collect::<Vec::<String>>();
     write_vec_signals(&order_n_signals, headers, &save_path)?;
 
-    if let Some(save_name) = &config.write_sans_spin_signals{
-      let save_path = format!("{}/{}",save_dir,save_name);
+    if config.write_sans_spin_signals == Some(true){
+      let save_path = format!("{}/{}",save_dir,SAVE_FILE_SANS_SPIN_SIGNALS);
 
       caculate_sans_spin_signals(&order_n_signals[max_cluster_size - 1],
         &cluster_set, structure, config, &save_path)?;
     }
 
 
-    if let Some(save_name) = &config.write_methyl_partitions{
-      let save_path = format!("{}/{}",save_dir,save_name);
+    if config.write_methyl_partitions == Some(true){
+      let save_path = format!("{}/{}",save_dir,SAVE_FILE_METHYL_PARTITIONS);
       
       calculate_methyl_partition_cce(cluster_set, structure, config, 
           &save_path)?;
@@ -432,26 +443,29 @@ fn get_system_save_dir_opt(
         Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),
       }
   
-      if let Some(info_dir) = &config.write_info{
+      if config.write_info == Some(true){
 
-        let info_path = format!("{}/{}",save_dir,info_dir);
+        let info_path = format!("{}/{}",save_dir,SAVE_DIR_INFO);
 
         if std::fs::create_dir_all(info_path.clone()).is_err(){
           return Err(CluEError::CannotCreateDir(info_path));
         }
 
-        if let Some(filename) = &config.write_bath{
-          structure.bath_to_csv(&format!("{}/{}.csv", info_path, filename),
+        if config.write_bath == Some(true){
+          structure.bath_to_csv(
+              &format!("{}/{}.csv", info_path, SAVE_FILE_BATH),
               config)?;
         }
 
-        if let Some(filename) = &config.write_structure_pdb{
-          structure.write_pdb(&format!("{}/{}.pdb", info_path, filename))?;
+        if config.write_structure_pdb == Some(true){
+          structure.write_pdb(&format!("{}/{}.pdb", 
+                info_path, SAVE_FILE_STRUCTURE_PDB))?;
         }
 
         if let Some(exchange_group_manager) = &structure.exchange_groups{
-          if let Some(filename) = &config.write_exchange_groups{
-            let csv_file = format!("{}/{}.csv",info_path,filename);
+          if config.write_exchange_groups == Some(true){
+            let csv_file = format!("{}/{}.csv",
+                info_path,SAVE_FILE_EXCHANGE_GROUPS);
             exchange_group_manager.to_csv(&csv_file,structure)?;
           }
         }
@@ -472,14 +486,14 @@ fn optionally_save_tensors(
       ) -> Result<(),CluEError>
 {
   if let Some(save_dir) = &save_dir_opt{
-    if let Some(info_dir) = &config.write_info{
-      let info_path = format!("{}/{}",save_dir,info_dir);
+    if config.write_info == Some(true){
+      let info_path = format!("{}/{}",save_dir,SAVE_DIR_INFO);
       
-      if let Some(tensor_save_name) = &config.write_tensors{
+      if config.write_tensors == Some(true){
         if std::fs::create_dir_all(info_path.clone()).is_err(){
           return Err(CluEError::CannotCreateDir(info_path));
         }
-        let tensor_path = format!("{}/{}.txt",info_path,tensor_save_name);
+        let tensor_path = format!("{}/{}.txt",info_path,SAVE_FILE_TENSORS);
 
         tensors.save(&tensor_path,structure)?;
       }
@@ -503,9 +517,10 @@ fn get_orientation_save_dir_opt(
   let save_dir_opt = match path_opt{
     Some(path) => {
 
-      if let Some(ori_path) = &config.write_orientation_signals{ 
+      if config.write_orientation_signals == Some(true){ 
       
-        let save_dir = format!("{}/{}/theta_{}deg_phi_{}deg",path, ori_path,
+        let save_dir = format!("{}/{}/theta_{}deg_phi_{}deg",
+            path, SAVE_DIR_ORIENTATION_SIGNALS,
             theta_degrees, phi_degrees);
       
         match std::fs::create_dir_all(save_dir.clone()){

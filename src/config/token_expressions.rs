@@ -1,4 +1,5 @@
 use crate::config::token::*;
+use crate::config::ClusterMethod;
 use crate::CluEError;
 use crate::config::ModeAttribute;
 use crate::config::token_stream;
@@ -142,6 +143,28 @@ pub fn set_to_some_bool(target: &mut Option<bool>, expression: &TokenExpression)
     _ => return Err(CluEError::ExpectedBoolRHS(expression.line_number)),
   }
 
+  Ok(())
+}
+//------------------------------------------------------------------------------
+pub fn set_to_some_cluster_method(target: &mut Option<ClusterMethod>,
+    expression: &TokenExpression) -> Result<(),CluEError>
+{
+  check_target_option(target,expression)?;
+
+  let Some(rhs) = &expression.rhs else{
+    return Err(CluEError::NoRHS(expression.line_number));
+  };
+  if rhs.is_empty(){
+    return Err(CluEError::NoRHS(expression.line_number));
+  }
+  match rhs[0]{
+    Token::CCE => *target = Some(ClusterMethod::CCE),
+    Token::GCCE => *target = Some(ClusterMethod::GCCE),
+    Token::R2CCE => *target
+      = Some(ClusterMethod::AnalyticRestricted2CCE),
+    _  => return Err(CluEError::InvalidArgument(expression.line_number,
+          "valid cluster method are \"CCE\" and \"r2CCE\"".to_string())),
+  }
   Ok(())
 }
 //------------------------------------------------------------------------------

@@ -15,6 +15,7 @@ pub const TESLA: f64 = 1.0;
 pub const KELVIN: f64 = 1.0;
 pub const KILOGRAM: f64 = JOULE/METER/METER*SECOND*SECOND;
 pub const HERTZ: f64 = 1.0/SECOND;
+pub const NANOMETER: f64 = METER*1e-9;
 pub const ANGSTROM: f64 = METER*1e-10;
 pub const AMPERE: f64 = KILOGRAM/SECOND/SECOND/TESLA;
 pub const NEWTON: f64 = KILOGRAM*METER/SECOND/SECOND;

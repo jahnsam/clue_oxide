@@ -5,6 +5,7 @@ pub mod py_cluster;
 pub mod py_config;
 pub mod py_particle;
 pub mod py_signal;
+pub mod py_spin_operators;
 pub mod py_structure;
 pub mod py_tensors;
 
@@ -14,6 +15,7 @@ use py_cluster::PyCluster;
 use py_config::PyConfig;
 use py_signal::*;
 use py_particle::*;
+use py_spin_operators::*;
 use py_structure::*;
 use py_tensors::*;
 
@@ -350,6 +352,12 @@ fn clue_odide(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function( wrap_pyfunction!(hahn_three_spin_modulation_frequency,m)? )?;
     m.add_function( 
         wrap_pyfunction!(hahn_three_spin_fourth_order_coefficient,m)? )?;
+    m.add_function( wrap_pyfunction!(spin_x,m)? )?;
+    m.add_function( wrap_pyfunction!(spin_y,m)? )?;
+    m.add_function( wrap_pyfunction!(spin_z,m)? )?;
+    m.add_function( wrap_pyfunction!(spin_plus,m)? )?;
+    m.add_function( wrap_pyfunction!(spin_minus,m)? )?;
+    m.add_function( wrap_pyfunction!(spin_squared,m)? )?;
     Ok(())
 }
 }

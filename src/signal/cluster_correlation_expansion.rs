@@ -1,4 +1,4 @@
-use crate::Config;
+use crate::config::{Config,SAVE_DIR_AUXILIARY_SIGNALS};
 use crate::clue_errors::CluEError;
 use crate::cluster::{Cluster,
   get_subclusters::build_subclusters,
@@ -90,8 +90,8 @@ fn calculate_auxiliary_signals(
 
       // Check for saved data.
       if let Some(path) = &save_path_opt{
-        if let Some(aux_dir) = &config.write_auxiliary_signals{
-          let load_dir = format!("{}/{}",path, aux_dir);
+        if config.write_auxiliary_signals == Some(true){
+          let load_dir = format!("{}/{}",path, SAVE_DIR_AUXILIARY_SIGNALS);
           let aux_filename = format!("{}/cluster_size_{}_batch_{}.csv",
               load_dir, cluster_size,ibatch);
 
@@ -189,8 +189,8 @@ fn calculate_auxiliary_signals(
 
       // Decide if the auxiliary signals should be saved.
       if let Some(path) = &save_path_opt{
-        if let Some(aux_dir) = &config.write_auxiliary_signals{
-          let save_dir = format!("{}/{}",path, aux_dir);
+        if config.write_auxiliary_signals == Some(true){
+          let save_dir = format!("{}/{}",path, SAVE_DIR_AUXILIARY_SIGNALS);
           match std::fs::create_dir_all(save_dir.clone()){
             Ok(_) => (),
             Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),

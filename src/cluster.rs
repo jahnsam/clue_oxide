@@ -7,6 +7,7 @@ pub mod build_adjacency_list;
 pub mod cluster_set;
 pub mod connected_subgraphs;
 pub mod find_clusters;
+pub mod find_isolated_subgraphs;
 pub mod read_clusters;
 pub mod get_subclusters;
 pub mod methyl_clusters;

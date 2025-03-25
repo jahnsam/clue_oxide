@@ -1,4 +1,5 @@
 //pub mod cif;
+pub mod gro;
 pub mod pdb;
 pub mod extended_structure;
 pub mod primary_structure;

@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  23 SEP 2024 20:11
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.5.28)  26 FEB 2025 15:36
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1047,33 +1047,23 @@ File: lstlang1.sty 2023/02/27 1.9 listings language file
 )
 (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2023/02/27 1.9 listings language file
-)
+) [3]
 (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2023/02/27 1.9 listings language file
 )
 (/usr/local/texlive/2023/texmf-dist/tex/latex/listings/lstmisc.sty
 File: lstmisc.sty 2023/02/27 1.9 (Carsten Heinz)
-) [3]
+) [4]
 File: figs/fig_CluE-sims_n-CCE.png Graphic file (type bmp)
 <figs/fig_CluE-sims_n-CCE.png>
 
-[4] [5]
-Overfull \hbox (1.30087pt too wide) in paragraph at lines 435--436
-[]|\TU/lmr/m/n/10 spin_coor| 
+[5]
+Underfull \hbox (badness 10000) in paragraph at lines 530--530
+[]|\TU/lmr/m/n/10 Partitioning
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 442--442
-[]|\TU/lmr/m/n/10 cube,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 494--494
-[]|\TU/lmr/m/n/10 cp-$\OML/cmm/m/it/10 n[]$\TU/lmr/m/n/10 ,
- []
-
-
-Overfull \hbox (9.69336pt too wide) in paragraph at lines 403--535
+Overfull \hbox (23.08902pt too wide) in paragraph at lines 439--583
  [] 
  []
 
@@ -1081,57 +1071,54 @@ Overfull \hbox (9.69336pt too wide) in paragraph at lines 403--535
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [6]
-Overfull \vbox (8.35pt too high) has occurred while \output is active []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [7]
-[8] [9]
-Overfull \hbox (9.69336pt too wide) in paragraph at lines 813--861
- [] 
- []
-
-[10]
-Overfull \hbox (9.69336pt too wide) in paragraph at lines 876--889
+[8] [9] [10]
+Overfull \hbox (9.69336pt too wide) in paragraph at lines 887--935
  [] 
  []
 
 
-Overfull \hbox (3.49501pt too wide) in paragraph at lines 895--915
+Overfull \hbox (9.69336pt too wide) in paragraph at lines 950--963
+ [] 
+ []
+
+
+Overfull \hbox (3.49501pt too wide) in paragraph at lines 969--989
 \TU/lmr/m/it/10 my_label \TU/lmr/m/n/10 should match to a \TU/lmr/m/it/10 #[gro
 up(my_label)]\TU/lmr/m/n/10 . The properties specified under #[spin_properties(
 my_label,
  []
 
 
-Overfull \hbox (30.505pt too wide) in paragraph at lines 895--915
+Overfull \hbox (30.505pt too wide) in paragraph at lines 969--989
 \TU/lmr/m/n/10 my_isotope)] will be applied to all spins of isotope \TU/lmr/m/i
 t/10 my_isotope \TU/lmr/m/n/10 that fall under the corresponding \TU/lmr/m/it/1
 0 #[group(my_label)]\TU/lmr/m/n/10 .
  []
 
 
-Overfull \hbox (42.41235pt too wide) in paragraph at lines 895--915
+Overfull \hbox (42.41235pt too wide) in paragraph at lines 969--989
 \TU/lmr/m/n/10 The reason to differentiate between \TU/lmr/m/it/10 #[spin_prope
 rties(my_label,  my_isotope)] \TU/lmr/m/n/10 and \TU/lmr/m/it/10 #[structure_pr
 operties(my_label)]
  []
 
-
-Overfull \hbox (9.69336pt too wide) in paragraph at lines 916--970
+[11]
+Overfull \hbox (9.69336pt too wide) in paragraph at lines 990--1044
  [] 
  []
 
 
-Underfull \vbox (badness 1163) has occurred while \output is active []
-
- [11]
-Overfull \hbox (30.41502pt too wide) in paragraph at lines 990--994
+Overfull \hbox (30.41502pt too wide) in paragraph at lines 1064--1068
 []\TU/lmr/m/n/10 The arguments \TU/lmr/m/it/10 diff() \TU/lmr/m/n/10 can take a
 re tabulated below. The table assumes that the user defined \TU/lmr/m/it/10 #[g
 roup(my_group)]\TU/lmr/m/n/10 . 
  []
 
 
-Underfull \hbox (badness 1983) in paragraph at lines 1001--1003
+Underfull \hbox (badness 1983) in paragraph at lines 1075--1077
 []|\TU/lmr/m/n/10 particles that are are in my_group and
  []
 
@@ -1140,12 +1127,13 @@ File: lstlang1.sty 2023/02/27 1.9 listings language file
 )
 [13] [14]
 Missing character: There is no μ (U+03BC) in font [lmmono8-regular]:!
-File: figs/fig_pyCluE-sims.png Graphic file (type bmp)
-<figs/fig_pyCluE-sims.png>
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [15]
+File: figs/fig_pyCluE-sims.png Graphic file (type bmp)
+<figs/fig_pyCluE-sims.png>
+
 [16]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
@@ -1161,10 +1149,10 @@ Package logreq Info: Writing requests to 'CluE_Oxide.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 22046 strings out of 476701
- 446670 string characters out of 5804296
- 2321416 words of memory out of 5000000
- 41895 multiletter control sequences out of 15000+600000
+ 22047 strings out of 476701
+ 446649 string characters out of 5804296
+ 2404416 words of memory out of 5000000
+ 41896 multiletter control sequences out of 15000+600000
  519139 words of font info for 73 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  140i,14n,134p,1459b,4844s stack positions out of 10000i,1000n,20000p,200000b,200000s

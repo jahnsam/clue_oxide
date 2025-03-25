@@ -1,3 +1,68 @@
+
+--------------------------------------------------------------------------------
+CluE Oxide: 0.2.2-alpha.4
+
+ADDED:
+
+Expanded the Python API.
+
+
+CHANGED:
+
+Changed data type of Config fields, "write_*", from Option<String>,
+to Option<bool>, to better match the API.
+
+Changed keyword "sphere" to "ball".
+
+--------------------------------------------------------------------------------
+CluE Oxide: 0.2.2-alpha.3
+
+ADDED: 
+
+Partitioning CCE (pCCE)[1,2] has been added.  
+Note that keyword related to pCCE are liekly 
+to change in the next couple versions.
+The keword "partitioning_method" can be used to select the partitioning method.
+Currently the available methods are "particles", which is the same as normal
+CCE, and "exchange_groups_and_particles" which partitions methyls and
+primary amonium groups as a block and all other spins as their own blocks.
+The "unit_of_clustering" can be "spin" or "set".  This determines what the n
+in n-CCE referes to.  For example, a block that contains a methyl group,
+is one block, but contains three spins, so 
+  unit_of_clustering = set;
+treats the methyl as a 1-cluster, while 
+  unit_of_clustering = spin;
+treats the methyl as a 3-cluster.  Using the latter together with choosing the
+"partitioning_method" makes "remove_partial_methyls" redundant.
+
+Added keyword "max_spin_order".  This will drop clusters with more than the 
+specified number of spins.  For example when "unit_of_clustering" is "set",
+a 2-cluster of of a hydrogen and a methyl group contains four spins,
+but a 2-cluster of two methyl groups contains six spins.  
+Setting "max_spin_order = 4;", will keep the former cluster, 
+but drop the latter.
+Note that "max_spin_order" should not be used if "unit_of_clustering" is "spin".
+
+REMOVED:
+
+The "remove_partial_methyls" keyword has been removed.  
+See above on the addition of pCCE.
+
+CHANGED:
+
+Fixed bug where a leading "+" in the exponent in e-notation such as "1e+11",
+would get parsed incorrectly.
+
+REFERENCES:
+
+[1] Schätzle, P.; Ghassemizadeh, R.; Urban, D. F.; Wellens, T.; Knittel, P.; 
+Reiter, F.; Jeske, J.; Hahn, W. 
+Spin Coherence in Strongly Coupled Spin Baths in Quasi-Two-Dimensional Layers. 
+Phys. Rev. B 2024, 110 (22), L220302.
+
+[2] Jeschke, G.; Wili, N.; Wu, Y.; Kuzin, S.; Karas, H.; Hintz, H.; Godt, A. 
+Electron-Spin Decoherence in Trityl Radicals in the Absence and Presence of 
+Microwave Irradiation. Magn. Reson. 2025, 6 (1), 15–32. 
 --------------------------------------------------------------------------------
 CluE Oxide: 0.2.2-alpha.2
 

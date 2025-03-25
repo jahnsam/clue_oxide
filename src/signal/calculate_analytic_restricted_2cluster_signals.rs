@@ -1,4 +1,5 @@
 use crate::Config;
+use crate::config::SAVE_DIR_AUXILIARY_SIGNALS;
 use crate::cluster::cluster_set::ClusterSet;
 use crate::signal::{Signal, load_batch_signals, write_batch_signals};
 use crate::structure::Structure;
@@ -51,8 +52,8 @@ pub fn calculate_analytic_restricted_2cluster_signals(
     let idx = ibatch*batch_size;
 
     if let Some(path) = &save_path_opt{
-      if let Some(aux_dir) = &config.write_auxiliary_signals{
-        let load_dir = format!("{}/{}",path, aux_dir);
+      if config.write_auxiliary_signals == Some(true){
+        let load_dir = format!("{}/{}",path, SAVE_DIR_AUXILIARY_SIGNALS);
           let aux_filename = format!("{}/cluster_size_{}_batch_{}.csv",
               load_dir, cluster_size,ibatch);
 
@@ -87,8 +88,8 @@ pub fn calculate_analytic_restricted_2cluster_signals(
     }
 
     if let Some(path) = &save_path_opt{
-        if let Some(aux_dir) = &config.write_auxiliary_signals{
-          let save_dir = format!("{}/{}",path, aux_dir);
+        if config.write_auxiliary_signals == Some(true){
+          let save_dir = format!("{}/{}",path, SAVE_DIR_AUXILIARY_SIGNALS);
           match std::fs::create_dir_all(save_dir.clone()){
             Ok(_) => (),
             Err(_) => return Err(CluEError::CannotCreateDir(save_dir)),

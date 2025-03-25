@@ -11,10 +11,12 @@ crate-type = ["cdylib"]
 path = "../../clue_oxide"
 
 [dependencies.pyo3]
-version = "0.23.3"
+version = "0.24.0"
 features = ["extension-module","num-complex"]
 
 [dependencies]
+ndarray = '0.16.0'
 num-complex = "0.4"
+numpy  = "0.24.0"
 
 rand_chacha = "0.3.1"

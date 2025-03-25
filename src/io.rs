@@ -87,7 +87,8 @@ pub fn write_data<T>(data: &[Vec::<T>], filename: &str,
     headers: Vec::<String>) -> Result<(),CluEError> where T: std::fmt::Display
 {
    if headers.len() != data.len(){
-     return Err(CluEError::MissingHeader(filename.to_string()));
+     return Err(CluEError::MissingHeader(headers.len(), data.len(),
+           filename.to_string()));
    }
 
    for datum in data.iter(){

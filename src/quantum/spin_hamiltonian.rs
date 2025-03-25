@@ -299,7 +299,7 @@ fn ideal_two_state_pulse(spin_op: &SpinOp, angle: f64)
 
 
   let e = CxMat::eye(2);
-  let i_sigma = get_sop(2,spin_op)*(I*2.0);
+  let i_sigma = get_spin_operator(2,spin_op)*(I*2.0);
 
   e*( (angle/2.0).cos() ) + i_sigma*((angle/2.0).sin() )
 
@@ -690,7 +690,7 @@ pub fn kron_spin_op(spin_mults: &[usize], sops: &[SpinOp]) ->
 
   let mut sop = CxMat::eye(1);
   for ii in 0..spin_mults.len() {
-    let s = get_sop(spin_mults[ii],&sops[ii]);
+    let s = get_spin_operator(spin_mults[ii],&sops[ii]);
     sop = kron(&sop,&s);
   }
 
@@ -725,7 +725,7 @@ impl fmt::Display for SpinOp {
 //------------------------------------------------------------------------------
 // This function builds the matrix corresponding to the specified spin operator
 // and multiplicity.
-fn get_sop(spin_multiplicity: usize, sop: &SpinOp) -> CxMat{
+fn get_spin_operator(spin_multiplicity: usize, sop: &SpinOp) -> CxMat{
   match sop {
     SpinOp::E => CxMat::eye(spin_multiplicity),
     SpinOp::Sx => spin_x(spin_multiplicity),

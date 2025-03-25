@@ -61,6 +61,10 @@ impl PyStructure{
     self.structure.number()
   }
   //----------------------------------------------------------------------------
+  pub fn write_gro(&self,file_name: String) -> Result<(),PyCluEError>{
+    Ok(self.structure.write_gro(&file_name)?)
+  }
+  //----------------------------------------------------------------------------
   fn db_print(&self) {
     println!("{:?}",self);
   }

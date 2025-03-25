@@ -16,6 +16,7 @@ pub enum Token{
  //AtomName,
  AtomNames,
  Bang,
+ Ball,
  BondedElements,                                               
  BondedIndices,                                                     
  BlockCommentEnd, 
@@ -128,7 +129,7 @@ pub enum Token{
  Set,
  Sharp,
  Slash,
- Sphere,
+ //Sphere,
  SpinProperties,
  Spin,
  SquareBracketClose,
@@ -173,6 +174,7 @@ impl fmt::Display for Token{
       //Token::AtomName => write!(f,"atom_name"),
       Token::AtomNames => write!(f,"atom_names"),
       Token::Bang => write!(f,"!"), 
+      Token::Ball => write!(f,"ball"), 
       Token::BondedIndices => write!(f,"bonded_indices"),
       Token::BondedElements => write!(f,"bonded_elements"),
       Token::BlockCommentEnd => write!(f,"*/"), 
@@ -295,7 +297,7 @@ impl fmt::Display for Token{
       Token::Slash => write!(f,"/"),
       Token::SpinProperties => write!(f,"spin_properties"),
       Token::Spin => write!(f,"spin"),
-      Token::Sphere => write!(f,"sphere"),
+      //Token::Sphere => write!(f,"sphere"),
       Token::SquareBracketClose => write!(f,"]"),
       Token::SquareBracketOpen => write!(f,"["),
       Token::StructureProperties => write!(f,"structure_properties"),
@@ -340,6 +342,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     //"atom_name" => Some(Token::AtomName),
     "atom_names" => Some(Token::AtomNames),
     "!" => Some(Token::Bang),
+    "ball" => Some(Token::Ball),
     "bonded_indices" => Some(Token::BondedIndices),
     "bonded_elements" => Some(Token::BondedElements),
     "*/" => Some(Token::BlockCommentEnd),
@@ -456,7 +459,7 @@ pub fn identify_token(word: &str) -> Option<Token>{
     "#" => Some(Token::Sharp),
     "/" => Some(Token::Slash),
     "spin_properties" => Some(Token::SpinProperties),
-    "sphere" => Some(Token::Sphere),
+    //"sphere" => Some(Token::Sphere),
     "spin" => Some(Token::Spin),
     "]" => Some(Token::SquareBracketClose),
     "[" => Some(Token::SquareBracketOpen),
@@ -1101,6 +1104,7 @@ mod tests{
     //assert_eq!(identify_token("atom_name"), Some(Token::AtomName));
     assert_eq!(identify_token("atom_names"), Some(Token::AtomNames));
     assert_eq!(identify_token("!"), Some(Token::Bang));
+    assert_eq!(identify_token("ball"), Some(Token::Ball));
     assert_eq!(identify_token("*/"), Some(Token::BlockCommentEnd));
     assert_eq!(identify_token("/*"),Some( Token::BlockCommentStart));
     assert_eq!(identify_token("cp"),Some( Token::CarrPurcell));
@@ -1233,7 +1237,7 @@ mod tests{
     assert_eq!(identify_token("set"),Some( Token::Set));
     assert_eq!(identify_token("#"),Some( Token::Sharp));
     assert_eq!(identify_token("/"),Some( Token::Slash));
-    assert_eq!(identify_token("sphere"),Some( Token::Sphere));
+    //assert_eq!(identify_token("sphere"),Some( Token::Sphere));
     assert_eq!(identify_token("spin_properties"),
         Some(Token::SpinProperties));
     assert_eq!(identify_token("spin"),Some( Token::Spin));

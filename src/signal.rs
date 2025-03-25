@@ -159,7 +159,8 @@ pub fn write_vec_signals(signals: &[Signal],
 {
   
    if headers.len() != signals.len(){
-     return Err(CluEError::MissingHeader(filename.to_string()));
+     return Err(CluEError::MissingHeader(headers.len(),signals.len(),
+           filename.to_string()));
    }
 
    for signal in signals.iter(){

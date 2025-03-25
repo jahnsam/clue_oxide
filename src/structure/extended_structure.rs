@@ -317,7 +317,7 @@ impl Structure{
     };
     match load_geometry{
       LoadGeometry::Cube => (),
-      LoadGeometry::Sphere =>{  
+      LoadGeometry::Ball =>{  
         let Some(radius) = config.radius else {
           return Err(CluEError::NoRadius);
         };

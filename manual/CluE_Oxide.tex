@@ -201,7 +201,43 @@ and system statistics including individual spin and methyl contributions.
 \subsection{Installing}
 %-------------------------------------------------------------------------------
 To start, please make sure that Rust is installed and up to date\cite{rust}.
-Before starting, it is a good idea to run the test suite.
+The stable version of CluE Oxide is available on crates.io 
+(\url{https://crates.io/crates/clue_oxide}), and can be installed 
+with the following.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\begin{lstlisting}[frame=single,numbers=left,language=bash]
+cargo install clue_oxide
+\end{lstlisting}
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+You can also build CluE Oxide yourself .
+The most common problem when compiling CluE Oxide is in dealing with OpenBLAS:
+OpenBLAS is dealt with differently on Linux and Windows.  
+The Cargo.toml file is set to try and compile OpenBLAS during the compilation
+of CluE Oxide; however, if you encounter difficulty and your system has
+its own OpenBLAS, you can change to using your system's OpenBLAS.
+On Linux change 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\begin{lstlisting}[frame=single,numbers=left,language=bash]
+ndarray-linalg = { version = "0.16", features = ["openblas-static"] }     
+\end{lstlisting}
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+in the Cargo.toml file to 
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\begin{lstlisting}[frame=single,numbers=left,language=bash]
+ndarray-linalg = { version = "0.16", features = ["openblas-system"] }     
+\end{lstlisting}
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+More information can be found at
+\url{https://github.com/rust-ndarray/ndarray-linalg}.   
+For Debian based Linux distros, you can install OpenBLAS with the following 
+command.
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\begin{lstlisting}[frame=single,numbers=left,language=bash]
+apt install libobenblas-dev
+\end{lstlisting}
+% - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+% 
+It is a good idea to run the test suite.
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=bash]
 cargo test
@@ -321,8 +357,8 @@ orientation_grid = lebedev(170);
   electric_quadrupole_y = diff(particle,bonded(tempo_o));
 
 #[config]
-write_orientation_signals = "";
-write_clusters = "";
+write_orientation_signals = false;
+write_clusters = false;
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The input script is not Turing complete, 
@@ -400,7 +436,7 @@ other modes back to \textit{\#[config]}.
 The available fields are explained below.  
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{center}
-\begin{tabular}{| m{20em} | m{1.5cm}| m{7cm} |}
+\begin{tabular}{| m{7cm} | m{2cm}| m{7cm} |}
  \hline 
  \textbf{field} & \textbf{values} & \textbf{description} \\ 
   %
@@ -491,6 +527,10 @@ The available fields are explained below.
  orientation\_grid  & ori\_grid & grid used for orientation averaging\\ 
  %
  \hline 
+ partitioning\_method & Partitioning Method & 
+ criteria for partitioning the system\\
+ %
+ \hline 
  pulse\_sequence & cp-$n_{\uppi}$, hahn & 
  pulse sequence to simulate with $n_{\uppi}$ $\uppi$-pulses\\
  %
@@ -503,32 +543,40 @@ The available fields are explained below.
  directory where data will be saved\\
  %
  \hline 
+ system\_name & string & 
+ directory where the system info will be saved\\
+ %
+ \hline 
  time\_increments  & [float] & 
  list of $\Delta \tau$s in s used for propagation\\ 
  %
  \hline 
- write\_auxiliary\_signals & string & 
- file name to save cluster auxiliary signals under\\
+ unit\_of\_clustering & set, spin & 
+ determines the definition of a $n$-cluster\\
  %
  \hline 
- write\_bath & string & 
- file name to save bath spins under\\
+ write\_auxiliary\_signals & bool & 
+ flag to save cluster auxiliary signals\\
  %
  \hline 
- write\_clusters & string & 
- file name to save clusters under\\
+ write\_bath & bool & 
+ flag to save bath spins\\
  %
  \hline 
- write\_info & string & 
- directory name to save general information under\\
+ write\_clusters & bool & 
+ flag to save clusters\\
  %
  \hline 
- write\_exchange\_groups & string & 
- file name to save exchange groups (such as methyls) under\\
+ write\_info & bool & 
+ flag to save general information\\
  %
  \hline 
- write\_structure\_pdb & string & 
- PDB file name to save the spin system under\\
+ write\_exchange\_groups & bool & 
+ flag to save exchange groups (such as methyls)\\
+ %
+ \hline 
+ write\_structure\_pdb & bool & 
+ flag to save to save the spin system as a pdb\\
  %
  \hline 
 \end{tabular}
@@ -604,7 +652,23 @@ dimension in question.
 The orientation grid specifies the directions and weights for the applied 
 static magnetic field.  If no grid is given, the magnetic field is directed 
 along the $z$-axis of the PDB file.
-A lebedev grid \cite{1999_Lebedev} can be specified.
+A lebedev grid \cite{1999_Lebedev} can be specified as \textit{lebedev}($n$),
+where  
+\begin{equation}
+\begin{tabular}{c c c c c c c c c c c}
+$n \in \{$
+  & 6, &  14, &  26, &  38, &  50, &  
+  74, &  86, & 110, & 146, & 170,  
+\\
+& 194, & 230, & 266, & 302, & 350, & 
+434, & 590, & 770, & 974, &1202, 
+\\
+& 1454, &1730, &2030, & 2354, & 2702, &
+3074, &3470, &3890, & 4334, & 4802, 
+\\
+& 5294,& 5810 & $\}$. & & & & & & &  
+\end{tabular}
+\end{equation}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 \begin{lstlisting}[frame=single,numbers=left,language=c]
 orientation_grid = lebedev(302);
@@ -625,6 +689,9 @@ orientation_grid = read_csv("xyzw.csv");
 \end{lstlisting}
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+\subsubsection{PartitioningMethod} % -------------------------------------------
+The partitioning method determines how the spin system should be partitioned
+into block. 
 \subsubsection{PulseSequence} % ---------------------------------------------
 To simulate a Carr-Purcell pulse sequence with two $\uppi$-pulses   
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -740,6 +807,13 @@ $\Delta t_\text{axis} = 10$ ns for the first 101 timepoints $\in [0, 1]\ \upmu$s
 and then $\Delta t_\text{axis} = 100$ ns for the next 90 timepoints
 $\in [1.1, 10]\ \upmu$s.
 
+\subsubsection{UnitOfClustering} % --------------------------------------------
+This defines what defines an $n$-cluster; the options are "spin" or "set".
+For example suppose that a methyl group with protons [1,2,3] is partitioned
+into its own block.  If the unit of clustering is set to "spin", then the 
+cluster containing only the methyl group is considered a 3-cluster,
+but if the unit of clustering is set to "set", then it is considered 
+a 1-cluster.
 \subsubsection{VectorSpecifiers} % --------------------------------------------
 The fields that require values of ``vector'' have several options.
 First, a vector can be a list.
@@ -1477,7 +1551,6 @@ pub struct Config{
   pub particles: Vec::<ParticleConfig>,
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<PulseSequence>,
-  pub remove_partial_methyls: Option<bool>,
   pub root_dir: Option<String>,
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
