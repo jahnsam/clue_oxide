@@ -160,6 +160,11 @@ impl Config{
     if self.load_geometry.is_none(){
       self.load_geometry = Some(LoadGeometry::Ball);
     }
+
+    if self.partitioning_method.is_none(){
+      self.partitioning_method = Some(PartitioningMethod::Particles);
+    }
+
     if self.pdb_model_index.is_none(){
       self.pdb_model_index = Some(0);
     }

@@ -15,7 +15,9 @@ pub const TESLA: f64 = 1.0;
 pub const KELVIN: f64 = 1.0;
 pub const KILOGRAM: f64 = JOULE/METER/METER*SECOND*SECOND;
 pub const HERTZ: f64 = 1.0/SECOND;
+pub const MEGAHERTZ: f64 = HERTZ*1e6;
 pub const NANOMETER: f64 = METER*1e-9;
+pub const FEMTOMETER: f64 = METER*1e-15;
 pub const ANGSTROM: f64 = METER*1e-10;
 pub const AMPERE: f64 = KILOGRAM/SECOND/SECOND/TESLA;
 pub const NEWTON: f64 = KILOGRAM*METER/SECOND/SECOND;
@@ -52,6 +54,13 @@ pub const ELEMENTARY_CHARGE: f64 = 1.602176634e-19 * COULOMB;
 
 pub const ELECTRON_VOLT: f64 = ELEMENTARY_CHARGE * VOLT;
 
+// 2025 https://physics.nist.gov/cgi-bin/cuu/Value?hr
+pub const HARTREE: f64 =  4.3597447222060e-18 * JOULE;
+
+pub const BARN: f64 = 100.0 * FEMTOMETER * FEMTOMETER;
+
+// 2025 https://physics.nist.gov/cgi-bin/cuu/Value?bohrrada0
+pub const BOHR_RADIUS: f64 = 5.29177210544e-11 * METER;
 
 // Conversions
 pub const JOULES_TO_HERTZ: f64 = 1.0/PLANCK * HERTZ/JOULE;

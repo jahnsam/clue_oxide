@@ -24,7 +24,7 @@ pub fn parse_pdb(filename: &str,target_model: usize)
    let ParticleMap{ particles: bath_particles, map : serial_to_index} 
      = particle_map;
 
-   let connections = parse_connections(filename,n_atoms,serial_to_index)?;
+   let connections = parse_connections(filename,serial_to_index)?;
 
    let cell_offsets = parse_cell(filename)?;
    
@@ -63,29 +63,39 @@ fn parse_cell(filename: &str) -> Result<Vec::<Vector3D>,CluEError>
 //------------------------------------------------------------------------------
 // This function tries to parse the connections data.
 // If it cannot it will err.
-fn parse_connections(filename: &str ,n_atoms: usize,
+fn parse_connections(filename: &str ,
     serial_to_index: HashMap::<u32,Option<usize>>) 
   -> Result<AdjacencyList,CluEError>
 {
+   let n_atoms: usize = serial_to_index.iter()
+     .filter_map(|(_key,val)| if val.is_some(){Some(1)}else{None})
+     .sum();
+
    let mut connections = AdjacencyList::with_capacity(n_atoms);
 
    let Ok(file) = std::fs::File::open(filename) else{
      return Err(CluEError::CannotOpenFile(filename.to_string()));
    };
+
    let lines = std::io::BufReader::new(file).lines();
 
    'line_loop: for line_result in lines {
+
      let Ok(line) = line_result else{
        return Err(CluEError::CannotOpenFile(filename.to_string()));
      };
+
      if line.contains("CONECT"){
        let bonds_serial = parse_connections_line(&line)?;
 
        let mut bonds_index =  Vec::<usize>::with_capacity(bonds_serial.len());
+       
        for serial in bonds_serial.iter(){
+         
          let Some(idx_opt) = serial_to_index.get(serial) else{
            return Err(CluEError::CannotConvertSerialToIndex(*serial));
          };
+
          if let Some(idx) = idx_opt{
            bonds_index.push(*idx);
          }else if bonds_index.is_empty(){
@@ -118,10 +128,7 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
 {
    let mut serial_to_index = HashMap::<u32,Option<usize>>::new(); 
    let mut unknown_elements = HashMap::<String,usize>::new(); 
-   //let mut bath_particles = Vec::<Vec::<Particle>>::with_capacity(n_models);
-   //for _ii in 0..n_models{
-   //  bath_particles.push( Vec::<Particle>::with_capacity(n_atoms));
-   //}
+
    let mut bath_particles = Vec::<Particle>::with_capacity(n_atoms);
 
    let mut model_idx = 0;
@@ -131,10 +138,13 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
    };
    
    let lines = std::io::BufReader::new(file).lines();
+
    for line_result in lines {
+
      let Ok(line) = line_result else{
        return Err(CluEError::CannotOpenFile(filename.to_string()));
      };
+
      if line.contains("ENDMDL"){
        model_idx += 1;
        if model_idx > target_model{
@@ -142,6 +152,7 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
        }
        continue;
      }
+
      if model_idx != target_model
        || !(line.contains("ATOM") || line.contains("HETATM")) {
        continue;
@@ -149,26 +160,28 @@ fn parse_atoms(filename: &str,n_atoms: usize, target_model:usize)
 
      let particle: Particle = match parse_atom_line(&line){
        Ok(p) => p,
+
        Err((CluEError::CannotParseElement(unk_el),serial)) => {
+         
          serial_to_index.insert(serial,None);
+
          if let Some(value) = unknown_elements.get_mut(&unk_el){
            *value += 1;
          }else{
            unknown_elements.insert(unk_el,1);
          }
+
          continue;
        }
+
        Err((err,_)) => return Err(err),
      };
 
-     //if model_idx == 0{
-       if let Some(serial) = particle.serial{
-         serial_to_index.entry(serial)
-           .or_insert_with(|| Some(bath_particles.len()));
-       }
-     //}
+     if let Some(serial) = particle.serial{
+       serial_to_index.entry(serial)
+         .or_insert_with(|| Some(bath_particles.len()));
+     }
 
-     //bath_particles[model_idx].push(particle);
      bath_particles.push(particle);
    }
 
@@ -318,14 +331,19 @@ fn parse_connections_line(conect_line: &str) -> Result<Vec::<u32>,CluEError>{
   let mut serials = Vec::<u32>::with_capacity(num/n);
   let mut idx = 0;
   while idx < num {
+
     let idx_end = usize::min(idx+n,num);
+    
     let connect: u32;
+    
     if let Ok(serial) = line[idx .. idx_end].trim().parse::<u32>(){
       connect = serial;
     }else{
       return Err(CluEError::CannotParseLine(conect_line.to_string() ));
     }
+    
     serials.push(connect);
+    
     idx += n;
   }
 
@@ -524,6 +542,25 @@ mod tests {
     let filename = "./assets/TEMPO_wat_gly_70A.pdb";
     let structure = parse_pdb(&filename,0).unwrap();
     assert_eq!(structure.bath_particles.len(),43436);
+  }
+  //----------------------------------------------------------------------------
+  #[test]
+  fn test_parse_connections(){
+
+    let filename = "./assets/water.pdb";
+    let mut serial_to_index = HashMap::<u32,Option<usize>>::new();
+    serial_to_index.insert(21030,Some(0));
+    serial_to_index.insert(21031,Some(1));
+    serial_to_index.insert(21032,Some(2));
+    serial_to_index.insert(21033,None);
+    let adjacency = parse_connections(&filename,serial_to_index).unwrap();
+
+    assert!(adjacency.are_connected(0,1));
+    assert!(adjacency.are_connected(0,2));
+    assert!(!adjacency.are_connected(0,3));
+    assert!(!adjacency.are_connected(1,3));
+    assert!(!adjacency.are_connected(1,2));
+    assert!(!adjacency.are_connected(2,3));
   }
   //----------------------------------------------------------------------------
   #[test]

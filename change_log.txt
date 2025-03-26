@@ -1,5 +1,18 @@
 
 --------------------------------------------------------------------------------
+CluE Oxide: 0.2.2-alpha.5
+
+ADDED:
+
+Added PhysicalConstants to PyCluE.
+
+CHANGED:
+
+Changed defualt partitioning method to Particles.
+
+Fixed bug where the extra charge site in TIP4P would cause CluE Oxide to crash.  
+
+--------------------------------------------------------------------------------
 CluE Oxide: 0.2.2-alpha.4
 
 ADDED:

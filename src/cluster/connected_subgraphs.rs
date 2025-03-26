@@ -7,8 +7,7 @@ pub fn separate_into_connected_subgraphs(adjacency_list: &AdjacencyList)
   -> ( Vec::<Vec::<usize>>, Vec::<usize> )
 {
 
-  let active_vertices = adjacency_list.get_active_vertices();
-  let n_vertices = active_vertices.len();
+  let n_vertices = adjacency_list.len();
   if n_vertices == 0{
     return (Vec::<Vec::<usize>>::new(), Vec::<usize>::new());
   }
@@ -17,12 +16,10 @@ pub fn separate_into_connected_subgraphs(adjacency_list: &AdjacencyList)
 
   let mut counter = 1;
 
-  for idx0 in 1..n_vertices{
-    let v0 = active_vertices[idx0];
+  for v0 in 1..n_vertices{
 
     let mut start_new_subgraph = true;
-    for idx1 in (0..v0).rev(){
-      let v1 = active_vertices[idx1];
+    for v1 in (0..v0).rev(){
       if adjacency_list.are_connected(v0,v1) {
         subgraph_ids[v0] = subgraph_ids[v1];
         start_new_subgraph = false;
