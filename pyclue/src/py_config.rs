@@ -7,12 +7,13 @@ use clue_oxide::{
   config::{
     Config, 
       DensityMatrixMethod,
+      OrientationAveraging,
       command_line_input::CommandLineInput,
     },
   info,
   space_3d::Vector3D,
 };
-
+use clue_oxide::io::FromTOMLString;
 use crate::py_clue_errors::PyCluEError;
 
 #[pyclass(name = "Config")]
@@ -279,7 +280,21 @@ impl PyConfig{
     self.config.number_timepoints = value;
   }
   //----------------------------------------------------------------------------
-  // TODO: get/set orientation_grid
+  #[pyo3(signature = (distribution,n_points))]
+  pub fn set_orientations(&mut self, 
+      distribution: String, n_points: Option<usize>)
+    -> Result<(),PyCluEError>
+  {
+
+    let toml_str = match n_points{
+      Some(n) => format!("{} = {}",distribution, n), 
+      None => format!("{}",distribution),
+    };
+
+    let ori = OrientationAveraging::from_toml_string(&toml_str)?;
+    self.config.orientation_grid = Some(ori);
+    Ok(())
+  }
   //----------------------------------------------------------------------------
   // TODO get/set partitioning_method
   //----------------------------------------------------------------------------

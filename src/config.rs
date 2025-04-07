@@ -19,7 +19,11 @@ use crate::integration_grid::IntegrationGrid;
 
 
 use crate::io;
+use crate::io::FromTOMLString;
 
+
+use serde::{Serialize,Deserialize};
+use std::fmt;
 
 pub mod lexer;
 pub mod token;
@@ -380,14 +384,30 @@ pub enum PulseSequence{
   //RefocusedEcho,
 }
 
+//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /// `OrientationAveraging` lists the different orientation averaging options.
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug,Clone,PartialEq,Serialize,Deserialize)]
 pub enum OrientationAveraging{
   Grid(IntegrationGrid),
   Lebedev(usize),
   Random(usize),
 }
-
+impl FromTOMLString for OrientationAveraging{
+  fn from_toml_string(toml_str: &str) -> Result<Self,CluEError>{
+    let decoded: Result<OrientationAveraging,_> = toml::from_str(toml_str);
+    match decoded {
+      Ok(out) => Ok(out),
+      Err(err) => Err(CluEError::CannotReadTOML( format!("{}",err) )),
+    }   
+  }
+}
+impl fmt::Display for OrientationAveraging{
+   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+     let toml = toml::to_string(self).unwrap();
+     write!(f,"{}",toml)
+   }
+}
+//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 impl Config{

@@ -1,17 +1,37 @@
 use crate::space_3d::Vector3D;
 use crate::clue_errors::*;
+use crate::io::FromTOMLString;
 
 use lebedev_laikov;
 use rand_chacha::ChaCha20Rng;
 
+use serde::{Serialize,Deserialize};
+use std::fmt;
+
 /// `IntegrationGrid` is a struct for use in 
 /// [quadrature](https://en.wikipedia.org/wiki/Quadrature_(mathematics)).
-#[derive(Debug, Clone,PartialEq)]
+#[derive(Debug, Clone,PartialEq,Serialize,Deserialize)]
 pub struct IntegrationGrid{
   dim: usize,
   points: Vec::<f64>,
   weights: Vec::<f64>,
 }
+
+impl FromTOMLString for IntegrationGrid{
+  fn from_toml_string(toml_str: &str) -> Result<Self,CluEError>{
+    let decoded: Result<IntegrationGrid,_> = toml::from_str(toml_str);
+    match decoded {
+      Ok(out) => Ok(out),
+      Err(err) => Err(CluEError::CannotReadTOML( format!("{}",err) )),
+    }
+  }
+}
+impl fmt::Display for IntegrationGrid{
+   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+     let toml = toml::to_string(self).unwrap();
+     write!(f,"{}",toml)
+   }
+} 
 
 impl IntegrationGrid{
 

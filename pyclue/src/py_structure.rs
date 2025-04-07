@@ -6,6 +6,7 @@ use clue_oxide::clue_errors::CluEError;
 use crate::py_config::PyConfig;
 use crate::py_clue_errors::PyCluEError;
 use crate::py_particle::PyParticle;
+use crate::PyExchangeGroupManager;
 
 #[pyclass(name = "Structure")]
 #[derive(Debug)]
@@ -55,6 +56,14 @@ impl PyStructure{
     self.structure.bath_particles.iter()
       .map(|p| PyParticle{particle: p.clone()})
       .collect::<Vec::<PyParticle>>()
+  }
+  //----------------------------------------------------------------------------
+  pub fn get_exchange_groups(&self) -> Option<PyExchangeGroupManager>{
+    if let Some(exchange_group_manager) = self.structure.exchange_groups.clone()
+    {
+      return Some(PyExchangeGroupManager{exchange_group_manager});
+    }
+    None
   }
   //----------------------------------------------------------------------------
   pub fn number(&self) -> usize{

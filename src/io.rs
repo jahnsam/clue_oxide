@@ -7,6 +7,10 @@ use crate::signal::load_batch_signals;
 use std::error::Error;
 use std::path::Path;
 //------------------------------------------------------------------------------
+pub trait FromTOMLString{
+  fn from_toml_string(s: &str) -> Result<Self,CluEError> where Self: Sized;
+} 
+//------------------------------------------------------------------------------
 /// This function reads in the time_axis.csv file.
 pub fn read_time_axis(filename: &str) -> Result<Vec::<f64>, CluEError >
 {

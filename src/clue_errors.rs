@@ -38,6 +38,7 @@ pub enum CluEError{
   CannotPowTokens,
   CannotPruneClustersMisMatchedSizes,
   CannotReadGrid(String),
+  CannotReadTOML(String),
   CannotSampleBinomialDistribution(usize,f64),
   CannotSetExchangeCoupling(usize),
   CannotSubTokens,
@@ -303,6 +304,9 @@ impl fmt::Display for CluEError{
           "cannot read grid from \"{}\": \
 the grid should be specified as a csv file with one column per dimension, \
 followed by a column for the weights", filename),
+
+      CluEError::CannotReadTOML(string) => write!(f,
+          "cannot parse \"{}\" as TOML",string),
 
       CluEError::CannotConvertToFloat(line_number, token) => write!(f,
           "line {}, cannot convert \"{}\" to type float", line_number,token),

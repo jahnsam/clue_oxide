@@ -1,6 +1,6 @@
 [package]
 name = "clue_oxide"
-version = "0.2.2-alpha.5" # on update, ensure to also update src/info/version.rs
+version = "0.2.2-alpha.6" # on update, ensure to also update src/info/version.rs
 edition = "2021"
 authors = ["Samuel M. Jahn <jahn.samuel@gmail.com>"]
 description = "CluE Oxide (Cluster Evolution Oxide) is a spin dynamics simulation program for electron spin decoherence"
@@ -31,6 +31,9 @@ rand_distr = "0.4"
 rayon = "1.6.1"
 
 substring = "1.4"
+
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
 
 
 [target.'cfg(unix)'.dependencies]
