@@ -186,6 +186,7 @@ pub fn get_density_matrix(hamiltonian: &SpinHamiltonian, config: &Config)
   let mut density_matrix: CxMat;
 
   match density_matrix_method{
+    // TODO: Deprecate ApproxThermal.
     DensityMatrixMethod::ApproxThermal(temperature) => {
 
       let beta = I/(temperature*BOLTZMANN/HBAR);

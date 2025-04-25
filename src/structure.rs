@@ -23,7 +23,9 @@ use crate::structure::{
   particle::Particle,
   particle_filter::*
 };
-use crate::physical_constants::{ANGSTROM,Isotope};
+use crate::physical_constants::ANGSTROM;
+use crate::isotopes::Isotope;
+
 use crate::space_3d::SymmetricTensor3D;
 
 use rand_chacha::ChaCha20Rng;

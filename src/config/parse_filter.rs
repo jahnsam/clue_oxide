@@ -277,7 +277,7 @@ impl Config{
 mod tests{
   use super::*;
   use crate::config::get_tokens_from_line;
-  use crate::physical_constants::Element;
+  use crate::elements::Element;
   #[test]
   fn test_parse_filter_line(){
     let expressions = get_tokens_from_line(

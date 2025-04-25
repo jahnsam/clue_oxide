@@ -11,7 +11,8 @@ use crate::config::{
   token_stream::split_on_token,
 };
 use crate::structure::particle_filter::SecondaryParticleFilter;
-use crate::physical_constants::Isotope;
+use crate::isotopes::Isotope;
+use crate::physical_constants::C3_TUNNEL_SPLITTING_TO_EXCHANGE_COUPLING;
 use crate::space_3d::SymmetricTensor3D;
 
 
@@ -120,7 +121,9 @@ fn parse_isotope_properties(properties: &mut ParticleProperties,
       set_to_some_f64(&mut nut_opt,expression)?;
       
       if let Some(nut) = nut_opt{
-        isotope_properties.exchange_coupling = Some(-2.0*nut/3.0);
+        //isotope_properties.exchange_coupling = Some(-2.0*nut/3.0);
+        isotope_properties.exchange_coupling 
+            = Some(nut*C3_TUNNEL_SPLITTING_TO_EXCHANGE_COUPLING);
       }else{
         return Err(CluEError::CannotSetExchangeCoupling(
               expression.line_number));

@@ -1,7 +1,9 @@
 use crate::config::{Config,DetectedSpinCoordinates};
 use crate::CluEError;
 use crate::cluster::connected_subgraphs::separate_into_connected_subgraphs;
-use crate::physical_constants::{Element,HBAR,Isotope,MUB,MUN};
+use crate::physical_constants::{HBAR,MUB,MUN};
+use crate::elements::Element;
+use crate::isotopes::Isotope;
 use crate::quantum::tensors::construct_symmetric_tensor_from_tensor_specifier;
 use crate::structure::ParticleFilter;
 use crate::structure::{Structure, exchange_groups::*}; 

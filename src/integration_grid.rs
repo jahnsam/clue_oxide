@@ -12,9 +12,9 @@ use std::fmt;
 /// [quadrature](https://en.wikipedia.org/wiki/Quadrature_(mathematics)).
 #[derive(Debug, Clone,PartialEq,Serialize,Deserialize)]
 pub struct IntegrationGrid{
-  dim: usize,
-  points: Vec::<f64>,
-  weights: Vec::<f64>,
+  pub dim: usize,
+  pub points: Vec::<f64>,
+  pub weights: Vec::<f64>,
 }
 
 impl FromTOMLString for IntegrationGrid{

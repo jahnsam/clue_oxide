@@ -28,10 +28,15 @@ pub enum CluEError{
   CannotMatchVertexToIndex(usize),
   CannotMulTokens,
   CannotOpenFile(String),
+  CannotParseClusterMethod(String),
+  CannotParseDensityMatrix(String),
   CannotParseElement(String),
+  CannotParseLoadGeometry(String),
   CannotParseLine(String),
   CannotParseIsotope(String),
+  CannotParseOrientations(String),
   CannotParsePartitioningMethod(usize,String),
+  CannotParsePulseSequence(String),
   CannotParseRHS(usize),
   CannotParseSecondaryParticleFilter(String),
   CannotParseUnitOfClustering(usize,String),
@@ -71,6 +76,11 @@ pub enum CluEError{
   ExpectedNonNegativeIntRHS(usize),
   ExpectedVecOfNFloatsRHS(usize,usize),
   ExpectedNumber(usize),
+  ExpectedTOMLArray(String),
+  ExpectedTOMLBool(String),
+  ExpectedTOMLFloat(String),
+  ExpectedTOMLString(String),
+  ExpectedTOMLTable(String),
   FilterNoMaxDistance(String),
   FilterNeedsALabel,
   FilterNoMinDistance(String),
@@ -91,9 +101,11 @@ pub enum CluEError{
   IsotopeAbundancesCannotBeNormalized(usize),
   IsotopeAbundancesMustBeNonnegative(usize),
   LenghMismatchTimepointsIncrements(usize,usize),
+  MismatchedGroupNames(String,String),
   MissingFilter(String),
   MissingFilterArgument(usize,String),
   MissingFilterLabel(usize),
+  MissingGroupName,
   MissingHeader(usize,usize,String),
   MissingProperties(String),
   MissingPropertiesLabel(usize),
@@ -156,6 +168,10 @@ pub enum CluEError{
   NoTimeIncrements,
   NoTimepoints,
   NoUnitOfClustering,
+  NoUnitOfDistance,
+  NoUnitOfEnergy,
+  NoUnitOfMagneticField,
+  NoUnitOfTime,
   OptionAlreadySet(usize,String),
   ParticlesClash(usize,String,usize,String,f64,f64),
   ParticleIsNotActive(usize),
@@ -170,7 +186,13 @@ pub enum CluEError{
   TensorNotSet(usize),
   TooFewRHSArguments(usize),
   TooManyRelationalOperators(usize),
+  TooManyExchangeCouplingsSpecified(usize),
   TooManyRHSArguments(usize),
+  TOMLArrayContainsMultipleTypes,
+  TOMLArrayDoesNotSpecifyATensor,
+  TOMLArrayDoesNotSpecifyAVector,
+  TOMLArrayIsEmpty,
+  TOMLValueIsNotABool,
   UnavailableSpinOp(usize,usize),
   UnassignedCosubstitutionGroup(usize),
   UnequalLengths(String,usize,String,usize),
@@ -178,6 +200,7 @@ pub enum CluEError{
   UnmatchedDelimiter(usize),
   UnrecognizedOption(String),
   UnrecognizedVectorSpecifier(String),
+  UnrecognizedUnit(String),
   VectorSpecifierDoesNotSpecifyUniqueVector(String),
   WrongClusterSizeForAnalyticCCE(usize),
   WrongNumberOfAxes(usize,usize),
@@ -258,8 +281,20 @@ impl fmt::Display for CluEError{
       CluEError::CannotOpenFile(file) => write!(f,
           "cannot open \"{}\"", file),
 
+      CluEError::CannotParseClusterMethod(method) => write!(f,
+          "cannot parse \"{}\" as a cluster method", method),
+
+      CluEError::CannotParseDensityMatrix(d) => write!(f,
+          "cannot parse \"{}\" as a density matrix method", d),
+
       CluEError::CannotParseElement(element) => write!(f,
           "cannot parse \"{}\" as an element", element),
+
+      CluEError::CannotParseLoadGeometry(geo) => write!(f,
+          "cannot parse \"{}\" as a geometry", geo),
+
+      CluEError::CannotParseOrientations(ori) => write!(f,
+          "cannot parse \"{}\" as an orientation averaging scheme", ori),
 
       CluEError::CannotParseLine(line) => write!(f,
           "cannot parse line \"{}\"", line),
@@ -268,8 +303,16 @@ impl fmt::Display for CluEError{
           "cannot parse \"{}\" as an isotope", isotope),
 
       CluEError::CannotParsePartitioningMethod(line_num, part_method) 
-          => write!(f, "line {}: cannot parse partitioning method \"{}\"", 
-          line_num, part_method),
+          => if *line_num > 0 {
+            write!(f, "line {}: cannot parse partitioning method \"{}\"", 
+            line_num, part_method)
+          }else{
+            write!(f, "cannot parse partitioning method \"{}\"", 
+            part_method)
+          },
+
+      CluEError::CannotParsePulseSequence(seq) => write!(f,
+          "cannot parse \"{}\" as a pulse sequence", seq),
 
       CluEError::CannotParseRHS(line_number) => write!(f,
           "line {}, cannot parse line right hand side", line_number),
@@ -404,6 +447,21 @@ fo nth active"),
       CluEError::ExpectedNumber(line_number) => write!(f,
           "line {}, expected a number",line_number),
 
+      CluEError::ExpectedTOMLArray(type_str) => write!(f,
+          "expected array, but got {}",type_str),
+
+      CluEError::ExpectedTOMLBool(type_str) => write!(f,
+          "expected bool, but got {}",type_str),
+
+      CluEError::ExpectedTOMLFloat(type_str) => write!(f,
+          "expected float, but got {}",type_str),
+
+      CluEError::ExpectedTOMLString(type_str) => write!(f,
+          "expected string, but got {}",type_str),
+
+      CluEError::ExpectedTOMLTable(type_str) => write!(f,
+          "expected table, but got {}",type_str),
+
       CluEError::ExpectedVecOfNFloatsRHS(line_number,n) => write!(f,
           "line {}, expected a vector of {} floats on the right hand side",
           line_number,n),
@@ -477,6 +535,9 @@ and p0,p1 > 0 are abundances",line_number),
           "there are {} timepoint specifications, but {} time increments",
           n_dts,dts),
 
+      CluEError::MismatchedGroupNames(name0,name1) => write!(f,
+          "group names \"{}\" and \"{}\" do not match",name0,name1),
+
       CluEError::MissingFilter(label) => write!(f,
           "no group with label \"{}\"",label),
 
@@ -485,6 +546,9 @@ and p0,p1 > 0 are abundances",line_number),
 
       CluEError::MissingFilterLabel(line_number) => write!(f,
           "line {}, missing label in group",line_number),
+
+      CluEError::MissingGroupName => write!(f,
+          "no group name specified"),
 
       CluEError::MissingHeader(n_headers, n_cols,filename) => write!(f,
           "in \"{}\", every entry must have a header, \
@@ -672,6 +736,18 @@ periodic boundary conditions should be applied"),
       
       CluEError::NoUnitOfClustering => write!(f,
           "please specify a unit of clustering"),
+
+      CluEError::NoUnitOfDistance => write!(f,
+          "please specify a unit of distance"),
+      
+      CluEError::NoUnitOfEnergy => write!(f,
+          "please specify a unit of energy"),
+      
+      CluEError::NoUnitOfMagneticField => write!(f,
+          "please specify a unit of magnetic field"),
+      
+      CluEError::NoUnitOfTime => write!(f,
+          "please specify a unit of time"),
       
       CluEError::NoRHS(line_number) => write!(f,
           "line {}, cannot read right hand side",line_number),
@@ -739,6 +815,10 @@ clash distance of {} Å",idx0,elmt0,idx1,elmt1,r,r_clash),
           "line {}, too few arguments on the right hand side", 
           line_number),
 
+      CluEError::TooManyExchangeCouplingsSpecified(n) => write!(f,
+          "expected 1 exchange coupling, but got {}", 
+          n),
+
       CluEError::TooManyRelationalOperators(line_number) => write!(f,
           "line {}, too many relational operators (=, <, >, in, ...), are present", 
           line_number),
@@ -746,6 +826,26 @@ clash distance of {} Å",idx0,elmt0,idx1,elmt1,r,r_clash),
       CluEError::TooManyRHSArguments(line_number) => write!(f,
           "line {}, too many arguments on the right hand side", 
           line_number),
+
+      CluEError::TOMLArrayContainsMultipleTypes => write!(f,
+          "TOML array contains data of different types", 
+          ),
+
+      CluEError::TOMLArrayDoesNotSpecifyATensor => write!(f,
+          "cannot interpret TOML array as a tensor", 
+          ),
+
+      CluEError::TOMLArrayDoesNotSpecifyAVector => write!(f,
+          "cannot interpret TOML array as a vector", 
+          ),
+
+      CluEError::TOMLArrayIsEmpty => write!(f,
+          "TOML array is empty", 
+          ),
+
+      CluEError::TOMLValueIsNotABool => write!(f,
+          "TOML value is not a bool", 
+          ),
 
       CluEError::UnassignedCosubstitutionGroup(index)=> write!(f,
           "particle {} cannot be assigned to a cosubstitution group",
@@ -764,6 +864,9 @@ clash distance of {} Å",idx0,elmt0,idx1,elmt1,r,r_clash),
 
       CluEError::UnrecognizedVectorSpecifier(specifier) => write!(f,
           "unrecognized vector specifier \"{}\"",specifier),
+
+      CluEError::UnrecognizedUnit(unit) => write!(f,
+          "unrecognized unit \"{}\"",unit),
 
       CluEError::VectorSpecifierDoesNotSpecifyUniqueVector(specifier) 
         => write!(f,

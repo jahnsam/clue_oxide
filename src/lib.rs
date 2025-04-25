@@ -9,7 +9,9 @@
 pub mod config;
 pub mod clue_errors;
 pub mod cluster;
+pub mod elements;
 pub mod info;
+pub mod isotopes;
 pub mod integration_grid;
 pub mod physical_constants;
 pub mod quantum;
@@ -18,6 +20,7 @@ pub mod signal;
 pub mod space_3d;
 pub mod symmetric_list_2d;
 pub mod math;
+pub mod misc;
 pub mod kmeans;
 pub mod io;
 

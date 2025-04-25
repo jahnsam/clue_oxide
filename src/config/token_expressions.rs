@@ -7,7 +7,7 @@ use crate::config::token_stream::split_on_token;
 use crate::config::token_algebra::*;
 use crate::config::to_i32_token;
 use crate::config::token_stream::{find_brackets,find_outermost_parentheses};
-use crate::physical_constants::Element;
+use crate::elements::Element;
 use crate::space_3d::Vector3D;
 use crate::structure::particle_filter::{SecondaryParticleFilter,
   VectorSpecifier};

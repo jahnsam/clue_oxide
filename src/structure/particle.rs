@@ -1,5 +1,6 @@
 use crate::space_3d::Vector3D;
-use crate::physical_constants::{Element,Isotope};
+use crate::elements::Element;
+use crate::isotopes::Isotope;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 /// `Particle` specifies possible particles.

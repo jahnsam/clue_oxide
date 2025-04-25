@@ -2,7 +2,8 @@
 use crate::clue_errors::CluEError;
 use crate::config::Config;
 use crate::config::particle_config::{EigSpecifier,TensorSpecifier};
-use crate::physical_constants::{HBAR, Isotope, JOULES_TO_HERTZ,
+use crate::isotopes::Isotope;
+use crate::physical_constants::{HBAR, JOULES_TO_HERTZ,
   MU0,MUB,MUN,PI};
 use crate::space_3d::{SymmetricTensor3D,UnitSpherePoint,Vector3D};
 use crate::structure::{DetectedSpin,Structure};
@@ -734,6 +735,7 @@ fn construct_symmetric_tensor_from_eig_specifier(
 mod tests{
   use super::*;
   use crate::physical_constants::*;
+  use crate::elements::Element;
   use crate::space_3d::{SymmetricTensor3D, Vector3D};
   use crate::config::particle_config::ParticleConfig;
   use crate::structure::pdb;

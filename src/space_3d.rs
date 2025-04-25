@@ -1,4 +1,7 @@
 use crate::physical_constants::PI;
+use crate::CluEError;
+use crate::misc::are_all_same_type;
+
 
 use rand::distributions::Uniform;
 use rand_distr::Distribution;
@@ -11,6 +14,52 @@ pub struct SymmetricTensor3D{
 }
 
 impl SymmetricTensor3D{
+  //----------------------------------------------------------------------------
+  pub fn from_toml_value(value: toml::Value) -> Result<Self,CluEError> 
+  {
+    match value{
+      toml::Value::Array(array) => Self::from_toml_array(array),
+      _ => Err(CluEError::TOMLArrayDoesNotSpecifyATensor)
+    }
+  }
+  //----------------------------------------------------------------------------
+  pub fn from_toml_array(array: Vec::<toml::Value>) -> Result<Self,CluEError>
+  {
+
+    if array.is_empty(){
+      return Err(CluEError::TOMLArrayIsEmpty);
+    }
+    if !are_all_same_type(&array){
+      return Err(CluEError::TOMLArrayContainsMultipleTypes);
+    }
+    if !array[0].is_float(){
+      return Err(CluEError::TOMLArrayDoesNotSpecifyATensor);
+    }
+
+    let vec: Vec::<f64> = array.iter()
+      .filter_map(|v| v.as_float()).collect();
+
+    match vec.len(){
+      1 => Ok(Self::eye().scale(vec[0] )),
+      3 => Ok(Self{ elements: 
+            [vec[0],    0.0, 0.0,
+                     vec[1], 0.0,
+                             vec[2] ] 
+      }),
+      6 => Ok(Self{ elements: 
+            [vec[0], vec[1], vec[2],
+                     vec[3], vec[4],
+                             vec[5] ] 
+      }),
+      9 => Ok(Self{ elements: 
+            [vec[0], vec[1], vec[2],
+                     vec[4], vec[5],
+                             vec[8] ] 
+      }),
+      _ => Err(CluEError::TOMLArrayDoesNotSpecifyATensor)
+    }
+  }
+  
   //----------------------------------------------------------------------------
   pub fn any_nan(&self) -> bool {
     for x in self.elements.iter(){
@@ -161,15 +210,18 @@ impl SymmetricTensor3D{
     self.xx() + self.yy() + self.zz()
   }
   //----------------------------------------------------------------------------
-
-
   pub fn scale(&self, a: f64) -> SymmetricTensor3D {
-    let mut elements = self.elements;
-    for x in elements.iter_mut(){
+    let mut tensor = self.clone();
+    tensor.scale_mut(a);
+    tensor
+  }
+  //----------------------------------------------------------------------------
+  pub fn scale_mut(&mut self, a: f64){
+    for x in self.elements.iter_mut(){
       *x *= a;
     }
-    SymmetricTensor3D{elements}
   }
+  //----------------------------------------------------------------------------
 
   pub fn xx(&self) -> f64 { self.elements[0]}
   pub fn xy(&self) -> f64 { self.elements[1]}
@@ -257,6 +309,25 @@ pub struct Vector3D{
 impl Vector3D{
 
   //----------------------------------------------------------------------------
+  pub fn from_toml_array(array: Vec::<toml::Value>) -> Result<Self,CluEError>
+  {
+    if array.len() != 3 {
+      return Err(CluEError::TOMLArrayDoesNotSpecifyAVector);
+    }
+    if !are_all_same_type(&array){
+      return Err(CluEError::TOMLArrayContainsMultipleTypes);
+    }
+    if !array[0].is_float(){
+      return Err(CluEError::TOMLArrayDoesNotSpecifyAVector);
+    }
+
+    let r = array.iter().filter_map(|x| x.as_float())
+      .collect::<Vec::<f64>>();
+    
+    Ok(Self{elements: [r[0],r[1],r[2]]})
+
+  }
+  //----------------------------------------------------------------------------
   pub fn any_nan(&self) -> bool {
     for x in self.elements.iter(){
       if x.is_nan(){
@@ -265,8 +336,16 @@ impl Vector3D{
     }
     false
   }
+  //----------------------------------------------------------------------------
   pub fn from(elements: [f64;3]) -> Self{
     Vector3D{elements}
+  }
+  //----------------------------------------------------------------------------
+  pub fn from_vec(v: Vec::<f64>) -> Result<Self,CluEError>{
+    if v.len() != 3{
+      return Err(CluEError::NotA3DVector(v.len()));
+    }
+    Ok(Self::from([ v[0],v[1],v[2] ]))
   }
   //----------------------------------------------------------------------------
   pub fn zeros() -> Self{

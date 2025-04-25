@@ -669,7 +669,8 @@ mod tests{
 
   use crate::config::particle_config::{ParticleConfig,
     ParticleProperties,IsotopeAbundance};
-  use crate::physical_constants::{Element,Isotope};
+  use crate::elements::Element;
+  use crate::isotopes::Isotope;
 
   use crate::config::LoadGeometry;
   

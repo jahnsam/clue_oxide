@@ -1,6 +1,6 @@
 use crate::clue_errors::*;
 use crate::config::token_stream::split_on_token;
-use crate::physical_constants::Isotope;
+use crate::isotopes::Isotope;
 use std::ops::{Add,Sub,Mul,Div};
 
 use std::fmt;

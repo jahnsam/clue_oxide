@@ -1,6 +1,8 @@
 use crate::clue_errors::CluEError;
 use crate::cluster::adjacency::AdjacencyList;
-use crate::physical_constants::{ANGSTROM,PI,Element,Isotope};
+use crate::elements::Element;
+use crate::physical_constants::{ANGSTROM,PI};
+use crate::isotopes::Isotope;
 use crate::structure::{Structure, particle::Particle};
 use crate::space_3d::Vector3D;
 

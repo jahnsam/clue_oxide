@@ -237,7 +237,7 @@ mod tests{
   use crate::structure::particle::Particle;
   use crate::cluster::adjacency::AdjacencyList;
   use crate::space_3d::Vector3D;
-  use crate::physical_constants::Element;
+  use crate::elements::Element;
   //----------------------------------------------------------------------------
   #[test]
   fn test_set_clusters_from_lines(){
