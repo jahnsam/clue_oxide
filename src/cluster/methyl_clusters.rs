@@ -216,7 +216,6 @@ mod tests{
   use crate::structure::exchange_groups::{C3Rotor,ExchangeGroup};
   use crate::structure::particle::Particle;
   use crate::cluster::adjacency::AdjacencyList;
-  use crate::physical_constants::*;
   use crate::elements::Element;
   
   //----------------------------------------------------------------------------

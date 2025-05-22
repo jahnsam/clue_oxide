@@ -7,10 +7,6 @@ use crate::cluster::{
 use crate::config::config_toml::*;
 use crate::config::particle_config::set_particle_configs_from_toml_table;
 use crate::config::command_line_input::CommandLineInput;
-use crate::config::lexer::*;
-use crate::config::token::*;
-use crate::config::token_algebra::*;
-use crate::config::token_expressions::*;
 use crate::config::particle_config::{
   CellType, ParticleConfig,EigSpecifier,TensorSpecifier
 };
@@ -23,7 +19,6 @@ use crate::integration_grid::IntegrationGrid;
 use crate::misc::are_all_same_type;
 
 
-use crate::io;
 use crate::io::FromTOMLString;
 
 
@@ -37,16 +32,8 @@ use std::fs;
 use std::mem;
 
 pub mod config_toml;
-pub mod lexer;
-pub mod token;
-pub mod token_algebra;
-pub mod token_stream;
-pub mod token_expressions;
 pub mod particle_config;
 pub mod command_line_input;
-pub mod parse_config;
-pub mod parse_filter;
-pub mod parse_properties;
 
 
 // Define the directory and file names used to save outputs.
@@ -65,49 +52,57 @@ pub const SAVE_FILE_TENSORS: &str = "tensors";
 /// Config contains all the setting for CluE.
 #[derive(Debug,Clone,Default)]
 pub struct Config{
-  // TODO: convert all fields to Option<T> or Option<Vec::<T>>,
-  // where T ∈ {bool,String,usize,u32,u42,i32,f64 }.
-  pub apply_pbc: Option<bool>,
-  pub clash_distance: Option<f64>, 
-  pub clash_distance_pbc: Option<f64>,
-  pub cluster_batch_size: Option<usize>, 
-  pub cluster_method: Option<ClusterMethod>,
-  pub clusters_file: Option<String>,
+
+  // Detected Spin
   pub density_matrix: Option<DensityMatrixMethod>,
   pub detected_spin_g_matrix: Option<TensorSpecifier>,
   pub detected_spin_identity: Option<Isotope>,
   pub detected_spin_multiplicity: Option<usize>,
   pub detected_spin_position: Option<DetectedSpinCoordinates>,
   pub detected_spin_transition: Option<[usize;2]>,
+
+  // Structure
+  pub replicate_unit_cell: Option<ReplicateUnitCell>,
+  pub clash_distance: Option<f64>, 
+  pub clash_distance_pbc: Option<f64>,
   pub extracell_particles: Vec::<ParticleConfig>,
   pub input_structure_file: Option<String>,
-  pub load_geometry: Option<LoadGeometry>,
-  pub magnetic_field: Option<Vector3D>,
-  pub max_cell_size: Option<usize>,
-  pub max_cluster_size: Option<usize>,
-  pub max_spin_order: Option<usize>,
-  pub min_cell_size: Option<usize>,
-  pub neighbor_cutoff_coupling: Option<f64>,
-  pub neighbor_cutoff_delta_hyperfine: Option<f64>,
-  pub neighbor_cutoff_dipole_perpendicular: Option<f64>,
+  pub particles: Vec::<ParticleConfig>,
+  pub pdb_model_index: Option<usize>,
+  pub radius: Option<f64>,
+  
+  // Pair Cutoffs
+  pub neighbor_cutoff_coupling_xx_yy: Option<f64>,
+  pub neighbor_cutoff_delta_hyperfine_zz: Option<f64>,
+  pub neighbor_cutoff_point_dipole_perpendicular: Option<f64>,
   pub neighbor_cutoff_distance: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_mod_depth: Option<f64>,
   pub neighbor_cutoff_3_spin_hahn_taylor_4: Option<f64>,
-  pub number_system_instances: Option<usize>, 
-  pub number_timepoints: Vec::<usize>,
-  pub orientation_grid: Option<OrientationAveraging>,
-  pub partitioning_method: Option<PartitioningMethod>,
-  pub particles: Vec::<ParticleConfig>,
-  pub pdb_model_index: Option<usize>,
-  pub pulse_sequence: Option<PulseSequence>,
-  pub root_dir: Option<String>, 
-  pub radius: Option<f64>,
+
+  // CCE
+  pub cluster_batch_size: Option<usize>, 
+  pub clusters_file: Option<String>,
+  pub cluster_method: Option<ClusterMethod>,
+  pub min_cell_size: Option<usize>,
+  pub max_cell_size: Option<usize>,
+  pub max_cluster_size: Option<usize>,
+  pub max_spins: Option<usize>,
+  pub partitioning: Option<PartitioningMethod>,
   pub rng_seed: Option<u64>,
-  pub save_name: Option<String>,
-  pub system_name: Option<String>,
-  time_axis: Vec::<f64>,
-  pub time_increments: Vec::<f64>,
   pub unit_of_clustering: Option<UnitOfClustering>,
+
+  // Experimental Details
+  pub magnetic_field: Option<Vector3D>,
+  pub orientation_grid: Option<OrientationAveraging>,
+  pub pulse_sequence: Option<PulseSequence>,
+  time_axis: Vec::<f64>,
+  pub tau_increments: Vec::<f64>,
+  pub number_runs: Option<usize>, 
+  pub number_timepoints: Vec::<usize>,
+
+  // Output
+  pub output_directory: Option<String>,
+  pub run_name: Option<String>,
   pub write_auxiliary_signals: Option<bool>, 
   pub write_bath: Option<bool>,
   pub write_clusters: Option<bool>,
@@ -119,6 +114,9 @@ pub struct Config{
   pub write_sans_spin_signals: Option<bool>,
   pub write_structure_pdb: Option<bool>,
   pub write_tensors: Option<bool>,
+
+  // Units
+  pub unit_of_time_to_seconds: Option<f64>,
 }
 
 
@@ -130,7 +128,10 @@ impl FromTOMLString for Config{
     let config_toml = ConfigTOML::from_toml_string(toml_str)?;
     config.set_from_config_toml(config_toml)?;
 
+    config.set_extracell_particles();
+
     config.set_defaults()?;
+
 
     Ok(config)
   }
@@ -153,39 +154,7 @@ impl Config{
 
     let mut config = Self::from_toml_string(&toml_str)?;
 
-    config.set_extracell_particles();
-
-    config.set_defaults()?;
-
-    match config.construct_time_axis(){
-      Ok(_) => (),
-      Err(err) => return Err(err),
-    }
-
-    Ok(config)
-  }
-  //----------------------------------------------------------------------------
-  /// This function generates a `Config` from an input string.
-  pub fn from(input: &str) -> Result<Self,CluEError>
-  {
-    let expressions
-      = match get_tokens_from_line(input){
-        Ok(exps) => exps,
-        Err(err) => return Err(err),
-      };
-
-    let mut config = Config::new();
-
-    match  config.parse_token_stream(expressions){
-      Ok(_) => (),
-      Err(err) => return Err(err),
-    }
-
-    config.set_extracell_particles();
-
-    config.set_defaults()?;
-
-    match config.construct_time_axis(){
+    match config.set_time_axis(){
       Ok(_) => (),
       Err(err) => return Err(err),
     }
@@ -198,26 +167,20 @@ impl Config{
   /// Any field that is already `Some` will be left alone.
   pub fn set_defaults(&mut self) -> Result<(),CluEError> {
 
-    if self.apply_pbc.is_none(){
-      self.apply_pbc = Some(true);
+    if self.replicate_unit_cell.is_none(){
+      self.replicate_unit_cell = Some(ReplicateUnitCell::Auto);
     }
     if self.clash_distance.is_none(){
       self.clash_distance = Some(1e-12);
     }
-    //if self.clash_distance_pbc.is_none(){
-    //  self.clash_distance_pbc = Some(1e-12);
-    //}
 
 
     if self.cluster_batch_size.is_none(){
       self.cluster_batch_size = Some(1000);
     }
-    if self.load_geometry.is_none(){
-      self.load_geometry = Some(LoadGeometry::Ball);
-    }
 
-    if self.partitioning_method.is_none(){
-      self.partitioning_method = Some(PartitioningMethod::Particles);
+    if self.partitioning.is_none(){
+      self.partitioning = Some(PartitioningMethod::Particles);
     }
 
     if self.pdb_model_index.is_none(){
@@ -227,12 +190,8 @@ impl Config{
       self.density_matrix = Some(DensityMatrixMethod::Identity);
     }
 
-    if self.number_system_instances.is_none(){
-      self.number_system_instances = Some(1);
-    }
-
-    if self.root_dir.is_none(){
-      self.root_dir = Some("./".to_string());
+    if self.number_runs.is_none(){
+      self.number_runs = Some(1);
     }
 
     if self.unit_of_clustering.is_none(){
@@ -321,7 +280,7 @@ impl Config{
   }
   //----------------------------------------------------------------------------
   /// This function gets the simulated experiment's time axis.
-  pub fn get_time_axis(&self) -> Result<&Vec::<f64>,CluEError>
+  pub fn get_time_axis_as_ref(&self) -> Result<&Vec::<f64>,CluEError>
   {
     if self.time_axis.is_empty() {
       return Err(CluEError::NoTimeAxis);
@@ -329,10 +288,26 @@ impl Config{
     Ok(&self.time_axis)
   }
   //----------------------------------------------------------------------------
-  /// This function constructs the simulated experiment's time axis.
-  pub fn construct_time_axis(&mut self) -> Result<(),CluEError>
+  /// This function gets the simulated experiment's time axis.
+  pub fn get_time_axis(&self) -> Result<Vec::<f64>,CluEError>
   {
-    let dts = &self.time_increments;
+    if self.time_axis.is_empty() {
+      return self.construct_time_axis();
+    };
+    Ok(self.time_axis.clone())
+  }
+  //----------------------------------------------------------------------------
+  pub fn set_time_axis(&mut self) -> Result<(),CluEError>
+  {
+    self.time_axis  = self.construct_time_axis()?;
+
+    Ok(())
+  }
+  //----------------------------------------------------------------------------
+  /// This function constructs the simulated experiment's time axis.
+  pub fn construct_time_axis(&self) -> Result<Vec::<f64>,CluEError>
+  {
+    let dts = &self.tau_increments;
     if dts.is_empty(){
       return Err(CluEError::NoTimeIncrements);
     }
@@ -352,28 +327,30 @@ impl Config{
     };
 
     let n_tot = n_dts.iter().sum::<usize>();
-    self.time_axis = Vec::<f64>::with_capacity(n_tot);
+    let mut time_axis = Vec::<f64>::with_capacity(n_tot);
     match pulse_sequence{
       PulseSequence::CarrPurcell(n_pi_pulses) => {
         let mut t = 0.0;
         for (idx, &n_dt) in n_dts.iter().enumerate(){
           let dt = (*n_pi_pulses as f64 + 1.0)*dts[idx];
           for _ii in 0..n_dt{
-            self.time_axis.push(t);
+            time_axis.push(t);
             t += dt;
           }
         }
       }
     }
 
-    Ok(())
+    Ok(time_axis)
   }
   //----------------------------------------------------------------------------
+  /*
   /// This function writes the simulated experiment's time axis to a file.
   pub fn write_time_axis(&self,save_path: String) -> Result<(),CluEError>{
     io::write_data(&[self.time_axis.clone()], 
         &format!("{}/time_axis.csv",save_path), vec!["time_axis".to_string()])
   }
+  */
   //----------------------------------------------------------------------------
   /// This function finds the `ParticleConfig` that has `label` if it exists.
   pub fn find_particle_config(&self, label: &str) 
@@ -399,21 +376,6 @@ pub enum DensityMatrixMethod{
   Thermal(f64),
 }
 
-/// `LoadGeometry` specifies how the system is trimmed/
-#[derive(Debug,Clone,PartialEq)]
-pub enum LoadGeometry{
-  Ball,
-  Cube,
-}
-impl LoadGeometry{
-  pub fn from(geo: &str) -> Result<Self,CluEError>{
-    match geo{
-      "ball" => Ok(Self::Ball),
-      "cube" => Ok(Self::Cube),
-      _ => Err(CluEError::CannotParseLoadGeometry(geo.to_string())),
-    }
-  }
-}
 
 /// `DetectedSpinCoordinates` lists options for indicating the coordinates
 /// of the detected spin.
@@ -500,6 +462,46 @@ impl DetectedSpinCoordinates{
   }
 }
 
+#[derive(Debug,Clone,PartialEq)]
+pub enum ReplicateUnitCell{
+  No,
+  Auto,
+  Specified([usize;3]),
+}
+
+impl ReplicateUnitCell{
+  pub fn from_toml_value(value: toml::Value) -> Result<Self,CluEError> 
+  {
+    match value{
+      Value::Array(array) => Self::from_toml_array(array),
+      Value::Boolean(b) => {
+        if b { Ok(Self::Auto)}
+        else { Ok(Self::No)  }
+      },
+      _ => Err(CluEError::TOMLArrayDoesNotSpecifyAVector),
+    }
+  }
+  //----------------------------------------------------------------------------
+  pub fn from_toml_array(array: Vec::<toml::Value>) -> Result<Self,CluEError>
+  {
+
+    if array.is_empty(){
+      return Err(CluEError::TOMLArrayIsEmpty);
+    }
+    if !are_all_same_type(&array){
+      return Err(CluEError::TOMLArrayContainsMultipleTypes);
+    }
+    match array[0]{
+      Value::Integer(_) => {
+        let vec: Vec::<usize> = array.iter()
+          .filter_map(|v| v.as_integer()).map(|n| n as usize).collect();
+
+        Ok(Self::Specified([vec[0],vec[1],vec[2]]))
+      },
+      _ => Err(CluEError::TOMLArrayDoesNotSpecifyAVector),
+    }
+  }
+}
 
 
 /// `ClusterMethod` list different cluster simulation methods.
@@ -576,14 +578,14 @@ impl OrientationAveraging{
 
     if grid == KEY_ORI_LEBEDEV{
 
-      let Some(n_ori) = ori_toml.number_points else{
+      let Some(n_ori) = ori_toml.number else{
         return Err(CluEError::CannotParseOrientations(grid.to_string()));
       };
       return Ok(OrientationAveraging::Lebedev(n_ori));
 
     } else if grid == KEY_ORI_RANDOM{
 
-      let Some(n_ori) = ori_toml.number_points else{
+      let Some(n_ori) = ori_toml.number else{
         return Err(CluEError::CannotParseOrientations(grid.to_string()));
       };
       return Ok(OrientationAveraging::Random(n_ori));
@@ -666,20 +668,11 @@ impl Config{
     let unit_of_time = match &config_toml.unit_of_time {
       Some(u) => time_unit_to_seconds(u)?,
       None => return Err(CluEError::NoUnitOfTime),
-    }; 
+    };
+    self.unit_of_time_to_seconds = Some(unit_of_time);
  
 
-    // A--B
-    if let Some(pbc) = config_toml.periodic_boundary_conditions{
-      if let Some(b) = pbc.as_bool(){
-        self.apply_pbc = Some(b);
-      }else{
-        return Err(CluEError::TOMLValueIsNotABool);
-      }
-    }
-
-
-    // C
+    // A--C
     if let Some(clash_distance) = config_toml.clash_distance{
       self.clash_distance = Some(clash_distance*unit_of_distance);
     }
@@ -735,7 +728,7 @@ impl Config{
                 value.type_str().to_string()));
         };
         set_particle_configs_from_toml_table(&mut self.particles,
-            group.clone(),unit_of_energy)?;
+            group.clone(),unit_of_distance,unit_of_energy)?;
       }
     }
     //I
@@ -743,10 +736,6 @@ impl Config{
       self.input_structure_file = config_toml.input_structure_file;
     }
 
-    if let Some(geo) = &config_toml.load_geometry{
-      let load_geo = LoadGeometry::from(geo)?;
-      self.load_geometry = Some(load_geo);
-    }
 
     // J--M
     if let Some(bz) = config_toml.magnetic_field{
@@ -763,7 +752,7 @@ impl Config{
     }
 
     if config_toml.max_spins.is_some(){
-      self.max_spin_order = config_toml.max_spins;
+      self.max_spins = config_toml.max_spins;
     }
 
     if config_toml.min_cell_size.is_some(){
@@ -774,13 +763,13 @@ impl Config{
     // N
     if let Some(pair_cutoffs) = &config_toml.pair_cutoffs{
       if let Some(&cutoff) = pair_cutoffs.get(KEY_CUTOFF_COUPLING){ 
-        self.neighbor_cutoff_coupling = Some(cutoff*unit_of_energy);
+        self.neighbor_cutoff_coupling_xx_yy = Some(cutoff*unit_of_energy);
       }
       if let Some(&cutoff) = pair_cutoffs.get(KEY_CUTOFF_DELTA_HF){ 
-        self.neighbor_cutoff_delta_hyperfine = Some(cutoff*unit_of_energy);
+        self.neighbor_cutoff_delta_hyperfine_zz = Some(cutoff*unit_of_energy);
       }
       if let Some(&cutoff) = pair_cutoffs.get(KEY_CUTOFF_DIPOLE_PERP){ 
-        self.neighbor_cutoff_dipole_perpendicular 
+        self.neighbor_cutoff_point_dipole_perpendicular 
             = Some(cutoff*unit_of_energy);
       }
       if let Some(&cutoff) = pair_cutoffs.get(KEY_CUTOFF_DISTANCE){ 
@@ -804,8 +793,8 @@ impl Config{
 
     }
 
-    if config_toml.number_system_instances.is_some(){
-      self.number_system_instances = config_toml.number_system_instances;
+    if config_toml.number_runs.is_some(){
+      self.number_runs = config_toml.number_runs;
     }
 
     if let Some(number_timepoints) = &mut config_toml.number_timepoints{
@@ -819,18 +808,18 @@ impl Config{
     }
 
     // P--Q
-    if config_toml.partitioning_method 
+    if config_toml.partitioning 
         == Some(KEY_PARTITION_PARTICLE.to_string())
     {
-      self.partitioning_method = Some(PartitioningMethod::Particles);
+      self.partitioning = Some(PartitioningMethod::Particles);
 
-    }else if config_toml.partitioning_method 
+    }else if config_toml.partitioning 
         == Some(KEY_PARTITION_EX_GROUPS.to_string())
     {
-      self.partitioning_method 
+      self.partitioning 
           = Some(PartitioningMethod::ExchangeGroupsAndParticles);
 
-    }else if let Some(s) = config_toml.partitioning_method
+    }else if let Some(s) = config_toml.partitioning
     {
       return Err(CluEError::CannotParsePartitioningMethod(0,s.to_string()));  
     }
@@ -843,46 +832,46 @@ impl Config{
     }
 
     // R--S
-    if config_toml.root_dir.is_some(){
-      self.root_dir = config_toml.root_dir;
-    }
-
     if let Some(radius) = config_toml.radius{
       self.radius = Some(radius*unit_of_distance);
+    }
+
+    if let Some(pbc) = config_toml.replicate_unit_cell{
+      self.replicate_unit_cell = Some(ReplicateUnitCell::from_toml_value(pbc)?);
     }
 
     if config_toml.rng_seed.is_some(){
       self.rng_seed = config_toml.rng_seed;
     }
 
-    if config_toml.save_name.is_some(){
-      mem::swap(&mut self.save_name, &mut config_toml.save_name);
+    if config_toml.output_directory.is_some(){
+      mem::swap(&mut self.output_directory, &mut config_toml.output_directory);
     }
 
-    if config_toml.system_name.is_some(){
-      mem::swap(&mut self.system_name, &mut config_toml.system_name);
+    if config_toml.run_name.is_some(){
+      mem::swap(&mut self.run_name, &mut config_toml.run_name);
     }
 
     // T--V
-    if config_toml.cluster_density_matrix 
+    if config_toml.populations 
         == Some(KEY_DENSITY_MATRIX_THERMAL.to_string())
     {
       let Some(t) = config_toml.temperature else {
         return Err(CluEError::NoTemperature);
       };
       self.density_matrix = Some(DensityMatrixMethod::Thermal(t));  
-    }else if config_toml.cluster_density_matrix 
+    }else if config_toml.populations 
         == Some(KEY_DENSITY_MATRIX_ID.to_string())
     {
       self.density_matrix = Some(DensityMatrixMethod::Identity); 
     }
 
 
-    if let Some(time_increments) = &mut config_toml.time_increments{ 
-      for t in time_increments.iter_mut(){
+    if let Some(tau_increments) = &mut config_toml.tau_increments{ 
+      for t in tau_increments.iter_mut(){
         *t *= unit_of_time;
       }
-      mem::swap(&mut self.time_increments, time_increments);
+      mem::swap(&mut self.tau_increments, tau_increments);
     }
 
     // W--Z
@@ -933,33 +922,7 @@ impl Config{
       return Err(CluEError::NoInputFile);
     };
 
-    if filename.contains(".toml"){
-      return Self::from_toml_file(filename); 
-    }else{
-      println!(r#"
-          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          WARNING: 
-          CluE Oxide is moving to TOML input files.  
-          The old input files are deprecated and will be removed in a future
-          update.  
-          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          "#)
-    }
-  
-    let mut config = Config::new();
-
-    let mut token_stream = get_tokens_from_file(filename)?;
-
-    if let Some(options) = &input.config_options{
-      let mut expressions = get_tokens_from_line(options)?;
-      token_stream.append(&mut expressions);
-    }
-
-    config.parse_token_stream(token_stream)?;
-
-    config.set_extracell_particles();
-
-    Ok(config)
+    return Self::from_toml_file(filename); 
   }
   //----------------------------------------------------------------------------
   // This functions sets properties for particles outside the primary cell.
@@ -997,6 +960,7 @@ impl Config{
 
   }
   //----------------------------------------------------------------------------
+  /*
   /// This function updates config from a `Vec<TokenExpression>`.
   pub fn parse_token_stream(&mut self,token_stream: Vec<TokenExpression>) 
     -> Result<(),CluEError>
@@ -1046,6 +1010,7 @@ impl Config{
 
     Ok(())
   }
+  */
   //----------------------------------------------------------------------------
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -1064,41 +1029,42 @@ mod tests{
       clash_distance = 0.1
       clash_distance_pbc = 0.1
       cluster_batch_size = 20000
-      cluster_density_matrix = "thermal"
+      populations = "thermal"
       cluster_method = "cce"
       clusters_file = "clusters_file.txt"
       input_structure_file = "../../assets/TEMPO_wat_gly_70A.pdb"
-      load_geometry = "cube"
       magnetic_field = 1.2 # T
       max_cell_size = 2
       max_cluster_size = 4
       max_spins = 8
       min_cell_size = 1
-      number_system_instances = 2
-      number_timepoints = [40,60]
-      periodic_boundary_conditions = false    
-      partitioning_method = "particles_and_exchange_groups"
-      pulse_sequence = "cp-1"
+      number_runs = 2
+      replicate_unit_cell = false    
+      partitioning = "exchange_groups"
       radius = 80 # Å
       rng_seed = 42
-      root_dir = "root/dir"
-      save_name = "save_directory"
-      system_name = "system"
+      output_directory = "save_directory"
+      # TODO: remove run_name and automate hash remove
+      # TODO: rework hash vs run number system
+      run_name = "system"
       temperature = 20
-      time_increments = [1e-3,5e-1] # μs
+
+      pulse_sequence = "cp-1"
+      tau_increments = [1e-3,5e-1] # μs
+      number_timepoints = [40,60]
 
 
       [pair_cutoffs]
-        coupling = 1e-3 # MHz
-        delta_hyperfine = 1e-2 # MHz
-        dipole_perpendicular = 1e-4 # MHz
+        coupling_xx_yy = 1e-3 # MHz
+        delta_hyperfine_zz = 1e-2 # MHz
+        point_dipole_perpendicular = 1e-4 # MHz
         distance = 10 # Å
         hahn_mod_depth = 1e-10 # unitless
         hahn_taylor_4 = 6.416238909177711e-37 # MHz^4
 
       [orientations]
         grid = "lebedev"
-        number_points = 170
+        number = 170
 
       [detected_spin]
       position = [28,29] # centroid over serials
@@ -1171,7 +1137,7 @@ mod tests{
 
     "##).unwrap();
 
-    assert_eq!(config.apply_pbc, Some(false));
+    assert_eq!(config.replicate_unit_cell, Some(ReplicateUnitCell::No));
     let clash_distance = config.clash_distance.unwrap();
     assert!( (clash_distance - 0.1e-10).abs()/(0.1e-10) < 1e-12 );
     let clash_distance_pbc = config.clash_distance_pbc.unwrap();
@@ -1206,28 +1172,26 @@ mod tests{
     assert_eq!(config.clusters_file,
          Some("clusters_file.txt".to_string()));
 
-    assert_eq!(config.load_geometry, Some(LoadGeometry::Cube));
     assert_eq!(config.max_cell_size, Some(2));
     assert_eq!(config.magnetic_field, Some(Vector3D::from([0.0,0.0,1.2])));
     assert_eq!(config.max_cluster_size, Some(4));
-    assert_eq!(config.max_spin_order, Some(8));
+    assert_eq!(config.max_spins, Some(8));
     assert_eq!(config.min_cell_size, Some(1));
-    assert_eq!(config.neighbor_cutoff_delta_hyperfine, Some(1e4));
-    assert_eq!(config.neighbor_cutoff_coupling, Some(1e3));
-    assert_eq!(config.neighbor_cutoff_dipole_perpendicular, Some(1e2));
+    assert_eq!(config.neighbor_cutoff_delta_hyperfine_zz, Some(1e4));
+    assert_eq!(config.neighbor_cutoff_coupling_xx_yy, Some(1e3));
+    assert_eq!(config.neighbor_cutoff_point_dipole_perpendicular, Some(1e2));
     assert_eq!(config.neighbor_cutoff_3_spin_hahn_mod_depth, Some(1e-10));
     assert_eq!(config.neighbor_cutoff_3_spin_hahn_taylor_4, Some(1e-9));
-    assert_eq!(config.number_system_instances, Some(2));
+    assert_eq!(config.number_runs, Some(2));
     assert_eq!(config.number_timepoints, vec![40,60]);
-    assert_eq!(config.partitioning_method, 
+    assert_eq!(config.partitioning, 
         Some(PartitioningMethod::ExchangeGroupsAndParticles));
     assert_eq!(config.pulse_sequence, Some(PulseSequence::CarrPurcell(1)));
     assert_eq!(config.radius, Some(80.0e-10));
     assert_eq!(config.rng_seed, Some(42));
-    assert_eq!(config.root_dir, Some("root/dir".to_string()));
-    assert_eq!(config.save_name, Some(String::from("save_directory")));
-    assert_eq!(config.system_name, Some(String::from("system")));
-    assert_eq!(config.time_increments, vec![1e-9,5e-7]);
+    assert_eq!(config.output_directory, Some(String::from("save_directory")));
+    assert_eq!(config.run_name, Some(String::from("system")));
+    assert_eq!(config.tau_increments, vec![1e-9,5e-7]);
     assert_eq!(config.write_auxiliary_signals, Some(true));
     assert_eq!(config.write_bath, Some(true));
     assert_eq!(config.write_clusters, Some(true));
@@ -1242,17 +1206,17 @@ mod tests{
 
     let groups = config.particles;
     assert_eq!(groups.len(),7);
-    assert_eq!(groups[0].label, "\"tempo_c1\"".to_string());
+    assert_eq!(groups[0].label, "tempo_c1".to_string());
     let filter = groups[0].filter.clone().unwrap();
     assert_eq!(filter.elements, vec![Element::Carbon]);
     assert_eq!(filter.serials, vec![1]);
 
-    assert_eq!(groups[1].label, "\"tempo_c19\"".to_string());
+    assert_eq!(groups[1].label, "tempo_c19".to_string());
     let filter = groups[1].filter.clone().unwrap();
     assert_eq!(filter.elements, vec![Element::Carbon]);
     assert_eq!(filter.serials, vec![19]);
 
-    assert_eq!(groups[2].label, "\"tempo_n\"".to_string());
+    assert_eq!(groups[2].label, "tempo_n".to_string());
     let filter = groups[2].filter.clone().unwrap();
     assert_eq!(filter.elements, vec![Element::Nitrogen]);
     assert!(filter.serials.is_empty());
@@ -1283,12 +1247,12 @@ mod tests{
           z_axis: None,    
         })));
 
-    assert_eq!(groups[3].label, "\"tempo_o\"".to_string());
+    assert_eq!(groups[3].label, "tempo_o".to_string());
     let filter = groups[3].filter.clone().unwrap();
     assert_eq!(filter.elements, vec![Element::Oxygen]);
     assert!(filter.serials.is_empty());
 
-    assert_eq!(groups[4].label, "\"tempo_h\"".to_string());
+    assert_eq!(groups[4].label, "tempo_h".to_string());
     let filter = groups[4].filter.clone().unwrap();
     assert_eq!(filter.elements, vec![Element::Hydrogen]);
     assert!(filter.serials.is_empty());
@@ -1299,7 +1263,7 @@ mod tests{
     let ex0 = -80.0e3;
     assert!(2.0*(ex0-ex1).abs()/(ex0+ex1).abs() < 1e-12);
 
-    assert_eq!(groups[5].label, "\"glycerol_oh\"".to_string());
+    assert_eq!(groups[5].label, "glycerol_oh".to_string());
     let filter = groups[5].filter.clone().unwrap();
     assert_eq!(filter.elements, vec![Element::Hydrogen]);
     assert_eq!(filter.residues, vec!["GLY".to_string()]);
@@ -1308,7 +1272,7 @@ mod tests{
     assert_eq!(properties.isotopic_distribution.void_probability,
         Some(0.5));
 
-    assert_eq!(groups[6].label, "\"glycerol_ch\"".to_string());
+    assert_eq!(groups[6].label, "glycerol_ch".to_string());
     let filter = groups[6].filter.clone().unwrap();
     assert_eq!(filter.elements, vec![Element::Hydrogen]);
     assert_eq!(filter.residues, vec!["GLY".to_string()]);
@@ -1321,19 +1285,12 @@ mod tests{
   }
   //----------------------------------------------------------------------------
   #[test]
-  fn test_construct_time_axis(){
-    let expressions = get_tokens_from_line("\
-        pulse_sequence = hahn;
-        number_timepoints = [100,91];
-        time_increments = [0.5e-8, 0.5e-7];
-        ").unwrap();
-
+  fn test_set_time_axis(){
     let mut config = Config::new();
-    for expression in expressions.iter(){
-      config.parse_config_line(expression).unwrap();
-    }
-
-    config.construct_time_axis().unwrap();
+    config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
+    config.number_timepoints = vec![100,91];
+    config.tau_increments = vec![0.5e-8, 0.5e-7];
+    config.set_time_axis().unwrap();
     let time_axis = config.get_time_axis().unwrap();
     assert_eq!(time_axis.len(),191);
     assert_eq!(time_axis[0],0.0);

@@ -1,5 +1,6 @@
 use crate::clue_errors::CluEError;
-use crate::config::{Config,LoadGeometry};
+use crate::config::Config;
+use crate::config::ReplicateUnitCell;
 use crate::math;  
 use crate::physical_constants::ANGSTROM;
 use crate::space_3d::Vector3D;
@@ -312,46 +313,38 @@ impl Structure{
   //----------------------------------------------------------------------------
   // This function trims the extended system down to the user specified shape. 
   fn trim_system(&mut self, config: &Config) -> Result<(),CluEError>{
-    let Some(load_geometry) = &config.load_geometry else {
-      return Err(CluEError::NoLoadGeometry);
+    let Some(radius) = config.radius else {
+      return Err(CluEError::NoRadius);
     };
-    match load_geometry{
-      LoadGeometry::Cube => (),
-      LoadGeometry::Ball =>{  
-        let Some(radius) = config.radius else {
-          return Err(CluEError::NoRadius);
-        };
 
-        let n_particles = self.bath_particles.len();
-        for idx in 0..n_particles{
+    let n_particles = self.bath_particles.len();
+    for idx in 0..n_particles{
 
-          let indices: Vec::<usize>;
-          let r: &Vector3D;
-          if let Some(exchange_group_manager) = &self.exchange_groups{
-            match exchange_group_manager.exchange_group_ids[idx]{
-              Some(id) 
-                => {
-                  r = exchange_group_manager.exchange_groups[id].centroid();
-                  indices = exchange_group_manager.exchange_groups[id]
-                    .indices().clone();
-                },
-              None => {
-                r = &self.bath_particles[idx].coordinates;
-                indices = vec![idx];
-              },
-            }
-          }else{
+      let indices: Vec::<usize>;
+      let r: &Vector3D;
+      if let Some(exchange_group_manager) = &self.exchange_groups{
+        match exchange_group_manager.exchange_group_ids[idx]{
+          Some(id) 
+            => {
+              r = exchange_group_manager.exchange_groups[id].centroid();
+              indices = exchange_group_manager.exchange_groups[id]
+                .indices().clone();
+            },
+          None => {
             r = &self.bath_particles[idx].coordinates;
             indices = vec![idx];
-          }
-
-          if r.norm() > radius{
-            for &index in indices.iter(){
-              self.bath_particles[index].active = false;
-            }
-          }
+          },
         }
-      },
+      }else{
+        r = &self.bath_particles[idx].coordinates;
+        indices = vec![idx];
+      }
+
+      if r.norm() > radius{
+        for &index in indices.iter(){
+          self.bath_particles[index].active = false;
+        }
+      }
     }
 
     Ok(())
@@ -596,12 +589,12 @@ impl Structure{
   fn set_cell_shifts(&mut self, config: &Config) -> Result<(),CluEError>{
     let cell_edges = self.cell_offsets.clone();
 
-    match config.apply_pbc{
-      Some(true) => (),
-      Some(false) => {
+    match config.replicate_unit_cell{
+      Some(ReplicateUnitCell::No) => {
         self.cell_offsets = vec![Vector3D::zeros()];
         return Ok(());
       },
+      Some(_) => (),
       None => {return Err(CluEError::NoApplyPBC) }
     }
 
@@ -624,19 +617,10 @@ Periodic boudary conditions will not be applied.");
     -> Result<Vec::<Vector3D>,CluEError>
   {
     
-    let mut n_cells_per_dim = [1,1,1];
-
-    let Some(radius) = config.radius else {
-      return Err(CluEError::NoRadius);
-    };
-
+    let n_cells_per_dim = count_extra_cells_per_dim(&cell_edges,config)?;
 
     let mut n_cells = 1;
     for ix in 0..3{
-      n_cells_per_dim[ix] = std::cmp::max(1,
-       math::ceil(radius/cell_edges[ix].norm()) as i32
-          );
-
       n_cells *= 1 + 2*(n_cells_per_dim[ix] as usize);
     }
 
@@ -655,6 +639,37 @@ Periodic boudary conditions will not be applied.");
     cell_offsets.sort();
     Ok(cell_offsets)
   }
+  //----------------------------------------------------------------------------
+  fn count_extra_cells_per_dim(cell_edges: &[Vector3D], config: &Config) 
+      -> Result<[i32;3],CluEError>
+  {
+
+    match config.replicate_unit_cell{
+      Some(ReplicateUnitCell::Auto) => (),
+      Some(ReplicateUnitCell::Specified(nc)) => {
+        return Ok([nc[0] as i32, nc[1] as i32, nc[2] as i32]);
+      },
+      Some(ReplicateUnitCell::No) => return Ok([0,0,0]),
+      None => return Err(CluEError::NoApplyPBC),
+    }
+
+    let mut n_cells_per_dim = [1,1,1];
+
+    let Some(radius) = config.radius else {
+      return Err(CluEError::NoRadius);
+    };
+
+
+    for ix in 0..3{
+      n_cells_per_dim[ix] = std::cmp::max(1,
+       math::ceil(radius/cell_edges[ix].norm()) as i32
+          );
+
+    }
+    Ok(n_cells_per_dim)
+  
+  }
+  //----------------------------------------------------------------------------
 
 
 
@@ -672,7 +687,7 @@ mod tests{
   use crate::elements::Element;
   use crate::isotopes::Isotope;
 
-  use crate::config::LoadGeometry;
+  use crate::io::FromTOMLString;
   
   //----------------------------------------------------------------------------
   #[test]
@@ -682,8 +697,11 @@ mod tests{
       Vector3D::from([0.0, 0.5, 0.0]),
       Vector3D::from([0.0, 0.0, 2.0]),
     ];
-    let mut config = Config::new();
-    config.radius = Some(1.0);
+
+    let config = Config::from_toml_string(r##"
+        replicate_unit_cell = [1,2,1]
+        "##).unwrap();
+
     let cell_shifts = build_cell_shifts(cell_edges, &config).unwrap(); 
     assert_eq!(cell_shifts.len(), 3*5*3);
     assert_eq!(cell_shifts, vec![
@@ -739,28 +757,26 @@ mod tests{
   #[test]
   fn test_build_extended_structure_lone_tempo(){
     
-    let config = Config::from("\
-      input_structure_file = \"./assets/TEMPO.pdb\"; \
-      detected_spin_position = centroid_over_serials([28,29]);\
-      radius = 73.5676;\
-      load_geometry = cube;\
-      apply_pbc = true;\
-      \
-      pulse_sequence = hahn;\
-      time_increments = 1e-8;\
-      number_timepoints = 101;\
-      \
-      #[group(hydrogen)]\
-        elements in [H];\
-      \
-      #[structure_properties(hydrogen)]\
-        isotope_abundances = {1H: 0.5, 2H: 0.5};
+    let config = Config::from_toml_string(r##"
+      input_structure_file = "./assets/TEMPO.pdb"
+      detected_spin.position = [28,29]
+      radius = 73.5676
+      load_geometry = "cube"
+      replicate_unit_cell = true
+      
+      pulse_sequence = "hahn"
+      tau_increments = [1e-2]
+      number_timepoints = [101]
+      
+      [[groups]]
+      name = "hydrogens"
+      selection.elements = ["H"]
+      1H.abundance = 0.5
+      2H.abundance = 0.5
 
-      #[spin_properties(hydrogen, 1H)]\
-        tunnel_splitting = 75e3;
-      #[spin_properties(hydrogen, 2H)]\
-        tunnel_splitting = 1.5;
-        ").unwrap();
+      1H.c3_tunnel_splitting = 75e-3
+      2H.c3_tunnel_splitting = 1.5e-6
+        "##).unwrap();
 
 
     let mut rng = ChaCha20Rng::from_entropy();
@@ -810,10 +826,13 @@ mod tests{
             structure.bath_particles[indices[2]].isotope);
 
         match structure.bath_particles[indices[0]].isotope{
-          Isotope::Hydrogen1 => assert_eq!(
-              exchange_group_manager.exchange_couplings[ex_id],-50e3),
-          Isotope::Hydrogen2 => assert_eq!(
-              exchange_group_manager.exchange_couplings[ex_id],-1.0),
+          Isotope::Hydrogen1 => assert!(
+              (exchange_group_manager.exchange_couplings[ex_id] - -50e3).abs()
+              < 1e-9
+              ),
+          Isotope::Hydrogen2 => assert!(
+              (exchange_group_manager.exchange_couplings[ex_id] - -1.0).abs()
+              < 1e-9),
           _ => panic!("Isotope {:?} unexpected.",
               structure.bath_particles[indices[0]].isotope),
         }
@@ -868,10 +887,9 @@ mod tests{
     particle_configs[1].properties = Some(properties);
     
     let mut config = Config::new();
-    config.load_geometry = Some(LoadGeometry::Cube);
     config.particles = particle_configs;
     config.radius = Some(73.5676e-10);
-    config.apply_pbc = Some(true);
+    config.replicate_unit_cell = Some(ReplicateUnitCell::Auto);
     let n_uc = 125;
     let r_nitrogen=Vector3D::from([36.440*1e-10, 36.900*1e-10,  37.100*1e-10]);
     let r_oxygen = Vector3D::from([35.290*1e-10, 36.430*1e-10, 37.810*1e-10]);
@@ -881,12 +899,9 @@ mod tests{
 
 
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
-
-
-    
 
     let mut rng =  ChaCha20Rng::from_entropy();
+    structure.build_primary_structure(&mut rng,&config).unwrap();
 
     structure.build_extended_structure(&mut rng, &config).unwrap();
 
@@ -993,33 +1008,35 @@ mod tests{
   #[test]
   fn test_build_extended_structure_tempo_3gly_1npr(){
 
-    let config = Config::from("\
-      input_structure_file = \"./assets/TEMPO_3gly_1npr_50A.pdb\"; \
-      detected_spin_position = centroid_over_serials([28,29]);\
-      radius = 73.5676;\
-      load_geometry = cube;\
-      apply_pbc = true;\
-      \
-      pulse_sequence = hahn;\
-      time_increments = 1e-8;\
-      number_timepoints = 101;\
-      \
-      #[group(exchangeable_hydrogen)]\
-        elements in [H];\
-        bonded_elements in [O];\
-      \
-      #[group(nonexchangeable_hydrogen)]\
-        elements in [H];\
-        bonded_elements not in [O];\
-      \
-      \
-      #[structure_properties(exchangeable_hydrogen)]\
-        isotope_abundances = {1H: 0.5, 2H: 0.5};\
-      \
-      #[structure_properties(nonexchangeable_hydrogen)]\
-        isotope_abundances = {1H: 0.5, 2H: 0.5};\
-        cosubstitute = same_molecule;\
-        ").unwrap();
+    let config = Config::from_toml_string(r##"
+      input_structure_file = "./assets/TEMPO_3gly_1npr_50A.pdb"
+      detected_spin.position = [28,29]
+      radius = 73.5676
+      load_geometry = "cube"
+      replicate_unit_cell = true
+      
+      pulse_sequence = "hahn"
+      tau_increments = [1e-2]
+      number_timepoints = [101]
+      
+      [[groups]]
+      name = "exchangeable_hydrogens"
+      selection.elements = ["H"]
+      selection.bonded_elements = ["O"]
+
+      1H.abundance = 0.5
+      2H.abundance = 0.5
+      
+      [[groups]]
+      name = "nonexchangeable_hydrogens"
+      selection.elements = ["H"]
+      selection.not_bonded_elements = ["O"]
+      
+      1H.abundance = 0.5
+      2H.abundance = 0.5
+      
+      cosubstitute = "same_molecule"
+        "##).unwrap();
     
     let mut rng = ChaCha20Rng::from_entropy();
     let structure = Structure::build_structure(&mut rng,&config).unwrap();
@@ -1123,138 +1140,65 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_add_voidable_particles(){
-    let config = Config::from("\
-      input_structure_file = \"./assets/TEMPO_3gly_1npr_50A.pdb\"; \
-      detected_spin_position = centroid_over_serials([28,29]);\
-      radius = 73.5676;\
-      load_geometry = cube;\
-      apply_pbc = true;\
-      \
-      pulse_sequence = hahn;\
-      time_increments = 1e-8;\
-      number_timepoints = 101;\
-      \
-      #[group(tempo)]\
-        primary_cell;
-        elements in [H];\
-        residues in [TEM];\
-      \
-      #[group(tempo_extracell)]\
-        extracells;
-        elements in [H];\
-        residues in [TEM];\
-      \
-      #[group(gly_exchangeable_hydrogen)]\
-        elements in [H];\
-        residues in [GLY];\
-        bonded_elements in [O];\
-      \
-      #[group(gly_nonexchangeable_hydrogen)]\
-        elements in [H];\
-        residues in [GLY];\
-        bonded_elements not in [O];\
-      \
-      #[group(npr_hydrogen)]\
-        elements in [H];\
-        residues in [NPR];\
-      \
-      #[structure_properties(tempo)]\
-        void_probability = 1.0;
-      \
-      #[structure_properties(tempo_extracell)]\
-        void_probability = 0.5;
-      \
-      #[structure_properties(gly_exchangeable_hydrogen)]\
-        void_probability = 0.5;
-      \
-      #[structure_properties(gly_nonexchangeable_hydrogen)]\
-        void_probability = 0.5;
-        cosubstitute = same_molecule;\
-      \
-      #[structure_properties(npr_hydrogen)]\
-        void_probability = 0.5;
-        isotope_abundances = {1H: 0.5, 2H: 0.5};\
-        ").unwrap();
-    
+    let config0 = Config::from_toml_string(r##"
+      input_structure_file = "./assets/TEMPO_3gly_1npr_50A.pdb"
+      detected_spin.position = [28,29]
+      radius = 70.0
+      replicate_unit_cell = true
+      
+      pulse_sequence = "hahn"
+      tau_increments = [1e-2]
+      number_timepoints = [101]
+      
+      [[groups]]
+      name = "h"
+      selection.elements = ["H"]
+
+      [[groups]]
+      name = "non_h"
+      selection.not_elements = ["H"]
+      drop_probability = 1.0
+
+    "##).unwrap();
+
     let mut rng = ChaCha20Rng::from_entropy();
-    let structure = Structure::build_structure(&mut rng,&config).unwrap();
-    
-    let n_uc = 125;
+    let structure0 = Structure::build_structure(&mut rng,&config0).unwrap();
 
-    let mut group_tempo_h0 = ParticleFilter::new();
-    group_tempo_h0.residues = vec!["TEM".to_string()];
-    group_tempo_h0.elements = vec![Element::Hydrogen];
-    group_tempo_h0.cell_ids = vec![0];
-    let indices_tempo_h0 = group_tempo_h0.filter(&structure);
+    let config1 = Config::from_toml_string(r##"
+      input_structure_file = "./assets/TEMPO_3gly_1npr_50A.pdb"
+      detected_spin.position = [28,29]
+      radius = 70.0
+      replicate_unit_cell = true
+      
+      pulse_sequence = "hahn"
+      tau_increments = [1e-2]
+      number_timepoints = [101]
+      
+      [[groups]]
+      name = "h"
+      selection.elements = ["H"]
+      drop_probability = 0.5
 
-    let n_tempo_h0: usize = indices_tempo_h0.iter()
-      .map(|idx| if structure.bath_particles[*idx].active{1}else{0}).sum();
-
-    assert_eq!(indices_tempo_h0.len(),18);
-    assert_eq!(n_tempo_h0 , 0);
-
-
-
-    let mut group_tempo_h_extra = ParticleFilter::new();
-    group_tempo_h_extra.residues = vec!["TEM".to_string()];
-    group_tempo_h_extra.elements = vec![Element::Hydrogen];
-    let indices_tempo_h_extra = group_tempo_h_extra.filter(&structure);
-    let n_tempo_h: f64 = indices_tempo_h_extra.iter()
-      .map(|idx| if structure.bath_particles[*idx].active{1.0}else{0.0}).sum();
-
-    let num = ((n_uc-1)*18) as f64;
-    let std = (0.25*num).sqrt();
-    let mean = 0.5*num;
-    assert!(n_tempo_h > mean - 5.0*std);
-    assert!(n_tempo_h < mean + 5.0*std);
+      [[groups]]
+      name = "non_h"
+      selection.not_elements = ["H"]
+      drop_probability = 1.0
 
 
+    "##).unwrap();
 
-    let mut group_gly_oh = ParticleFilter::new();
-    group_gly_oh.elements = vec![Element::Hydrogen];
-    group_gly_oh.residues = vec!["GLY".to_string()];
-    group_gly_oh.bonded_elements = vec![Element::Oxygen];
-    let indices_gly_oh = group_gly_oh.filter(&structure);
-
-    let num = (n_uc*775*3) as f64;
-    let mean = 0.5*num;
-    let std = (0.25*num).sqrt();
-    let n_gly_oh: f64 = indices_gly_oh.iter()
-      .map(|idx| if structure.bath_particles[*idx].active{1.0}else{0.0}).sum();
-    assert!(n_gly_oh > mean - 5.0*std);
-    assert!(n_gly_oh < mean + 5.0*std);
+    let structure1 = Structure::build_structure(&mut rng,&config1).unwrap();
 
 
-
-    let mut group_gly_ch = ParticleFilter::new();
-    group_gly_ch.elements = vec![Element::Hydrogen];
-    group_gly_ch.residues = vec!["GLY".to_string()];
-    group_gly_ch.bonded_elements = vec![Element::Carbon];
-    let indices_gly_ch = group_gly_ch.filter(&structure);
-
-    let num = (n_uc*775*5) as f64;
-    let mean = 0.5*num;
-    let std = 5.0*(0.25*num/5.0).sqrt();
-    let n_gly_ch: f64 = indices_gly_ch.iter()
-      .map(|idx| if structure.bath_particles[*idx].active{1.0}else{0.0}).sum();
-    assert!(n_gly_ch > mean - 5.0*std);
-    assert!(n_gly_ch < mean + 5.0*std);
-
-
-
-    let mut group_npr_h = ParticleFilter::new();
-    group_npr_h.residues = vec!["NPR".to_string()];
-    group_npr_h.elements = vec![Element::Hydrogen];
-    let indices_npr_h = group_npr_h.filter(&structure);
-
-    let num = (n_uc*251*8) as f64;
-    let mean = 0.5*num;
-    let std = (0.25*num).sqrt();
-    let n_npr_h: f64 = indices_npr_h.iter()
-      .map(|idx| if structure.bath_particles[*idx].active{1.0}else{0.0}).sum();
-    assert!(n_npr_h > mean - 5.0*std);
-    assert!(n_npr_h < mean + 5.0*std);
+    let n1 = structure1.number_active() as f64;
+    let n0 = structure0.number_active() as f64;
+    let std = (0.25*n0).sqrt();
+    let n_min = 0.5*n0 - 5.0*std;
+    let n_max = 0.5*n0 + 5.0*std;
+    assert!(n1 > n_min);
+    assert!(n1 < n_max);
 
   }
+  //----------------------------------------------------------------------------
 
 }

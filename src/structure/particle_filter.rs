@@ -8,6 +8,8 @@ use crate::space_3d::Vector3D;
 use crate::math;
 use crate::structure::{Particle,Structure};
 
+use rand_chacha::ChaCha20Rng;
+
 use std::collections::HashMap;
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -73,14 +75,17 @@ impl ParticleFilter{
     Default::default()
   }
   //----------------------------------------------------------------------------
-  pub fn from_toml_table(table: toml::Table) -> Result<Self,CluEError>
+  pub fn from_toml_table(table: toml::Table,unit_of_distance: f64) 
+      -> Result<Self,CluEError>
   {
     let mut out = Self::new();
-    out.set_from_toml_table(table)?;
+    out.set_from_toml_table(table,unit_of_distance)?;
     Ok(out)
   }
   //----------------------------------------------------------------------------
-  pub fn set_from_toml_table(&mut self, table: toml::Table)
+  pub fn set_from_toml_table(&mut self, 
+      table: toml::Table,
+      unit_of_distance: f64)
       -> Result<(),CluEError>
   {
     if let Some(value) = table.get(KEY_SELE_INDICES){
@@ -250,11 +255,17 @@ impl ParticleFilter{
 
 
     if let Some(value) = table.get(KEY_SELE_WITHIN_DISTANCE){
-      self.within_distance = value.as_float();
+      let Some(r) = value.as_float() else{
+        return Err(CluEError::ExpectedTOMLFloat(value.type_str().to_string()));
+      };
+      self.within_distance = Some(r*unit_of_distance);
     }
 
     if let Some(value) = table.get(KEY_SELE_NOT_WITHIN_DISTANCE){
-      self.not_within_distance = value.as_float();
+      let Some(r) = value.as_float() else{
+        return Err(CluEError::ExpectedTOMLFloat(value.type_str().to_string()));
+      };
+      self.not_within_distance = Some(r*unit_of_distance);
     }
 
 
@@ -679,6 +690,7 @@ impl SecondaryParticleFilter{
         -> Result<ParticleFilter,CluEError>
     {
       let Some((_id, p_cfg)) = config.find_particle_config(label) else{
+        println!("DB: {:#?}",config);
         return Err(CluEError::MissingFilter(label.to_string()));
       };
 
@@ -734,11 +746,13 @@ impl SecondaryParticleFilter{
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// TODO: VectorSpecifier should be under config rather than structure.
 #[derive(Debug,Clone,PartialEq)]
 pub enum VectorSpecifier{
   //CentroidOverSerials(Vec::<u32>),
   Diff(SecondaryParticleFilter,String,SecondaryParticleFilter,String),
-  Vector(Vector3D)
+  Vector(Vector3D),
+  Random,
 }
 //------------------------------------------------------------------------------
 impl VectorSpecifier{
@@ -746,10 +760,19 @@ impl VectorSpecifier{
   pub fn from_toml_value(value: toml::Value) -> Result<Self,CluEError>
   {
     match value{
-      toml::Value::Table(table) => Self::from_toml_table(table),
       toml::Value::Array(array) 
           => Ok(Self::Vector(Vector3D::from_toml_array(array)?)),
+      toml::Value::String(s) => Self::from_toml_str_value(&s),
+      toml::Value::Table(table) => Self::from_toml_table(table),
       _ => Err(CluEError::TOMLArrayDoesNotSpecifyAVector),
+    }
+  }
+  //----------------------------------------------------------------------------
+  pub fn from_toml_str_value(value: &str) -> Result<Self,CluEError>
+  {
+    match value{
+      KEY_VEC_SPECIFIER_RANDOM => Ok(Self::Random),
+      _ => Err(CluEError::UnrecognizedVectorSpecifier(value.to_string())),
     }
   }
   //----------------------------------------------------------------------------
@@ -784,7 +807,8 @@ impl VectorSpecifier{
     Ok(Self::Diff(from_filter,from_group,to_filter,to_group))
   }
   //----------------------------------------------------------------------------
-  pub fn to_vector3d(&self, particle_index_opt: Option<usize>, 
+  pub fn to_vector3d(&self, rng: &mut ChaCha20Rng,
+      particle_index_opt: Option<usize>, 
       structure: &Structure, config: &Config) -> Result<Vector3D,CluEError>
   {
     match self{ 
@@ -843,6 +867,8 @@ impl VectorSpecifier{
       //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       VectorSpecifier::Vector(vector3d) => Ok(vector3d.clone()),
       //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      VectorSpecifier::Random => Ok(Vector3D::random_direction(rng)),
+      //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     }
   }
 }
@@ -856,17 +882,20 @@ mod tests{
   use crate::Config;
   use crate::config::DetectedSpinCoordinates;
 
+  use rand::SeedableRng;
+
   //----------------------------------------------------------------------------
   #[allow(non_snake_case)]
   #[test]
   fn test_VectorSpecifier_to_vector3d(){
+    let mut rng = ChaCha20Rng::seed_from_u64(0);
     let filename = "./assets/TEMPO.pdb";
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&mut rng, &config).unwrap();
 
     config.particles.push( ParticleConfig::new("nitrogen".to_string()) );
     let label = String::from("oxygen");
@@ -892,7 +921,7 @@ mod tests{
     let particle_index = 27;
     assert_eq!(structure.bath_particles[particle_index].element, 
         Element::Nitrogen);
-    let r = vector_specifier.to_vector3d(Some(particle_index),
+    let r = vector_specifier.to_vector3d(&mut rng, Some(particle_index),
         &structure,&config).unwrap();
 
     assert_eq!(r,delta_r);
@@ -903,13 +932,14 @@ mod tests{
   #[test]
   fn test_SecondaryParticleFilter_filter(){
   
+    let mut rng = ChaCha20Rng::seed_from_u64(0);
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&mut rng, &config).unwrap();
 
     let label = String::from("test_label");
     config.particles.push( ParticleConfig::new(label.clone()) );
@@ -946,7 +976,9 @@ mod tests{
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
+
+    let mut rng = ChaCha20Rng::seed_from_u64(0);
+    structure.build_primary_structure(&mut rng, &config).unwrap();
 
   
     let mut filter = ParticleFilter::new();

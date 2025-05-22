@@ -40,34 +40,42 @@ use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
 /// This function follows the config instruction to central simulate spin 
 /// decoherence.
-pub fn run(config: Config) 
+pub fn run(mut config: Config) 
   -> Result<( Vec::<f64>, Vec::<Complex::<f64>> ),CluEError>
 {
+
+  config.set_time_axis()?;
 
   let mut rng = match config.rng_seed{
     Some(seed) => ChaCha20Rng::seed_from_u64(seed),
     None => ChaCha20Rng::from_entropy(),
   };
 
-  let root_path = if let Some(root_dir) = &config.root_dir{
-    root_dir.to_string()
-  }else{
-    String::from("./")
-  };
-
-  let save_path_opt = match &config.save_name{
-    Some(save_name) => {
-      if save_name.is_empty(){
+  let save_path_opt = match &config.output_directory{
+    Some(output_directory) => {
+      if output_directory.is_empty(){
         None
       }else{
-        Some(format!("{}/{}", root_path, save_name))
+        Some(format!("{}", output_directory))
       }
     },
     None => {
      let config_hash = math::str_hash(&config);
-    Some(format!("{}/CluE-{}", root_path, config_hash))
+    Some(format!("CluE-{}", config_hash))
     },
   };
+
+
+  let mut time_axis = config.get_time_axis()?;
+
+  let seconds_to_unit_of_time = match config.unit_of_time_to_seconds{
+    Some(unit_of_time_to_seconds) => 1.0/unit_of_time_to_seconds,
+    None => return Err(CluEError::NoUnitOfTime),
+  };
+
+  for t in time_axis.iter_mut(){
+    *t *= seconds_to_unit_of_time; 
+  }
 
   if let Some(save_path) = &save_path_opt{
     match std::fs::create_dir_all(save_path.clone()){
@@ -75,15 +83,13 @@ pub fn run(config: Config)
       Err(_) => return Err(CluEError::CannotCreateDir(save_path.to_string())),
     }
 
-    config.write_time_axis(save_path.clone())?;
+    io::write_data(&[time_axis.clone()],
+        &format!("{}/time_axis.csv",save_path), vec!["time_axis".to_string()])?;
   }
 
   let order_n_signals 
     = calculate_signal::calculate_signals(&mut rng, &config,
       &save_path_opt )?;
-
-
-  let time_axis = config.get_time_axis()?;
 
   let max_size = order_n_signals.len();
 

@@ -28,10 +28,10 @@ pub enum CluEError{
   CannotMatchVertexToIndex(usize),
   CannotMulTokens,
   CannotOpenFile(String),
+  CannotParseCellType(String),
   CannotParseClusterMethod(String),
   CannotParseDensityMatrix(String),
   CannotParseElement(String),
-  CannotParseLoadGeometry(String),
   CannotParseLine(String),
   CannotParseIsotope(String),
   CannotParseOrientations(String),
@@ -68,6 +68,7 @@ pub enum CluEError{
   DeprecatedKeywordReplaced(usize,String,String),
   DetectedSpinDoesNotHaveAnActiveIndex,
   EmptyVector(usize),
+  Error(String),
   ExpectedClusterSetWithNSizes(usize,usize),
   ExpectedEquality(usize),
   ExpectedBoolRHS(usize),
@@ -94,7 +95,6 @@ pub enum CluEError{
   InvalidAxes,
   InvalidClusterPartitionKey,
   InvalidConfigFile(String),
-  InvalidGeometry(usize,String),
   InvalidPulseSequence(usize),
   InvalidSecondaryFilter(usize,String),
   InvalidToken(usize,String),
@@ -141,7 +141,6 @@ pub enum CluEError{
   NoGMatrixValues,
   NoHyperfineSpecifier(String,String),
   NoInputFile,
-  NoLoadGeometry,
   NoMagneticField,
   NoModelIndex,
   NoMaxClusterSize,
@@ -281,6 +280,9 @@ impl fmt::Display for CluEError{
       CluEError::CannotOpenFile(file) => write!(f,
           "cannot open \"{}\"", file),
 
+      CluEError::CannotParseCellType(cell_type) => write!(f,
+          "cannot parse \"{}\" a a cell type", cell_type),
+
       CluEError::CannotParseClusterMethod(method) => write!(f,
           "cannot parse \"{}\" as a cluster method", method),
 
@@ -289,9 +291,6 @@ impl fmt::Display for CluEError{
 
       CluEError::CannotParseElement(element) => write!(f,
           "cannot parse \"{}\" as an element", element),
-
-      CluEError::CannotParseLoadGeometry(geo) => write!(f,
-          "cannot parse \"{}\" as a geometry", geo),
 
       CluEError::CannotParseOrientations(ori) => write!(f,
           "cannot parse \"{}\" as an orientation averaging scheme", ori),
@@ -418,7 +417,10 @@ size n.", file),
           line_number,deprecated, replaced),
 
       CluEError::EmptyVector(line_number) => write!(f,
-          "line {}, supplied vector is emptry", line_number),
+          "line {}, supplied vector is empty", line_number),
+
+      CluEError::Error(error_message) => write!(f,
+          "{}", error_message),
 
       CluEError::DetectedSpinDoesNotHaveAnActiveIndex => write!(f,
           "the detected spin is always active and so does have an index \
@@ -512,10 +514,6 @@ and p0,p1 > 0 are abundances",line_number),
       CluEError::InvalidConfigFile(filename) => write!(f,
           "cannot not read config file \"{}\"", filename),
 
-      CluEError::InvalidGeometry(line_number,rhs) => write!(f,
-          "line {}, argument \"{}\" is not a valid load_geometry",
-          line_number, rhs),
-
       CluEError::InvalidPulseSequence(line_number) => write!(f,
           "line {}, invalid pulse sequence",line_number),
 
@@ -600,7 +598,7 @@ but there are {} headers and {} columns of data.",filename,n_headers,n_cols),
           "neighbor list and partition table are incompatible"),
 
       CluEError::NoApplyPBC => write!(f,
-          "please set \"apply_pbc: bool\" to select if \
+          "please set \"do_replicate_unit_cell: bool\" to select if \
 periodic boundary conditions should be applied"),
 
       CluEError::NoArgument(line_number) => write!(f,
@@ -663,9 +661,6 @@ periodic boundary conditions should be applied"),
       CluEError::NoHyperfineSpecifier(label,isotope) => write!(f,
           "no hyperfine specifier found for {} {}",label,isotope),
       
-      CluEError::NoLoadGeometry => write!(f,
-          "geometry for loading in the system was not defined"),
-      
       CluEError::NoMagneticField => write!(f,
           "please specify the applied magnetic field"),
 
@@ -679,7 +674,7 @@ periodic boundary conditions should be applied"),
           "neighbor_cutoff_distance is not defined"),
       
       CluEError::NoNumberSystemInstances => write!(f,
-          "number_system_instances is not set"),
+          "number_runs is not set"),
 
       CluEError::NoOrientationGrid => write!(f,
           "orientation_grid is not defined"),

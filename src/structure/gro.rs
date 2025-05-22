@@ -1,14 +1,14 @@
 use crate::clue_errors::CluEError;
-use crate::cluster::adjacency::AdjacencyList;
-use crate::physical_constants::{ANGSTROM,NANOMETER,PI};
-use crate::elements::Element;
-use crate::isotopes::Isotope;
+//use crate::cluster::adjacency::AdjacencyList;
+use crate::physical_constants::NANOMETER;
+//use crate::elements::Element;
+//use crate::isotopes::Isotope;
 use crate::structure::{Structure, particle::Particle};
-use crate::space_3d::Vector3D;
+//use crate::space_3d::Vector3D;
 
-use std::io::BufRead;
+//use std::io::BufRead;
 use std::io::BufWriter;
-use std::collections::HashMap;
+//use std::collections::HashMap;
 use substring::Substring;
 use std::fs::File;
 use std::io::prelude::*;
@@ -17,6 +17,9 @@ use std::io::prelude::*;
 const GRO_PBC_INDENT: &str  = "    ";
 
 impl Structure{
+  //----------------------------------------------------------------------------
+  // TODO: pub fn read_gro(file_name: &str) -> Result<Structure,CluEError>{}
+  //----------------------------------------------------------------------------
   /// This function writes a `Structure` in GRO format.
   pub fn write_gro(&self,filename: &str) -> Result<(),CluEError>{
 

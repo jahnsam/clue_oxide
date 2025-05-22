@@ -14,10 +14,13 @@ use crate::structure::DetectedSpin;
 use crate::space_3d;
 use crate::space_3d::Vector3D;
 
+use rand_chacha::ChaCha20Rng;
+
 impl Structure{
   /// This method uses an input `Config` to set the structure's
   /// spins and exchange groups.  The number of bath particle is unchanged.
-  pub fn build_primary_structure(&mut self, config: &Config)
+  pub fn build_primary_structure(&mut self, 
+      rng: &mut ChaCha20Rng, config: &Config)
     -> Result<(),CluEError>
     {
 
@@ -36,13 +39,15 @@ impl Structure{
     self.find_cosubstitution_groups(config)?;
 
     // Set the detected spin as the origin.
-    self.set_detected_spin(config)?;
+    self.set_detected_spin(rng,config)?;
 
     Ok(())
   }  
   //----------------------------------------------------------------------------
   // This method places the detected spin into the system.
-  fn set_detected_spin(&mut self, config: &Config) -> Result<(),CluEError>{
+  fn set_detected_spin(&mut self, rng: &mut ChaCha20Rng, config: &Config) 
+      -> Result<(),CluEError>
+  {
 
     let Some(detected_spin_position) = &config.detected_spin_position else{
       return Err(CluEError::NoCentralSpinCoor);
@@ -117,7 +122,7 @@ impl Structure{
       return Err(CluEError::NoGMatrixSpecifier);
     };
     
-    let g_matrix = construct_symmetric_tensor_from_tensor_specifier(
+    let g_matrix = construct_symmetric_tensor_from_tensor_specifier(rng,
         g_matrix_specifier, None, self,config)?;
     
     let mu: f64 = if isotope == Isotope::Electron{
@@ -495,17 +500,19 @@ mod tests{
   use crate::config::Config;
   use crate::config::particle_config::ParticleConfig;
   use crate::config::DetectedSpinCoordinates;
+  use rand::SeedableRng;
 
   //----------------------------------------------------------------------------
   #[test]
   fn test_find_cosubstitution_groups(){
+    let mut rng = ChaCha20Rng::from_entropy();
     let filename = "./assets/a_TEMPO_a_water_a_glycerol.pdb";
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&mut rng, &config).unwrap();
 
     let mut filter_nx = ParticleFilter::new();
     filter_nx.elements = vec![Element::Hydrogen];
@@ -542,13 +549,14 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_build_primary_structure_water(){
+    let mut rng = ChaCha20Rng::from_entropy();
     let filename = "./assets/water.pdb";
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&mut rng, &config).unwrap();
 
   
     assert_eq!(structure.molecules.len(),1);
@@ -558,6 +566,7 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_build_primary_structure_tempo(){
+    let mut rng = ChaCha20Rng::from_entropy();
     let filename = "./assets/TEMPO.pdb";
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
 
@@ -565,7 +574,7 @@ mod tests{
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&mut rng, &config).unwrap();
 
     assert_eq!(structure.bath_particles
         .iter().filter(|p| (*p).active).count(), 19);
@@ -599,6 +608,7 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_build_primary_structure_tempo_wat_gly_7nm(){
+    let mut rng = ChaCha20Rng::from_entropy();
     // n    : Molecules    : Hydrons
     // 1    : TEMPO        :    18
     // 1500 : glycerols    : 12000
@@ -616,7 +626,7 @@ mod tests{
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&mut rng, &config).unwrap();
     
     assert_eq!(structure.molecules.len(), 1 + n_wat + n_gly);
 

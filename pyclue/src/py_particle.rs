@@ -1,7 +1,8 @@
 use pyo3::prelude::*;
 
 use clue_oxide::structure::particle::Particle;
-use clue_oxide::physical_constants::{Element,Isotope};
+use clue_oxide::elements::Element;
+use clue_oxide::isotopes::Isotope;
 
 use crate::py_clue_errors::PyCluEError;
 

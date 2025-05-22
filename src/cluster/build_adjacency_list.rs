@@ -80,13 +80,13 @@ fn are_spins_neighbors(idx0: usize,idx1: usize,
   let delta_hf = (hf0.zz() -hf1.zz()).abs();
   let b = ( -dipdip.xx() - dipdip.yy() ).abs();
 
-  if let Some(cutoff) = &config.neighbor_cutoff_delta_hyperfine{
+  if let Some(cutoff) = &config.neighbor_cutoff_delta_hyperfine_zz{
     if delta_hf < *cutoff {return Ok(false);}
   }
-  if let Some(cutoff) = &config.neighbor_cutoff_coupling{
+  if let Some(cutoff) = &config.neighbor_cutoff_coupling_xx_yy{
     if b < *cutoff {return Ok(false);}
   }
-  if let Some(cutoff) = &config.neighbor_cutoff_dipole_perpendicular{
+  if let Some(cutoff) = &config.neighbor_cutoff_point_dipole_perpendicular{
     let structure_index0 = structure.get_bath_index_of_nth_active(idx0)?;
     let structure_index1 = structure.get_bath_index_of_nth_active(idx1)?;
 

@@ -15,11 +15,11 @@ pub struct PyHamiltonianTensors{
 #[pymethods]
 impl PyHamiltonianTensors{
   #[staticmethod]
-  fn generate(pystructure: &PyStructure, pyconfig: &PyConfig) 
+  fn generate(pystructure: &PyStructure, pyconfig: &mut PyConfig) 
     -> Result<Self, PyCluEError>
   {
    
-    let tensors = HamiltonianTensors::generate(
+    let tensors = HamiltonianTensors::generate(&mut pyconfig.rng,
         &pystructure.structure, &pyconfig.config)?;
 
     Ok(Self{tensors})

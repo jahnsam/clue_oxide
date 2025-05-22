@@ -44,7 +44,7 @@ use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 use rand_distr::{Distribution,Uniform};
 
 //------------------------------------------------------------------------------
-/// This function averages of `number_system_instances` instances of building
+/// This function averages of `number_runs` instances of building
 /// a system and calculating the signal.
 pub fn calculate_signals(rng: &mut ChaCha20Rng, config: &Config,
     path_opt: &Option<String>) -> Result<Vec::<Signal>,CluEError>
@@ -52,12 +52,12 @@ pub fn calculate_signals(rng: &mut ChaCha20Rng, config: &Config,
   let Some(max_cluster_size) = config.max_cluster_size else {
     return Err(CluEError::NoMaxClusterSize);
   };
-  let Some(number_system_instances) = config.number_system_instances else {
+  let Some(number_runs) = config.number_runs else {
     return Err(CluEError::NoNumberSystemInstances);
   }; 
 
   let range = Uniform::from(0..u64::MAX);
-  let new_seeds = (0..number_system_instances).map(|_ii|
+  let new_seeds = (0..number_runs).map(|_ii|
       range.sample(rng) )
     .collect::<Vec::<u64>>();
 
@@ -68,7 +68,7 @@ pub fn calculate_signals(rng: &mut ChaCha20Rng, config: &Config,
 
   for (ii,&seed) in new_seeds.iter().enumerate(){
 
-    println!("\nSystem instance: {}/{}.", ii+1, number_system_instances);
+    println!("\nSystem instance: {}/{}.", ii+1, number_runs);
 
     let mut inst_rng = ChaCha20Rng::seed_from_u64(seed);
     let inst_signals = calculate_structure_signal(&mut inst_rng, 
@@ -80,7 +80,7 @@ pub fn calculate_signals(rng: &mut ChaCha20Rng, config: &Config,
   }
 
   for sig in signals.iter_mut(){
-    sig.mut_scale(ONE/(number_system_instances as f64));
+    sig.mut_scale(ONE/(number_runs as f64));
   }
   Ok(signals)
 }
@@ -112,7 +112,7 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
 
 
   // Generate coupling tensors.
-  let tensors = HamiltonianTensors::generate(&structure, config)?;
+  let tensors = HamiltonianTensors::generate(rng, &structure, config)?;
 
 
   // Determine if/where to save results.
@@ -131,7 +131,7 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
         => ClusterSpinOperators::new(&spin_multiplicity_set,max_cluster_size)?,
 
     Some(UnitOfClustering::Set) => {
-      let max_spins_per_cluster_unit = match config.partitioning_method{
+      let max_spins_per_cluster_unit = match config.partitioning{
         Some(PartitioningMethod::Particles) => 1,
         Some(PartitioningMethod::ExchangeGroupsAndParticles) => 3,
         None => return Err(CluEError::NoPartitioningMethod),
@@ -140,13 +140,13 @@ fn calculate_structure_signal(rng: &mut ChaCha20Rng, config: &Config,
 
       let potential_max_order = max_cluster_size*max_spins_per_cluster_unit;
       
-      let max_spin_order = match config.max_spin_order{
+      let max_spins = match config.max_spins{
         Some(s) => std::cmp::min(s,potential_max_order),
         None => potential_max_order,
       };
 
       ClusterSpinOperators::new(&spin_multiplicity_set,
-        max_spin_order)?
+        max_spins)?
     },
     None => return Err(CluEError::NoUnitOfClustering),
     }
@@ -247,8 +247,8 @@ fn calculate_signal_at_orientation(rot_dir: UnitSpherePoint,
     let mut clu_set = expand_block_clusters(block_cluster_set,&partition_table,
         unit_of_clustering)?;
 
-    if let Some(max_spin_order) = config.max_spin_order{
-      clu_set.prune_large_clusters(max_spin_order)?;
+    if let Some(max_spins) = config.max_spins{
+      clu_set.prune_large_clusters(max_spins)?;
     } 
 
     clu_set
@@ -428,13 +428,13 @@ fn get_system_save_dir_opt(
     Some(path) => {
       
       
-      let save_dir = match &config.system_name{
-        Some(system_name) => {
-          format!("{}/{}",path,system_name)
+      let save_dir = match &config.run_name{
+        Some(run_name) => {
+          format!("{}/{}",path,run_name)
         },
         None => {
           let structure_hash = math::str_hash(&structure);
-          format!("{}/system-{}",path,structure_hash)
+          format!("{}/run-{}",path,structure_hash)
         }
       };
 

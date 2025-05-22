@@ -24,8 +24,8 @@ pub fn propagate_pulse_sequence(
     return Err(CluEError::NoPulseSequence);
   };
 
-  let time_increments = &config.time_increments;
-  if time_increments.is_empty(){
+  let tau_increments = &config.tau_increments;
+  if tau_increments.is_empty(){
     return Err(CluEError::NoTimeIncrements);
   }
 
@@ -37,8 +37,8 @@ pub fn propagate_pulse_sequence(
 
   let mut signal = Vec::<Complex<f64>>::with_capacity(n_tot);
 
-  let du_betas = get_propagators(&hamiltonian.beta,time_increments)?;
-  let du_alphas = get_propagators(&hamiltonian.alpha,time_increments)?;
+  let du_betas = get_propagators(&hamiltonian.beta,tau_increments)?;
+  let du_alphas = get_propagators(&hamiltonian.alpha,tau_increments)?;
 
 
   let mut u_beta = CxMat::eye(du_betas[0].dim().0);
@@ -46,7 +46,7 @@ pub fn propagate_pulse_sequence(
   let mut u_beta_dag = CxMat::eye(du_betas[0].dim().0);
   let mut u_alpha_dag = CxMat::eye(du_alphas[0].dim().0);
 
-  for (idt,_dt) in time_increments.iter().enumerate(){
+  for (idt,_dt) in tau_increments.iter().enumerate(){
     let n_timepoints = number_timepoints[idt];
     for _inumt in 0..n_timepoints{
     
@@ -112,8 +112,8 @@ pub fn propagate_pulse_sequence_gcce(
     return Err(CluEError::NoPulseSequence);
   };
 
-  let time_increments = &config.time_increments;
-  if time_increments.is_empty(){
+  let tau_increments = &config.tau_increments;
+  if tau_increments.is_empty(){
     return Err(CluEError::NoTimeIncrements);
   }
 
@@ -125,7 +125,7 @@ pub fn propagate_pulse_sequence_gcce(
 
   let mut signal = Vec::<Complex<f64>>::with_capacity(n_tot);
 
-  let dus = get_propagators(&hamiltonian,time_increments)?;
+  let dus = get_propagators(&hamiltonian,tau_increments)?;
   let mut u_of_tau = CxMat::eye(dus[0].dim().0);
 
   let Some(spin_multiplicity) = config.detected_spin_multiplicity else{
@@ -141,7 +141,7 @@ pub fn propagate_pulse_sequence_gcce(
 
   let detection_op0 = CxMat::eye(dus[0].dim().0);
 
-  for (idt,_dt) in time_increments.iter().enumerate(){
+  for (idt,_dt) in tau_increments.iter().enumerate(){
     let n_timepoints = number_timepoints[idt];
     for _inumt in 0..n_timepoints{
     
@@ -889,11 +889,11 @@ mod tests {
     config.number_timepoints = vec![nt];
     let delta_hf = a1 - a2;
     let freq = hahn_three_spin_modulation_frequency(delta_hf,b);
-    config.time_increments = vec![0.05/freq];
+    config.tau_increments = vec![0.05/freq];
     config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
 
     config.set_defaults().unwrap();
-    config.construct_time_axis().unwrap();
+    config.set_time_axis().unwrap();
   
     let hamiltonian = build_hamiltonian(&spin_indices,&spin_ops, &tensors,
         &config).unwrap();

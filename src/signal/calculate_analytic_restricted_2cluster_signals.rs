@@ -140,7 +140,7 @@ pub fn analytic_restricted_2cluster_signal(vertices: &[usize],
   let omega = 2.0*PI*hahn_three_spin_modulation_frequency(delta_hf,b);
   let k = hahn_three_spin_modulation_depth(delta_hf,b);
 
-  let time_axis = config.get_time_axis()?;
+  let time_axis = config.get_time_axis_as_ref()?;
   let nt = time_axis.len();
   let mut data = Vec::<Complex<f64>>::with_capacity(nt);
 

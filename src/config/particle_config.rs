@@ -31,11 +31,15 @@ pub struct ParticleConfig{
 pub fn set_particle_configs_from_toml_table(
     particle_configs: &mut Vec::<ParticleConfig>, 
     table: toml::Table,
+    unit_of_distance: f64,
     unit_of_energy: f64)
   -> Result<(),CluEError>
 {
-  let label = if let Some(name) = table.get(KEY_NAME){
-    name.to_string()
+  let label = if let Some(value) = table.get(KEY_NAME){
+    let Some(name) = value.as_str() else{
+      return Err(CluEError::ExpectedTOMLString(value.type_str().to_string()));
+    };
+    name
   } else{
     return Err(CluEError::MissingGroupName);
   };
@@ -50,10 +54,12 @@ pub fn set_particle_configs_from_toml_table(
   }
 
   if let Some(idx) = found_particle_config{
-    particle_configs[idx].set_from_toml_table(table,unit_of_energy)?;
+    particle_configs[idx].set_from_toml_table(table,
+        unit_of_distance, unit_of_energy)?;
   }else{
     particle_configs.push(
-        ParticleConfig::from_toml_table(table,unit_of_energy)?);
+        ParticleConfig::from_toml_table(table,
+          unit_of_distance, unit_of_energy)?);
   }
 
 
@@ -71,26 +77,35 @@ impl ParticleConfig{
     }
   }
   //----------------------------------------------------------------------------
-  pub fn from_toml_table(table: toml::Table, unit_of_energy: f64) 
+  pub fn from_toml_table(table: toml::Table, 
+      unit_of_distance:f64, unit_of_energy: f64) 
       -> Result<Self,CluEError>
   {
 
-    let label = if let Some(name) = table.get(KEY_NAME){
-      name.to_string()
+    let label = if let Some(value) = table.get(KEY_NAME){
+      let Some(name) = value.as_str() else{
+        return Err(CluEError::ExpectedTOMLString(value.type_str().to_string()));
+      };
+      name
     } else {
       return Err(CluEError::MissingGroupName);
     };
 
     let mut particle_config = Self::new(label.to_string());  
-    particle_config.set_from_toml_table(table,unit_of_energy)?;
+    particle_config.set_from_toml_table(table,unit_of_distance, unit_of_energy)?;
 
     Ok(particle_config)
   }
   //----------------------------------------------------------------------------
-  fn set_from_toml_table(&mut self, table: toml::Table, unit_of_energy: f64) 
+  fn set_from_toml_table(&mut self, 
+      table: toml::Table, 
+      unit_of_distance: f64, unit_of_energy: f64) 
     -> Result<(),CluEError>
   {
-    let label = if let Some(name) = table.get(KEY_NAME){
+    let label = if let Some(value) = table.get(KEY_NAME){
+      let Some(name) = value.as_str() else{
+        return Err(CluEError::ExpectedTOMLString(value.type_str().to_string()));
+      };
       name.to_string()
     } else {
       return Err(CluEError::MissingGroupName);
@@ -100,14 +115,25 @@ impl ParticleConfig{
       return Err(CluEError::MismatchedGroupNames(label,self.label.to_string()));
     }
 
+
     if let Some(value) = table.get(KEY_SELECTION){
       let Some(selection) = value.as_table() else{
         return Err(CluEError::ExpectedTOMLTable(value.type_str().to_string()));
       };
+
+      if let Some(value) = selection.get(KEY_CELL_TYPE){
+        let Some(cell_type_str) = value.as_str() else{
+          return Err(CluEError::ExpectedTOMLString(
+                value.type_str().to_string()));
+        };
+        self.cell_type = CellType::from(&cell_type_str)?;
+      }
+
       if let Some(filter) = &mut self.filter {
-        filter.set_from_toml_table(selection.clone())?;
+        filter.set_from_toml_table(selection.clone(),unit_of_distance)?;
       }else{
-        self.filter = Some(ParticleFilter::from_toml_table(selection.clone())?);
+        self.filter = Some(ParticleFilter::from_toml_table(
+              selection.clone(), unit_of_distance)?);
       }
     }
     if let Some(properties) = &mut self.properties {
@@ -151,6 +177,16 @@ pub enum CellType{
   AllCells,
   PrimaryCell,
   Extracells,
+}
+impl CellType{
+  fn from(cell_type: &str) -> Result<Self,CluEError>{
+    match cell_type{
+      "all_cells" => Ok(Self::AllCells),
+      "primary_cell" => Ok(Self::PrimaryCell),
+      "extracells" => Ok(Self::Extracells),
+      _ => Err(CluEError::CannotParseCellType(cell_type.to_string())),
+    }
+  }
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

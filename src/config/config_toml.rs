@@ -12,9 +12,9 @@ pub const DEFAULT_UNIT_MAGNETIC_FIELD: &str = "T";
 pub const DEFAULT_UNIT_TIME: &str = "μs";
 
 // General Keys
-pub const KEY_CUTOFF_COUPLING: &str = "coupling";
-pub const KEY_CUTOFF_DELTA_HF: &str = "delta_hyperfine";
-pub const KEY_CUTOFF_DIPOLE_PERP: &str = "dipole_perpendicular";
+pub const KEY_CUTOFF_COUPLING: &str = "coupling_xx_yy";
+pub const KEY_CUTOFF_DELTA_HF: &str = "delta_hyperfine_zz";
+pub const KEY_CUTOFF_DIPOLE_PERP: &str = "point_dipole_perpendicular";
 pub const KEY_CUTOFF_DISTANCE: &str = "distance";
 pub const KEY_CUTOFF_HAHN_MOD_DEPTH: &str = "hahn_mod_depth";
 pub const KEY_CUTOFF_HAHN_TAYLOR_4: &str = "hahn_taylor_4";
@@ -34,8 +34,8 @@ pub const KEY_OUT_TENSORS: &str = "tensors";
 pub const KEY_DENSITY_MATRIX_ID: &str  = "identity";
 pub const KEY_DENSITY_MATRIX_THERMAL: &str  = "thermal";
 
-pub const KEY_PARTITION_EX_GROUPS: &str = "particles_and_exchange_groups";
-pub const KEY_PARTITION_PARTICLE: &str = "particles";
+pub const KEY_PARTITION_EX_GROUPS: &str = "exchange_groups";
+pub const KEY_PARTITION_PARTICLE: &str = "singles";
 
 pub const KEY_ORI_LEBEDEV: &str = "lebedev";
 pub const KEY_ORI_RANDOM: &str = "random";
@@ -60,6 +60,8 @@ pub const KEY_ISO_COSUBSTITUTE: &str = "cosubstitute";
 
 // Filter Keys
 pub const KEY_SELECTION: &str = "selection";
+pub const KEY_CELL_TYPE: &str = "cell_type";
+
 
 pub const KEY_SELE_INDICES: &str = "indices";
 pub const KEY_SELE_NOT_INDICES: &str = "not_indices";
@@ -123,6 +125,7 @@ pub const KEY_VEC_SPECIFIER_FROM_SAME_MOLECULE_AS: &str = "from_same_molecule_as
 pub const KEY_VEC_SPECIFIER_TO: &str = "to";
 pub const KEY_VEC_SPECIFIER_TO_BONDED_TO: &str = "to_bonded_to";
 pub const KEY_VEC_SPECIFIER_TO_SAME_MOLECULE_AS: &str = "to_same_molecule_as";
+pub const KEY_VEC_SPECIFIER_RANDOM: &str = "random";
    
 // moveed trait def to io.rs.
 //pub trait FromTOMLString{
@@ -163,7 +166,7 @@ pub struct ParticlePropertiesTOML{
 #[derive(Debug,Clone,PartialEq,Serialize,Deserialize)]
 pub struct OrientationsTOML{
   pub grid: Option<String>,
-  pub number_points: Option<usize>,
+  pub number: Option<usize>,
   pub file: Option<String>,
   pub vector: Option<Vec::<f64>>,
   pub vector_grid: Option<Vec::<Vec::<f64>>>,
@@ -177,29 +180,27 @@ pub struct ConfigTOML{
   pub clash_distance: Option<f64>, 
   pub clash_distance_pbc: Option<f64>,
   pub cluster_batch_size: Option<usize>, 
-  pub cluster_density_matrix: Option<String>, 
+  pub populations: Option<String>, 
   pub cluster_method: Option<String>,
   pub clusters_file: Option<String>,
   pub input_structure_file: Option<String>,
-  pub load_geometry: Option<String>,
   pub magnetic_field: Option<f64>,
   pub max_cell_size: Option<usize>,
   pub max_cluster_size: Option<usize>,
   pub max_spins: Option<usize>,
   pub min_cell_size: Option<usize>,
-  pub number_system_instances: Option<usize>, 
+  pub number_runs: Option<usize>, 
   pub number_timepoints: Option<Vec::<usize>>,
-  pub periodic_boundary_conditions: Option<toml::Value>,
-  pub partitioning_method: Option<String>, 
+  pub replicate_unit_cell: Option<toml::Value>,
+  pub partitioning: Option<String>, 
   pub pdb_model_index: Option<usize>,
   pub pulse_sequence: Option<String>,  
   pub radius: Option<f64>,
   pub rng_seed: Option<u64>,
-  pub root_dir: Option<String>, 
-  pub save_name: Option<String>,
-  pub system_name: Option<String>,
+  pub output_directory: Option<String>,
+  pub run_name: Option<String>,
   pub temperature: Option<f64>,  
-  pub time_increments: Option<Vec::<f64>>,
+  pub tau_increments: Option<Vec::<f64>>,
   pub unit_of_energy: Option<String>,
   pub unit_of_magnetic_field: Option<String>,
   pub unit_of_distance: Option<String>,
@@ -264,24 +265,23 @@ mod tests{
     // Energy: Mhz,
     // Magnetic Field, T,
     let toml_str = r##"
-        periodic_boundary_conditions = false
+        replicate_unit_cell = false
         clash_distance_pbc = 0.1
         cluster_batch_size = 20000
 
-        cluster_density_matrix = "thermal"
+        populations = "thermal"
         temperature = 20
 
         cluster_method = "CCE"
         clusters_file = "clusters_file.txt"
         input_structure_file = "../../assets/TEMPO_wat_gly_70A.pdb"
-        load_geometry = "ball"
         magnetic_field = 1.2
         max_cell_size = 2
         max_cluster_size = 4
         max_spins = 8
         min_cell_size = 1
-        number_system_instances = 1
-        partitioning_method = "exchange_groups_and_particles"
+        number_runs = 1
+        partitioning = "exchange_groups"
         pdb_model_index = 0
         
         ##pulse_sequence = { CarrPurcell = 1 }
@@ -289,19 +289,18 @@ mod tests{
 
         radius = 80
         rng_seed = 0
-        root_dir = "."
         save_dir = "save_directory"
 
         number_timepoints = [40,60]
-        time_increments = [1, 500] # ns
+        tau_increments = [1, 500] # ns
 
         [orientations]
         grid = "lebedev" 
-        number_points = 170
+        number = 170
 
         #[orientations]
         #grid = "random" 
-        #number_points = 170
+        #number = 170
 
         #[orientations]
         #grid = "file"
@@ -340,8 +339,8 @@ mod tests{
 
         [pair_cutoffs]
         coupling = 1e+3
-        delta_hyperfine = 1e04
-        dipole_perpendicular = 100
+        delta_hyperfine_zz = 1e04
+        point_dipole_perpendicular = 100
         distance = 10
         hahn_mod_depth = 1e-10
         hahn_taylor_4 = 1e-9
@@ -402,21 +401,9 @@ mod tests{
 
       "##;
 
-    let mut config = ConfigTOML::from_toml_string(toml_str).unwrap();  
+    let config = ConfigTOML::from_toml_string(toml_str).unwrap();  
 
-
-    /* 
-    if let Some(spin) = &mut config.detected_spin{
-      spin.gz = Some(VectorSpecifierTOML::Diff(vec![
-        SecondaryParticleFilterTOML::Particle,
-        //SecondaryParticleFilterTOML::Label("tempo_c1".to_string()),
-        SecondaryParticleFilterTOML::Label("tempo_c19".to_string()),
-      ]));
-    }
-    */
     
-    assert_eq!(config.periodic_boundary_conditions.unwrap().as_bool().unwrap(), 
-        false);
   }
   //----------------------------------------------------------------------------
 }

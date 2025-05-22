@@ -21,7 +21,7 @@ pub fn spin_x(spin_multiplicity: usize)
 {
   let s = clue_spin::spin_x(spin_multiplicity);
   Python::with_gil(|py|{
-      PyArray::from_owned_array_bound(py, s).unbind() 
+      PyArray::from_owned_array(py, s).unbind() 
   })
 }
 //------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ pub fn spin_y(spin_multiplicity: usize)
   let s = clue_spin::spin_y(spin_multiplicity);
 
   Python::with_gil(|py|{
-      PyArray::from_owned_array_bound(py, s).unbind() 
+      PyArray::from_owned_array(py, s).unbind() 
   })
 }
 //------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ pub fn spin_z(spin_multiplicity: usize)
   let s = clue_spin::spin_z(spin_multiplicity);
 
   Python::with_gil(|py|{
-      PyArray::from_owned_array_bound(py, s).unbind() 
+      PyArray::from_owned_array(py, s).unbind() 
   })
 }
 //------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ pub fn spin_plus(spin_multiplicity: usize)
   let s = clue_spin::spin_plus(spin_multiplicity);
 
   Python::with_gil(|py|{
-      PyArray::from_owned_array_bound(py, s).unbind() 
+      PyArray::from_owned_array(py, s).unbind() 
   })
 }
 //------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ pub fn spin_minus(spin_multiplicity: usize)
   let s = clue_spin::spin_minus(spin_multiplicity);
 
   Python::with_gil(|py|{
-      PyArray::from_owned_array_bound(py, s).unbind() 
+      PyArray::from_owned_array(py, s).unbind() 
   })
 }
 //------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ pub fn spin_squared(spin_multiplicity: usize)
   let s = clue_spin::spin_squared(spin_multiplicity);
 
   Python::with_gil(|py|{
-      PyArray::from_owned_array_bound(py, s).unbind() 
+      PyArray::from_owned_array(py, s).unbind() 
   })
 }
 //------------------------------------------------------------------------------

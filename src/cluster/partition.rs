@@ -5,10 +5,7 @@ use crate::cluster::{
   unit_of_clustering::UnitOfClustering,
 };
 use crate::clue_errors::CluEError;
-use crate::config::{
-  Config,
-  token::Token,
-};
+use crate::config::Config;
 use crate::math;
 use crate::quantum::tensors::HamiltonianTensors;
 use crate::structure::{
@@ -19,28 +16,12 @@ use crate::structure::{
 use std::collections::HashMap;
 
 // TODO: Change this to a value in Config.
-const DROP_ALL_SPINS_FROM_METHYLS_THAT_ARE_NOT_CLUSTERS: bool = true;
+const DROP_ALL_SPINS_FROM_METHYLS_THAT_ARE_NOT_CLUSTERS: bool = false;
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 #[derive(Debug,Clone,PartialEq)]
 pub enum PartitioningMethod{
   Particles, 
   ExchangeGroupsAndParticles,
-}
-impl PartitioningMethod{
-
-  //----------------------------------------------------------------------------
-  pub fn from(partitioning_method: &[Token], line_number: usize) 
-      -> Result<Self,CluEError>
-  {
-    match partitioning_method[0]{
-      Token::Particles => Ok(Self::Particles),
-      Token::ExchangeGroupsAndParticles => Ok(Self::ExchangeGroupsAndParticles),
-      _ => Err(CluEError::CannotParsePartitioningMethod(line_number,
-            partitioning_method[0].to_string())),
-    }
-  }
-  //----------------------------------------------------------------------------
-
 }
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -149,11 +130,11 @@ pub fn get_partition_table(spin_adjacency_list: &AdjacencyList,
     structure: &Structure, config: &Config) 
     -> Result<PartitionTable,CluEError>
 {
-  let Some(partitioning_method) = &config.partitioning_method else{
+  let Some(partitioning) = &config.partitioning else{
     return Err(CluEError::NoPartitioningMethod)
   };
 
-  let element_to_block: Vec::<PartitionBlock> = match partitioning_method{
+  let element_to_block: Vec::<PartitionBlock> = match partitioning{
     PartitioningMethod::Particles => {
       let mut el_to_blk : Vec::<PartitionBlock>
         = (0..tensors.len()).map(PartitionBlock::Bath).collect();
@@ -188,16 +169,14 @@ fn get_element_to_block_exchange_groups_and_particles(
     return Ok(element_to_block);
   }
  
-  // The o index in tensors is the detected spin's.  
+  // The 0 index in tensors is the detected spin's.  
   element_to_block[0] = PartitionBlock::Detection;
 
   // Initialize an id counter.
   let mut max_id = 0;
 
-
   // Loop through all exchange groups.
-  for (ex_grp_id,exchange_group) in exchange_group_manager.exchange_groups
-      .iter().enumerate()
+  for exchange_group in exchange_group_manager.exchange_groups.iter()
   {
 
     // Get indices for exchange group.
@@ -209,45 +188,34 @@ fn get_element_to_block_exchange_groups_and_particles(
     }
 
     let mut spins = Vec::<usize>::with_capacity(3);
-    for bath_idx in exchange_group.indices(){
-      let Some(spin_idx) = structure.bath_indices_to_active_indices[bath_idx] 
-      else{
-        // TODO: Handle without an error.
-        return Err(CluEError::InconsistentExhangeGroupActiveStatus(ex_grp_id))      
-      }; 
-      spins.push(spin_idx);
+    for &bath_idx in indices.iter(){
+      if let Some(spin_idx) 
+          = structure.bath_indices_to_active_indices[bath_idx] {
+        spins.push(spin_idx);
+      }
     }
 
-    let num_edges = 
-      spin_adjacency_list.are_connected(spins[0],spins[1]) as usize
-      + spin_adjacency_list.are_connected(spins[0],spins[2]) as usize
-      + spin_adjacency_list.are_connected(spins[1],spins[2]) as usize;
+    let mut num_edges = 0;
+    for &spin_idx0 in spins.iter(){
+      for &spin_idx1 in spins.iter(){
+        if spin_idx0 >= spin_idx1 { continue; }
+          num_edges += spin_adjacency_list
+            .are_connected(spin_idx0,spin_idx1) as usize;
+      }
+    }
 
-    if num_edges < 2{
-      if DROP_ALL_SPINS_FROM_METHYLS_THAT_ARE_NOT_CLUSTERS{
-        for idx in spins.iter(){
-          element_to_block[*idx] = PartitionBlock::Inactive;
+    if spins.len() != 3 || num_edges < 2{
+      for spin_idx in spins.iter(){
+        if DROP_ALL_SPINS_FROM_METHYLS_THAT_ARE_NOT_CLUSTERS{
+          element_to_block[*spin_idx] = PartitionBlock::Inactive;
+        }else{
+          max_id += 1;
+          element_to_block[*spin_idx] = PartitionBlock::Bath(max_id);
         }
-      
       }
       continue;
     }
 
-    // Check all vertice are either active or inactive.
-    /*
-    for idx in spins.iter().skip(1){
-      if spin_adjacency_list.are_connected(*idx,*idx)
-          != spin_adjacency_list.are_connected(spins[0],spins[0]){
-        return Err(CluEError::InconsistentExhangeGroupActiveStatus(ex_grp_id))      
-      }
-    }
-    */
-
-
-    // Skip inactive exchange groups.
-    //if !structure.bath_particles[indices[0]].active{
-    //  continue;
-    //}
 
     // Assign block ID.
     max_id += 1;
@@ -534,6 +502,7 @@ mod tests{
   use crate::find_clusters;
   use crate::build_adjacency_list;
   use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+  use crate::io::FromTOMLString;
 
   //----------------------------------------------------------------------------
   //    block 0-----block 1     block 2---block 3---block 4
@@ -826,26 +795,26 @@ mod tests{
   //----------------------------------------------------------------------------
   fn get_tempo() -> (AdjacencyList,HamiltonianTensors,Structure,Config)
   {
-    let config = Config::from("\
-      input_structure_file = \"./assets/TEMPO.pdb\"; \
-      detected_spin_position = centroid_over_serials([28,29]);\
-      radius = 73.5676;\
-      magnetic_field = 1.2;\
-      apply_pbc = false;\
-      partitioning_method = exchange_groups_and_particles;\
-      \
-      pulse_sequence = hahn;\
-      time_increments = 1e-8;\
-      number_timepoints = 101;\
-      neighbor_cutoff_3_spin_hahn_mod_depth = 3.23e-5;\
-      neighbor_cutoff_3_spin_hahn_taylor_4 = 1e17;\
-      \
-      #[group(hydrogen)]\
-        elements in [H];\
-      \
-      #[spin_properties(hydrogen, 1H)]\
-        tunnel_splitting = 75e3;\
-    ").unwrap();
+    let config = Config::from_toml_string(r##"
+      input_structure_file = "./assets/TEMPO.pdb"
+      detected_spin.position = [28,29]
+      radius = 73.5676
+      magnetic_field = 1.2
+      replicate_unit_cell = false
+      partitioning = "exchange_groups"
+      
+      pulse_sequence = "hahn"
+      tau_increments = [1e-2]
+      number_timepoints = [101]
+      [pair_cutoffs]
+      hahn_mod_depth = 3.23e-5
+      hahn_taylor_4 = 6.416238909177711e-11
+      
+      [[groups]]
+      name = "hydrogens"
+      selection.elements = ["H"]
+      1H.c3_tunnel_splitting = 75e-3
+    "##).unwrap();
 
     let mut rng = ChaCha20Rng::seed_from_u64(0);
     let mut structure = Structure::build_structure(&mut rng, &config).unwrap();
@@ -854,7 +823,8 @@ mod tests{
     structure.map_nth_active_to_reference_indices();
 
     assert_eq!(structure.bath_particles.len(),29);
-    let tensors = HamiltonianTensors::generate(&structure, &config).unwrap();
+    let tensors = HamiltonianTensors::generate(&mut rng, &structure, &config)
+        .unwrap();
 
     let adjacency_list = build_adjacency_list(&tensors, &structure, &config)
         .unwrap();

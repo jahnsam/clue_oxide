@@ -10,7 +10,7 @@ use std::ops::{Add,Sub,Mul,Div};
 
 #[pyclass(name = "Signal")]
 pub struct PySignal{
-  signal: Signal,
+  pub signal: Signal,
 }
 
 #[pymethods]
@@ -53,19 +53,19 @@ impl PySignal{
     Ok(self.signal.write_to_csv(&filename)?)
   }
   //----------------------------------------------------------------------------
-  fn len(&self) -> usize{
+  pub fn len(&self) -> usize{
     self.signal.len()
   }
   //----------------------------------------------------------------------------
-  fn mut_scale(&mut self, value: Complex::<f64>){
+  pub fn mut_scale(&mut self, value: Complex::<f64>){
     self.signal.mut_scale(value)
   }
   //----------------------------------------------------------------------------
-  fn scale(&self, value: Complex::<f64>) -> Self{
+  pub fn scale(&self, value: Complex::<f64>) -> Self{
     Self{signal: self.signal.scale(value)}
   }
   //----------------------------------------------------------------------------
-  fn rmsd_with(&self, other: &PySignal) -> f64{
+  pub fn rmsd_with(&self, other: &PySignal) -> f64{
     
     let n = self.len(); 
     assert_eq!(n, other.len());

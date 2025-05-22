@@ -273,12 +273,12 @@ mod tests{
     config.number_timepoints = vec![21];
     let delta_hf = a1 - a2;
     let freq = hahn_three_spin_modulation_frequency(delta_hf,b);
-    config.time_increments = vec![0.05/freq];
+    config.tau_increments = vec![0.05/freq];
     config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
     config.unit_of_clustering = Some(UnitOfClustering::Spin);
 
     config.set_defaults().unwrap();
-    config.construct_time_axis().unwrap();
+    config.set_time_axis().unwrap();
   
 
     let mut adjacency_list = AdjacencyList::with_capacity(5);
@@ -335,11 +335,11 @@ mod tests{
     config.number_timepoints = vec![21];
     let delta_hf = a1 - a2;
     let freq = hahn_three_spin_modulation_frequency(delta_hf,b);
-    config.time_increments = vec![0.05/freq];
+    config.tau_increments = vec![0.05/freq];
     config.pulse_sequence = Some(PulseSequence::CarrPurcell(1));
 
     config.set_defaults().unwrap();
-    config.construct_time_axis().unwrap();
+    config.set_time_axis().unwrap();
   
     let signal_opt  = calculate_cluster_signal(&vec![1,2], &spin_ops, &tensors, 
         &config).unwrap();

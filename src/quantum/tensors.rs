@@ -12,6 +12,8 @@ use crate::structure::exchange_groups::ExchangeGroup;
 use crate::symmetric_list_2d::SymList2D;
 
 
+use rand_chacha::ChaCha20Rng;
+
 //use std::fs;
 //use std::fs::File;
 //use std::io::{Error, Write};
@@ -62,7 +64,8 @@ impl HamiltonianTensors{
   //----------------------------------------------------------------------------
   /// This function builds the spin Hamiltonian from the input structure
   /// and user specifications.
-  pub fn generate(structure: &Structure, config: &Config) 
+  pub fn generate(rng: &mut ChaCha20Rng,
+      structure: &Structure, config: &Config) 
     -> Result<Self,CluEError>
   {
 
@@ -111,7 +114,7 @@ impl HamiltonianTensors{
 
 
       // nuclear Zeeman
-      let bath_zeeman = construct_bath_zeeman_tensor(particle_idx0,
+      let bath_zeeman = construct_bath_zeeman_tensor(rng,particle_idx0,
           magnetic_field, structure, config)?;
       //let bath_zeeman = construct_zeeman_tensor(&(gamma0*&zz),magnetic_field);
 
@@ -123,14 +126,14 @@ impl HamiltonianTensors{
 
 
       // hyperfine
-      let hf_ten = construct_hyperfine_tensor(detected_particle, particle0, 
+      let hf_ten = construct_hyperfine_tensor(rng,detected_particle, particle0, 
           particle_idx0, structure, config)?; 
 
       spin2_tensors.set(0,idx0, hf_ten);
 
       
       // electric quadrupole coupling
-      let quadrupole_opt = construct_electric_quadrupole_tensor(particle0, 
+      let quadrupole_opt = construct_electric_quadrupole_tensor(rng,particle0, 
           particle_idx0, structure, config)?;
 
       if let Some(quadrupole_ten) = quadrupole_opt{
@@ -485,7 +488,8 @@ pub fn construct_zeeman_tensor(
   (-0.5/PI)*&(magnetic_field * gyromagnetic_ratio)
 }
 //------------------------------------------------------------------------------
-fn construct_bath_zeeman_tensor(particle_index: usize, magnetic_field: &Vector3D,
+fn construct_bath_zeeman_tensor(rng: &mut ChaCha20Rng,
+    particle_index: usize, magnetic_field: &Vector3D,
     structure: &Structure, config: &Config)
   -> Result<Vector3D, CluEError>
 {
@@ -494,7 +498,7 @@ fn construct_bath_zeeman_tensor(particle_index: usize, magnetic_field: &Vector3D
   let gamma_matrix = if let Some(tensor_specifier) = structure
     .extract_g_matrix_specifier(particle_index,config)
   {
-    let g_matrix = construct_symmetric_tensor_from_tensor_specifier(
+    let g_matrix = construct_symmetric_tensor_from_tensor_specifier(rng,
         tensor_specifier, Some(particle_index),structure, config)?;
      
     let mu: f64 = if particle.isotope == Isotope::Electron{
@@ -518,7 +522,7 @@ fn construct_bath_zeeman_tensor(particle_index: usize, magnetic_field: &Vector3D
   Ok(construct_zeeman_tensor(&gamma_matrix,magnetic_field))
 }
 //------------------------------------------------------------------------------
-fn construct_electric_quadrupole_tensor(
+fn construct_electric_quadrupole_tensor(rng: &mut ChaCha20Rng,
     particle0: &Particle,particle_index: usize,
     structure: &Structure, config: &Config)
   -> Result<Option<SymmetricTensor3D>, CluEError>
@@ -530,7 +534,7 @@ fn construct_electric_quadrupole_tensor(
   match structure.extract_electric_quadrupole_specifier(particle_index,config)
   {
     Some(tensor_specifier) => {
-      let tensor = construct_symmetric_tensor_from_tensor_specifier(
+      let tensor = construct_symmetric_tensor_from_tensor_specifier(rng,
         tensor_specifier, Some(particle_index),structure, config)?;
 
       if tensor.any_nan(){
@@ -543,7 +547,8 @@ fn construct_electric_quadrupole_tensor(
   }
 }
 //------------------------------------------------------------------------------
-fn construct_hyperfine_tensor(detected_particle: &DetectedSpin, 
+fn construct_hyperfine_tensor(rng: &mut ChaCha20Rng,
+    detected_particle: &DetectedSpin, 
     particle0: &Particle, particle_index: usize, 
     structure: &Structure, config: &Config) 
   -> Result<SymmetricTensor3D, CluEError>
@@ -553,7 +558,7 @@ fn construct_hyperfine_tensor(detected_particle: &DetectedSpin,
   if let Some(tensor_specifier) = structure
     .extract_hyperfine_specifier(particle_index,config)
   {
-    tensor = construct_symmetric_tensor_from_tensor_specifier(
+    tensor = construct_symmetric_tensor_from_tensor_specifier(rng,
         tensor_specifier, Some(particle_index),structure, config)?;
 
   }else{
@@ -633,7 +638,7 @@ pub fn construct_symmetric_tensor_from_values_and_vectors(
 /// This function takes `&TensorSpecifier` and generates a `SymmetricTensor3D`.
 /// Depending on the `TensorSpecifier`, additional information may be 
 /// required, which is supplied by the other arguments.
-pub fn construct_symmetric_tensor_from_tensor_specifier(
+pub fn construct_symmetric_tensor_from_tensor_specifier(rng: &mut ChaCha20Rng,
     tensor_specifier: &TensorSpecifier, particle_index_opt: Option<usize>,
     structure: &Structure, config: &Config) 
   -> Result<SymmetricTensor3D, CluEError>
@@ -641,13 +646,13 @@ pub fn construct_symmetric_tensor_from_tensor_specifier(
   match tensor_specifier{
     TensorSpecifier::Unspecified => Err(CluEError::NoTensorSpecifier),
     TensorSpecifier::Eig(eig_specifier) 
-        => construct_symmetric_tensor_from_eig_specifier(eig_specifier,
+        => construct_symmetric_tensor_from_eig_specifier(rng,eig_specifier,
             particle_index_opt, structure, config),
     TensorSpecifier::SymmetricTensor3D(tensor) => Ok(tensor.clone()),
   }
 }
 //------------------------------------------------------------------------------
-fn construct_symmetric_tensor_from_eig_specifier(
+fn construct_symmetric_tensor_from_eig_specifier(rng: &mut ChaCha20Rng,
     tensor_specifier: &EigSpecifier, particle_index_opt: Option<usize>,
     structure: &Structure, config: &Config) 
   -> Result<SymmetricTensor3D, CluEError>
@@ -663,7 +668,7 @@ fn construct_symmetric_tensor_from_eig_specifier(
   const Y: usize = 1;
   const Z: usize = 2;
   if let Some(axis_specifier) = &tensor_specifier.z_axis{
-    let mut axis = axis_specifier.to_vector3d(particle_index_opt,structure,
+    let mut axis = axis_specifier.to_vector3d(rng,particle_index_opt,structure,
         config)?;
     axis = axis.normalize();
     axes.push(axis);
@@ -671,7 +676,7 @@ fn construct_symmetric_tensor_from_eig_specifier(
   }
 
   if let Some(axis_specifier) = &tensor_specifier.x_axis{
-    let mut axis = axis_specifier.to_vector3d(particle_index_opt,structure,
+    let mut axis = axis_specifier.to_vector3d(rng,particle_index_opt,structure,
         config)?;
 
     if axes.len() == 1{
@@ -684,7 +689,8 @@ fn construct_symmetric_tensor_from_eig_specifier(
 
   if axes.len() < 2 {
     if let Some(axis_specifier) = &tensor_specifier.y_axis{
-      let mut axis = axis_specifier.to_vector3d(particle_index_opt, structure, 
+      let mut axis = axis_specifier.to_vector3d(rng,
+          particle_index_opt, structure, 
           config)?;
       if axes.len() == 1{
         axis = &axis - &axes[0].scale(axes[0].dot(&axis));
@@ -743,7 +749,8 @@ mod tests{
   use crate::config::DetectedSpinCoordinates;
   use crate::structure::particle_filter::{ParticleFilter, 
     SecondaryParticleFilter,VectorSpecifier};
-  use crate::config::lexer::get_tokens_from_line;
+  //use crate::config::lexer::get_tokens_from_line;
+  use crate::io::FromTOMLString;
 
   use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
 
@@ -752,57 +759,58 @@ mod tests{
   #[test]
   fn test_HamiltonianTensors_generate(){
 
-    let token_stream = get_tokens_from_line("
-        input_structure_file = \"assets/TEMPO.pdb\";
-        radius = 18; // angstroms.
-        detected_spin_position = centroid_over_serials([28,29]);
-        number_timepoints = [101];
-        time_increments = [1e-7];
-        cluster_method = cce;
-        max_cluster_size = 2;
-        magnetic_field = 1.2;
-        apply_pbc = true;
+    let mut config = Config::from_toml_string(r##"
+        input_structure_file = "assets/TEMPO.pdb"
+        radius = 18 
+        number_timepoints = [101]
+        tau_increments = [1e-1] 
+        cluster_method = "cce"
+        max_cluster_size = 2
+        magnetic_field = 1.2
+        periodic_boundadry_conditions = true
 
-        #[filter(label = tempo_h)]
-          residues in [TEM];
-          elements in [H];
+        [detected_spin]
+        position = [28,29]
 
-        #[spin_properties(label = tempo_h, isotope = 1H)]
-          tunnel_splitting = 80e3; // Hz.
+        [[groups]]
+        name = "tempo_h"
+        selection.residues = ["TEM"]
+        selection.elements = ["H"]
 
-        #[filter(label = tempo_o)]
-          residues in [TEM];
-          elements in [O];
+        1H.c3_tunnel_splitting = 80e-3
 
-        #[filter(label = tempo_c)]
-          residues in [TEM];
-          elements in [C];
+        [[groups]]
+        name = "tempo_o"
+        selection.residues = ["TEM"]
+        selection.elements = ["O"]
 
-        #[filter(label = tempo_n)]
-          residues in [TEM];
-          elements in [N];
+        [[groups]]
+        name = "tempo_c"
+        selection.residues = ["TEM"]
+        selection.elements = ["C"]
 
-        #[spin_properties(label = tempo_n, isotope = 14N)]
-          electric_quadrupole_coupling = [-1120000.0, -5880000.0, 7000000.0];
-          electric_quadrupole_x = diff(particle, same_molecule(tempo_o));
-          electric_quadrupole_y = diff(bonded(tempo_c),bonded(tempo_c));
+        [[groups]]
+        name = "tempo_n"
+        selection.residues = ["TEM"]
+        selection.elements = ["N"]
 
-          hyperfine_coupling = [16086000, 16086000, 103356000];
-          hyperfine_x = vector([-1.15e-10, -4.70e-11,  7.10e-11]);
-          hyperfine_y = vector([-1.09,  2.23, -0.49]*1e-10);
+        14N.electric_quadrupole.values = [-1.12, -5.88, 7.0]
+        14N.electric_quadrupole.axes.x = {to_same_molecule_as = "tempo_o"}
+        14N.electric_quadrupole.axes.y.from_bonded_to = "tempo_c"
+        14N.electric_quadrupole.axes.y.to_bonded_to = "tempo_c"
+        
 
-          // unrealistic, but useful for testing
-          g_matrix = [1, 1, 1];
-          g_x = vector([-1.15e-10, -4.70e-11,  7.10e-11]);
-          g_y = vector([-1.09,  2.23, -0.49]*1e-10);
+        14N.hyperfine.values = [16.086, 16.086, 103.356]
+        14N.hyperfine.axes.x = [-1.15, -0.47,  0.71]
+        14N.hyperfine.axes.y = [-1.09,  2.23, -0.49]
+
+        # unrealistic, but useful for testing
+        14N.g_matrix.values = [1.0, 1.0, 1.0]
+        14N.g_matrix.axes.x = [-1.15, -0.47,  0.71]
+        14N.g_matrix.axes.y = [-1.09,  2.23, -0.49]
 
 
-        ").unwrap();
-
-    let mut config = Config::new();
-
-    config.parse_token_stream(token_stream).unwrap();
-
+        "##).unwrap();
     config.set_defaults().unwrap();
 
     let mut rng = ChaCha20Rng::from_entropy();
@@ -811,7 +819,8 @@ mod tests{
 
     assert_eq!(structure.number_active(),19);
 
-    let tensors = HamiltonianTensors::generate(&structure,&config).unwrap();
+    let tensors = HamiltonianTensors::generate(&mut rng, &structure, &config)
+        .unwrap();
 
     assert_eq!(tensors.spin_multiplicities.len(),20);
 
@@ -888,13 +897,14 @@ mod tests{
   //----------------------------------------------------------------------------
   #[test]
   fn test_construct_symmetric_tensor_from_tensor_specifier(){
+    let mut rng = ChaCha20Rng::from_entropy();
     let filename = "./assets/TEMPO.pdb";
     let mut structure = pdb::parse_pdb(&filename,0).unwrap();
     let mut config = Config::new();
     config.detected_spin_position = Some(
         DetectedSpinCoordinates::CentroidOverSerials(vec![28,29]) );
     config.set_defaults().unwrap();
-    structure.build_primary_structure(&config).unwrap();
+    structure.build_primary_structure(&mut rng, &config).unwrap();
 
     config.particles.push( ParticleConfig::new("nitrogen".to_string()) );
     let mut filter = ParticleFilter::new();
@@ -932,11 +942,13 @@ mod tests{
     let particle_index = 27;
     assert_eq!(structure.bath_particles[particle_index].element,
         Element::Nitrogen);
-    let r_no = vector_specifier_no.to_vector3d(Some(particle_index),&structure,
+    let r_no = vector_specifier_no.to_vector3d(&mut rng,
+        Some(particle_index),&structure,
         &config).unwrap();
     assert_eq!(r_no,delta_r_no);
 
-    let r_cc = vector_specifier_cc.to_vector3d(Some(particle_index),&structure,
+    let r_cc = vector_specifier_cc.to_vector3d(&mut rng,
+        Some(particle_index),&structure,
         &config).unwrap();
     assert_eq!(r_cc,delta_r_cc);
 
@@ -960,7 +972,7 @@ mod tests{
       z_axis: None,
     });
 
-    let tensor = construct_symmetric_tensor_from_tensor_specifier(
+    let tensor = construct_symmetric_tensor_from_tensor_specifier(&mut rng,
         &tensor_specifier, Some(particle_index),&structure, &config).unwrap();
 
     let x = r_no.normalize();

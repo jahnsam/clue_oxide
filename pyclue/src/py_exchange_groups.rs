@@ -31,7 +31,7 @@ impl PyExchangeGroupManager{
       centroids[[2,ii]] = r.z();
     }
     Python::with_gil(|py|{
-        PyArray::from_owned_array_bound(py, centroids).unbind()
+        PyArray::from_owned_array(py, centroids).unbind()
     })
   }
 }

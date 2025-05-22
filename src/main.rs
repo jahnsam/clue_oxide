@@ -72,12 +72,13 @@ fn main() {
         std::process::exit(1);
       });
 
-  config.construct_time_axis().unwrap_or_else(
+  /*
+  config.set_time_axis().unwrap_or_else(
       |err| {
         eprintln!("CluE Error: {}.",err);
         std::process::exit(1);
       });
-
+  */
   // Run simulations.
   clue_oxide::run(config).unwrap_or_else(
       |err| {
